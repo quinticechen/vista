@@ -85,7 +85,8 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
   };
 
   // Calculate background opacity based on scroll progress
-  const backgroundOpacity = Math.min(0.97, 0.75 + (scrollProgress * 0.25));
+  // Start with higher base opacity and increase to nearly opaque when fully scrolled
+  const backgroundOpacity = Math.min(1, 0.9 + (scrollProgress * 0.1));
 
   return (
     <motion.section 
@@ -117,7 +118,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
             <button
               key={option.id}
               onClick={() => handleOptionClick(option.inputContent)}
-              className="button-purpose animate-fade-up bg-white bg-opacity-80 hover:bg-opacity-100 transition-all p-3 rounded-md border border-beige-300 text-beige-800 hover:border-beige-500"
+              className="button-purpose animate-fade-up bg-white bg-opacity-90 hover:bg-opacity-100 transition-all p-3 rounded-md border border-beige-300 text-beige-800 hover:border-beige-500"
             >
               {option.buttonText}
             </button>
@@ -131,7 +132,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
             onChange={handleTextareaChange}
             placeholder="Tell me why you're visiting this website..."
             rows={1}
-            className="flex-grow bg-white border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800 rounded-md p-2 min-h-[42px] resize-none"
+            className="flex-grow bg-white bg-opacity-90 border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800 rounded-md p-2 min-h-[42px] resize-none"
             style={{ overflow: 'hidden' }}
           />
           <Button 
