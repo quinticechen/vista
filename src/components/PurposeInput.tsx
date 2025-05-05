@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -101,10 +100,9 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
       {/* Wave Transition at the top */}
       <WaveTransition scrollProgress={scrollProgress} />
       
-      {/* Background overlay with dynamic opacity */}
+      {/* Background overlay with solid opacity */}
       <div 
         className="absolute inset-0 bg-beige-100 z-0"
-        style={{ opacity: backgroundOpacity }}
       ></div>
       
       <div className="max-w-4xl mx-auto w-full z-10 relative">
@@ -118,7 +116,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
             <button
               key={option.id}
               onClick={() => handleOptionClick(option.inputContent)}
-              className="button-purpose animate-fade-up bg-white bg-opacity-90 hover:bg-opacity-100 transition-all p-3 rounded-md border border-beige-300 text-beige-800 hover:border-beige-500"
+              className="button-purpose animate-fade-up bg-white hover:bg-opacity-100 transition-all p-3 rounded-md border border-beige-300 text-beige-800 hover:border-beige-500"
             >
               {option.buttonText}
             </button>
@@ -132,7 +130,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
             onChange={handleTextareaChange}
             placeholder="Tell me why you're visiting this website..."
             rows={1}
-            className="flex-grow bg-white bg-opacity-90 border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800 rounded-md p-2 min-h-[42px] resize-none"
+            className="flex-grow bg-white border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800 rounded-md p-2 min-h-[42px] resize-none"
             style={{ overflow: 'hidden' }}
           />
           <Button 

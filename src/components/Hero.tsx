@@ -1,7 +1,6 @@
 
 import { ArrowDown } from "lucide-react";
 import { motion } from "framer-motion";
-import WaveTransition from "./WaveTransition";
 
 interface HeroProps {
   scrollToInput: () => void;
@@ -51,9 +50,6 @@ const Hero = ({ scrollToInput, scrollProgress }: HeroProps) => {
       >
         <ArrowDown className="w-6 h-6 text-beige-600" />
       </motion.div>
-
-      {/* Add the wave transition */}
-      <WaveTransition scrollProgress={scrollProgress} />
     </motion.section>
   );
 };
