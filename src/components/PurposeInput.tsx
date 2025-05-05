@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import WaveTransition from "./WaveTransition";
 
 interface PurposeOption {
   id: string;
@@ -83,16 +84,29 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
     textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
+  // Calculate background opacity based on scroll progress
+  const backgroundOpacity = Math.min(0.97, 0.75 + (scrollProgress * 0.25));
+
   return (
     <motion.section 
       id="purpose-input" 
-      className="min-h-screen flex items-center py-16 px-4 md:px-8 lg:px-16 bg-beige-100 relative"
+      className="min-h-screen flex items-center py-16 px-4 md:px-8 lg:px-16 relative"
       style={{
         opacity: scrollProgress,
-        transform: `translateY(${(1 - scrollProgress) * 50}px)`
+        transform: `translateY(${(1 - scrollProgress) * 50}px)`,
+        position: "relative"
       }}
-    >      
-      <div className="max-w-4xl mx-auto w-full">
+    >
+      {/* Wave Transition at the top */}
+      <WaveTransition scrollProgress={scrollProgress} />
+      
+      {/* Background overlay with dynamic opacity */}
+      <div 
+        className="absolute inset-0 bg-beige-100 z-0"
+        style={{ opacity: backgroundOpacity }}
+      ></div>
+      
+      <div className="max-w-4xl mx-auto w-full z-10 relative">
         <div className="text-center mb-10 animate-fade-up">
           <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-4">How Can I Help You Today?</h2>
           <p className="text-beige-700">Select a purpose or enter your own to see the most relevant information.</p>
@@ -103,7 +117,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
             <button
               key={option.id}
               onClick={() => handleOptionClick(option.inputContent)}
-              className="button-purpose animate-fade-up"
+              className="button-purpose animate-fade-up bg-white bg-opacity-80 hover:bg-opacity-100 transition-all p-3 rounded-md border border-beige-300 text-beige-800 hover:border-beige-500"
             >
               {option.buttonText}
             </button>
