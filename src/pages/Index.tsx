@@ -47,21 +47,29 @@ const Index = () => {
   }, []);
   
   return (
-    <div className="min-h-screen bg-beige-50" ref={heroSectionRef}>
+    <div className="min-h-screen bg-beige-50">
       <Toaster />
       
-      <div className="relative">
-        {/* Add a wrapper with relative positioning */}
+      {/* Use a fixed positioned container for the Hero */}
+      <div className="fixed inset-0 z-0">
         <Hero scrollToInput={scrollToInput} scrollProgress={scrollProgress} />
-        <div className="sticky top-0 w-full min-h-screen">
-          <PurposeInput 
-            onPurposeSubmit={handlePurposeSubmit} 
-            scrollProgress={scrollProgress} 
-          />
-        </div>
       </div>
       
-      <Footer />
+      {/* Add a container for the PurposeInput with proper z-index */}
+      <div className="relative z-10">
+        {/* Add spacer to push PurposeInput down one viewport height */}
+        <div className="h-screen"></div>
+        
+        <PurposeInput 
+          onPurposeSubmit={handlePurposeSubmit} 
+          scrollProgress={scrollProgress} 
+        />
+      </div>
+      
+      {/* Footer with proper z-index to appear after PurposeInput */}
+      <div className="relative z-10">
+        <Footer />
+      </div>
     </div>
   );
 };

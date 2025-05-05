@@ -11,10 +11,10 @@ interface HeroProps {
 const Hero = ({ scrollToInput, scrollProgress }: HeroProps) => {
   return (
     <motion.section 
-      className="min-h-screen flex flex-col justify-center items-center px-4 md:px-8 lg:px-16 py-16 relative"
+      className="min-h-screen flex flex-col justify-center items-center px-4 md:px-8 lg:px-16 py-16 bg-beige-50 relative"
       style={{ 
-        opacity: 1 - scrollProgress, 
-        transform: `translateY(${scrollProgress * 50}px)` 
+        opacity: 1 - scrollProgress * 0.7, // Fade out more slowly
+        transform: `translateY(${scrollProgress * 30}px)` // Reduced movement
       }}
     >
       <div className="absolute inset-0 opacity-10">

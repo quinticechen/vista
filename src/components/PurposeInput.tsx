@@ -91,9 +91,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
         opacity: scrollProgress,
         transform: `translateY(${(1 - scrollProgress) * 50}px)`
       }}
-    >
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-beige-100 to-transparent z-10"></div>
-      
+    >      
       <div className="max-w-4xl mx-auto w-full">
         <div className="text-center mb-10 animate-fade-up">
           <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-4">How Can I Help You Today?</h2>

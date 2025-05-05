@@ -6,11 +6,16 @@ interface WaveTransitionProps {
 }
 
 const WaveTransition = ({ scrollProgress }: WaveTransitionProps) => {
-  // Control the position of the wave based on scroll progress
-  const waveOffset = Math.min(100, scrollProgress * 150);
+  // Ensure the wave stays at the bottom of the hero section
+  const wavePosition = Math.min(100, scrollProgress * 100);
   
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none" style={{ transform: `translateY(${-waveOffset}%)` }}>
+    <div 
+      className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none w-full overflow-hidden"
+      style={{ 
+        transform: `translateY(${100 - wavePosition}%)` 
+      }}
+    >
       <svg
         viewBox="0 0 1440 120"
         fill="none"
