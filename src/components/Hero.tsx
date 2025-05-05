@@ -1,13 +1,22 @@
 
 import { ArrowDown } from "lucide-react";
+import { motion } from "framer-motion";
+import WaveTransition from "./WaveTransition";
 
 interface HeroProps {
   scrollToInput: () => void;
+  scrollProgress: number;
 }
 
-const Hero = ({ scrollToInput }: HeroProps) => {
+const Hero = ({ scrollToInput, scrollProgress }: HeroProps) => {
   return (
-    <section className="min-h-screen flex flex-col justify-center items-center px-4 md:px-8 lg:px-16 py-16 relative">
+    <motion.section 
+      className="min-h-screen flex flex-col justify-center items-center px-4 md:px-8 lg:px-16 py-16 relative"
+      style={{ 
+        opacity: 1 - scrollProgress, 
+        transform: `translateY(${scrollProgress * 50}px)` 
+      }}
+    >
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-beige-300 transform -skew-y-6"></div>
       </div>
@@ -33,10 +42,19 @@ const Hero = ({ scrollToInput }: HeroProps) => {
         </button>
       </div>
       
-      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce cursor-pointer" onClick={scrollToInput}>
+      <motion.div 
+        className="absolute bottom-10 left-1/2 transform -translate-x-1/2 cursor-pointer"
+        animate={{ y: [0, 10, 0] }}
+        transition={{ repeat: Infinity, duration: 1.5 }}
+        onClick={scrollToInput}
+        style={{ opacity: 1 - scrollProgress * 2 }}
+      >
         <ArrowDown className="w-6 h-6 text-beige-600" />
-      </div>
-    </section>
+      </motion.div>
+
+      {/* Add the wave transition */}
+      <WaveTransition scrollProgress={scrollProgress} />
+    </motion.section>
   );
 };
 

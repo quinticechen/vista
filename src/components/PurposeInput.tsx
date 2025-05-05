@@ -1,10 +1,10 @@
 
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 interface PurposeOption {
   id: string;
@@ -14,6 +14,7 @@ interface PurposeOption {
 
 interface PurposeInputProps {
   onPurposeSubmit: (purpose: string) => void;
+  scrollProgress: number;
 }
 
 const purposeOptions: PurposeOption[] = [
@@ -44,7 +45,7 @@ const purposeOptions: PurposeOption[] = [
   }
 ];
 
-const PurposeInput = ({ onPurposeSubmit }: PurposeInputProps) => {
+const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) => {
   const [purpose, setPurpose] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -87,8 +88,17 @@ const PurposeInput = ({ onPurposeSubmit }: PurposeInputProps) => {
   };
 
   return (
-    <section id="purpose-input" className="py-16 px-4 md:px-8 lg:px-16 bg-beige-100">
-      <div className="max-w-4xl mx-auto">
+    <motion.section 
+      id="purpose-input" 
+      className="min-h-screen flex items-center py-16 px-4 md:px-8 lg:px-16 bg-beige-100 relative"
+      style={{
+        opacity: scrollProgress,
+        transform: `translateY(${(1 - scrollProgress) * 50}px)`
+      }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-beige-100 to-transparent z-10"></div>
+      
+      <div className="max-w-4xl mx-auto w-full">
         <div className="text-center mb-10 animate-fade-up">
           <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-4">How Can I Help You Today?</h2>
           <p className="text-beige-700">Select a purpose or enter your own to see the most relevant information.</p>
@@ -125,7 +135,7 @@ const PurposeInput = ({ onPurposeSubmit }: PurposeInputProps) => {
           </Button>
         </form>
       </div>
-    </section>
+    </motion.section>
   );
 };
 

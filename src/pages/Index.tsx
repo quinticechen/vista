@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
 import Footer from '@/components/Footer';
@@ -7,7 +7,8 @@ import { Toaster } from '@/components/ui/toaster';
 
 const Index = () => {
   const [userPurpose, setUserPurpose] = useState<string | null>(null);
-  const purposeInputRef = useRef<HTMLElement | null>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const heroSectionRef = useRef<HTMLDivElement>(null);
   
   const handlePurposeSubmit = (purpose: string) => {
     setUserPurpose(purpose);
@@ -20,13 +21,41 @@ const Index = () => {
     }
   };
   
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const viewportHeight = window.innerHeight;
+      // Calculate progress (0 to 1) based on scroll position
+      const progress = Math.min(Math.max(scrollY / viewportHeight, 0), 1);
+      setScrollProgress(progress);
+    };
+
+    // Add scroll event listener
+    window.addEventListener('scroll', handleScroll);
+    
+    // Initial call to set initial state
+    handleScroll();
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+  
   return (
-    <div className="min-h-screen bg-beige-50">
+    <div className="min-h-screen bg-beige-50" ref={heroSectionRef}>
       <Toaster />
       
-      <Hero scrollToInput={scrollToInput} />
-      
-      <PurposeInput onPurposeSubmit={handlePurposeSubmit} />
+      <div className="relative">
+        {/* Add a wrapper with relative positioning */}
+        <Hero scrollToInput={scrollToInput} scrollProgress={scrollProgress} />
+        <div className="sticky top-0 w-full min-h-screen">
+          <PurposeInput 
+            onPurposeSubmit={handlePurposeSubmit} 
+            scrollProgress={scrollProgress} 
+          />
+        </div>
+      </div>
       
       <Footer />
     </div>
