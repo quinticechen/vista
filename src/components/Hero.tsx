@@ -14,7 +14,7 @@ const Hero = ({ scrollToInput }: HeroProps) => {
       
       <div className="text-center max-w-4xl mx-auto z-10 animate-fade-in">
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-beige-900 mb-4 tracking-tight">
-          John Mitchell
+          Chen Quintice
         </h1>
         <h2 className="text-xl md:text-2xl lg:text-3xl font-light text-beige-700 mb-8">
           AI Product Management Expert & Consultant
