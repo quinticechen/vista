@@ -9,7 +9,7 @@ const Footer = () => {
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
-            <h3 className="text-xl font-serif mb-4">John Mitchell</h3>
+            <h3 className="text-xl font-serif mb-4">Chen Quintice</h3>
             <p className="text-beige-300 mb-4">
               AI Product Management Expert & Consultant helping businesses implement cutting-edge technologies.
             </p>
@@ -47,7 +47,7 @@ const Footer = () => {
         </div>
         
         <div className="pt-6 border-t border-beige-800 text-center text-beige-400 text-sm">
-          <p>&copy; {currentYear} John Mitchell. All rights reserved.</p>
+          <p>&copy; {currentYear} Chen Quintice. All rights reserved.</p>
         </div>
       </div>
     </footer>
