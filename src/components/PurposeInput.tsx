@@ -92,7 +92,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
       id="purpose-input" 
       className="min-h-screen flex items-center py-16 px-4 md:px-8 lg:px-16 relative"
       style={{
-        opacity: scrollProgress,
+        // opacity: scrollProgress,
         transform: `translateY(${(1 - scrollProgress) * 50}px)`,
         position: "relative"
       }}
