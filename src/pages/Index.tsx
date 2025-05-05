@@ -2,7 +2,6 @@
 import { useState, useRef } from 'react';
 import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
-import ContentDisplay from '@/components/ContentDisplay';
 import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -28,8 +27,6 @@ const Index = () => {
       <Hero scrollToInput={scrollToInput} />
       
       <PurposeInput onPurposeSubmit={handlePurposeSubmit} />
-      
-      {userPurpose && <ContentDisplay userPurpose={userPurpose} />}
       
       <Footer />
     </div>

@@ -9,7 +9,202 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      content_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      image_contents: {
+        Row: {
+          alt_text: string | null
+          caption: string | null
+          content_id: string | null
+          id: string
+          image_url: string
+        }
+        Insert: {
+          alt_text?: string | null
+          caption?: string | null
+          content_id?: string | null
+          id?: string
+          image_url: string
+        }
+        Update: {
+          alt_text?: string | null
+          caption?: string | null
+          content_id?: string | null
+          id?: string
+          image_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "image_contents_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_services: {
+        Row: {
+          content_id: string | null
+          details: string | null
+          id: string
+          image_url: string | null
+          name: string
+          price: number | null
+        }
+        Insert: {
+          content_id?: string | null
+          details?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          price?: number | null
+        }
+        Update: {
+          content_id?: string | null
+          details?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_services_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      testimonials: {
+        Row: {
+          author_avatar: string | null
+          author_name: string
+          author_title: string | null
+          content_id: string | null
+          id: string
+          quote: string
+          rating: number | null
+        }
+        Insert: {
+          author_avatar?: string | null
+          author_name: string
+          author_title?: string | null
+          content_id?: string | null
+          id?: string
+          quote: string
+          rating?: number | null
+        }
+        Update: {
+          author_avatar?: string | null
+          author_name?: string
+          author_title?: string | null
+          content_id?: string | null
+          id?: string
+          quote?: string
+          rating?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonials_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      text_contents: {
+        Row: {
+          body: string | null
+          content_id: string | null
+          format: string | null
+          id: string
+        }
+        Insert: {
+          body?: string | null
+          content_id?: string | null
+          format?: string | null
+          id?: string
+        }
+        Update: {
+          body?: string | null
+          content_id?: string | null
+          format?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "text_contents_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_contents: {
+        Row: {
+          content_id: string | null
+          id: string
+          provider: string | null
+          thumbnail_url: string | null
+          video_url: string
+        }
+        Insert: {
+          content_id?: string | null
+          id?: string
+          provider?: string | null
+          thumbnail_url?: string | null
+          video_url: string
+        }
+        Update: {
+          content_id?: string | null
+          id?: string
+          provider?: string | null
+          thumbnail_url?: string | null
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_contents_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

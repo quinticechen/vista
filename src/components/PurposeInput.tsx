@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface PurposeOption {
   id: string;
@@ -45,8 +46,9 @@ const purposeOptions: PurposeOption[] = [
 
 const PurposeInput = ({ onPurposeSubmit }: PurposeInputProps) => {
   const [purpose, setPurpose] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleOptionClick = (inputContent: string) => {
     setPurpose(inputContent);
@@ -63,6 +65,8 @@ const PurposeInput = ({ onPurposeSubmit }: PurposeInputProps) => {
         title: "Purpose submitted",
         description: "Loading content tailored to your needs...",
       });
+      // Redirect to the vista page
+      navigate("/vista", { state: { purpose: purpose.trim() } });
     } else {
       toast({
         title: "Please enter your purpose",
@@ -70,6 +74,16 @@ const PurposeInput = ({ onPurposeSubmit }: PurposeInputProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  // Handle textarea auto-resizing
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPurpose(e.target.value);
+    
+    // Auto-resize the textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
   return (
@@ -93,12 +107,14 @@ const PurposeInput = ({ onPurposeSubmit }: PurposeInputProps) => {
         </div>
         
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3 animate-fade-up">
-          <Input
+          <textarea
             ref={inputRef}
             value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
+            onChange={handleTextareaChange}
             placeholder="Tell me why you're visiting this website..."
-            className="flex-grow bg-white border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800"
+            rows={1}
+            className="flex-grow bg-white border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800 rounded-md p-2 min-h-[42px] resize-none"
+            style={{ overflow: 'hidden' }}
           />
           <Button 
             type="submit" 
