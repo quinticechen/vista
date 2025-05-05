@@ -3,7 +3,6 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 interface PurposeOption {
@@ -49,7 +48,6 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
   const [purpose, setPurpose] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const handleOptionClick = (inputContent: string) => {
     setPurpose(inputContent);
@@ -66,8 +64,6 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
         title: "Purpose submitted",
         description: "Loading content tailored to your needs...",
       });
-      // Redirect to the vista page
-      navigate("/vista", { state: { purpose: purpose.trim() } });
     } else {
       toast({
         title: "Please enter your purpose",

@@ -1,5 +1,6 @@
 
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
 import Footer from '@/components/Footer';
@@ -9,9 +10,12 @@ const Index = () => {
   const [userPurpose, setUserPurpose] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const heroSectionRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   
   const handlePurposeSubmit = (purpose: string) => {
     setUserPurpose(purpose);
+    // Navigate to Vista page with the purpose data
+    navigate("/vista", { state: { purpose } });
   };
   
   const scrollToInput = () => {
