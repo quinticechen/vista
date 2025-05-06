@@ -1,10 +1,10 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import WaveTransition from "./WaveTransition";
+import FloatingShapes from "./FloatingShapes";
 
 interface PurposeOption {
   id: string;
@@ -99,6 +99,9 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
     >
       {/* Top Wave Transition */}
       <WaveTransition scrollProgress={scrollProgress} position="top" color="#EBE6D4" />
+      
+      {/* Floating animated shapes */}
+      <FloatingShapes scrollProgress={scrollProgress} />
       
       {/* Background overlay with solid opacity */}
       <div 
