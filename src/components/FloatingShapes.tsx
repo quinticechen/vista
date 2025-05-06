@@ -15,7 +15,7 @@ const FloatingShapes = ({
   opacity = 0.5
 }: FloatingShapesProps) => {
   // Ensure the shapes appear with correct positioning
-  const wavePosition = Math.min(100, scrollProgress * 50);
+  const wavePosition = Math.min(100, scrollProgress * 70);
 
   // Render the shapes SVG differently based on position
   return (
@@ -29,7 +29,7 @@ const FloatingShapes = ({
       }}
     >
       <svg
-        viewBox="0 0 1440 200"
+        viewBox="0 0 1440 160"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="none"
