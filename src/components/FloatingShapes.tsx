@@ -1,125 +1,46 @@
-
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
 
 interface FloatingShapesProps {
-  scrollProgress: number;
+  scrollProgress: number;
+  position: "top" | "bottom";
+  color?: string;
 }
 
-const shapes = [
-  { 
-    type: "circle", 
-    initialSize: 40, 
-    initialX: "10%", 
-    initialY: "20%", 
-    color: "rgba(203, 195, 174, 0.5)" 
-  },
-  { 
-    type: "square", 
-    initialSize: 25, 
-    initialX: "85%", 
-    initialY: "40%", 
-    color: "rgba(227, 220, 195, 0.4)" 
-  },
-  { 
-    type: "triangle", 
-    initialSize: 35, 
-    initialX: "70%", 
-    initialY: "75%", 
-    color: "rgba(178, 161, 122, 0.3)" 
-  },
-  { 
-    type: "circle", 
-    initialSize: 20, 
-    initialX: "30%", 
-    initialY: "65%", 
-    color: "rgba(245, 245, 220, 0.4)" 
-  },
-];
+const FloatingShapes = ({
+  scrollProgress,
+  position,
+  color = "#EBE6D4"
+}: FloatingShapesProps) => {
+  // Ensure the wave stays at the correct position
+  const wavePosition = Math.min(100, scrollProgress * 10);
 
-const FloatingShapes = ({ scrollProgress }: FloatingShapesProps) => {
-  // Make shapes more visible as user scrolls down
-  const opacity = Math.min(1, scrollProgress * 2);
-
-  // Generate a random floating animation delay for each shape
-  const [delays, setDelays] = useState<number[]>([]);
-  
-  useEffect(() => {
-    setDelays(shapes.map(() => Math.random() * 2));
-  }, []);
-  
-  // Render a specific shape based on type
-  const renderShape = (type: string, size: number, color: string) => {
-    switch (type) {
-      case "circle":
-        return (
-          <div 
-            className="rounded-full" 
-            style={{ 
-              width: size, 
-              height: size, 
-              background: color 
-            }}
-          />
-        );
-      case "square":
-        return (
-          <div 
-            className="rounded-md" 
-            style={{ 
-              width: size, 
-              height: size, 
-              background: color 
-            }}
-          />
-        );
-      case "triangle":
-        return (
-          <div 
-            style={{ 
-              width: 0,
-              height: 0,
-              borderLeft: `${size/2}px solid transparent`,
-              borderRight: `${size/2}px solid transparent`,
-              borderBottom: `${size}px solid ${color}`
-            }}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-10" style={{ opacity }}>
-      {shapes.map((shape, index) => (
-        <motion.div
-          key={index}
-          initial={{ 
-            x: shape.initialX, 
-            y: shape.initialY,
-            opacity: 0 
-          }}
-          animate={{ 
-            y: [`${parseFloat(shape.initialY as string) - 5}%`, `${parseFloat(shape.initialY as string) + 5}%`],
-            opacity: scrollProgress > 0.2 ? 1 : 0
-          }}
-          transition={{ 
-            y: { 
-              duration: 3 + delays[index], 
-              repeat: Infinity, 
-              repeatType: "reverse",
-              ease: "easeInOut" 
-            },
-            opacity: { duration: 0.8 }
-          }}
-          className="absolute"
-        >
-          {renderShape(shape.type, shape.initialSize, shape.color)}
-        </motion.div>
-      ))}
-    </div>
-  );
+  // Render the wave SVG differently based on position
+  return (
+    <div
+      className={`absolute ${position === "top" ? "top-0" : "bottom-0"} left-0 right-0 z-20 pointer-events-none w-full overflow-hidden`}
+      style={{
+        transform: position === "top"
+          ? `translateY(${-100 + wavePosition}%) translateX(60px) scaleX(-1)`  // Added translateX(60px) and scaleX(-1)
+          : `translateY(${100 - wavePosition}%) translateX(60px) scaleX(-1)` // Added translateX(60px) and scaleX(-1)
+      }}
+    >
+      <svg
+        viewBox="0 0 1440 120"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="none"
+        className="w-full h-24"
+        style={{
+          transform: position === "bottom" ? "rotate(180deg)" : "none"
+        }}
+      >
+        <path
+          d="M0,0 C320,100 420,0 720,70 C1020,140 1320,40 1440,20 L1440,120 L0,120 Z"
+          fill={color}
+        />
+      </svg>
+    </div>
+  );
 };
 
 export default FloatingShapes;
