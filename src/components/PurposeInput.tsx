@@ -104,7 +104,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
       {/* Floating animated shapes with direct Tailwind class */}
       {/* <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" /> */}
       <div 
-        className="absolute top-0 left-0 w-full y-[+20px]"
+        className="absolute top-0 left-0 w-full y-[-200px]"
       >
         <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" /> 
       </div>
