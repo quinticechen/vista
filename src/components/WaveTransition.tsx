@@ -36,9 +36,6 @@ const WaveTransition = ({
           d="M0,0 C320,100 420,0 720,70 C1020,140 1320,40 1440,20 L1440,120 L0,120 Z"
         />
       </svg>
-      <div 
-        className="absolute inset-0 bg-beige-100 z-0"
-      ></div>
     </div>
   );
 };

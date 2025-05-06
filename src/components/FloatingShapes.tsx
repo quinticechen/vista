@@ -39,6 +39,9 @@ const FloatingShapes = ({
           d="M-80,60 C180,10 380,110 720,50 C1060,-10 1260,90 1520,30 L1440,120 L-80,120 Z"
         />
       </svg>
+      <div 
+        className="absolute inset-0 bg-beige-100 z-0"
+      ></div>
     </div>
   );
 };
