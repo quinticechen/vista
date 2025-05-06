@@ -99,7 +99,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
       }}
     >
       {/* Top Wave Transition with direct Tailwind class */}
-      {/* <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" /> */}
+      <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
       
       {/* Floating animated shapes with direct Tailwind class */}
       {/* <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" /> */}
