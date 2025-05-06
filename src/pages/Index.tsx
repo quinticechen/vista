@@ -1,9 +1,12 @@
+
 import { useState, useRef, useEffect } from 'react';
-import PurposeInput from '@//PurposeInput';
-import Footer from '@//Footer';
-import { Toaster } from '@//ui/toaster';
-import WaveTransition from '@//WaveTransition.tsx';
-import FloatingShapes from '@//FloatingShapes.tsx';
+import { useNavigate } from 'react-router-dom';
+import PurposeInput from '@/components/PurposeInput';
+import Footer from '@/components/Footer';
+import { Toaster } from '@/components/ui/toaster';
+import WaveTransition from '@/components/WaveTransition';
+import FloatingShapes from '@/components/FloatingShapes';
+import Hero from '@/components/Hero';
 
 const Index = () => {
   const [userPurpose, setUserPurpose] = useState<string | null>(null);
