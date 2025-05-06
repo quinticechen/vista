@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -92,13 +93,12 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
       id="purpose-input" 
       className="min-h-screen flex items-center py-16 px-4 md:px-8 lg:px-16 relative"
       style={{
-        // opacity: scrollProgress,
         transform: `translateY(${(1 - scrollProgress) * 50}px)`,
         position: "relative"
       }}
     >
-      {/* Wave Transition at the top */}
-      <WaveTransition scrollProgress={scrollProgress} />
+      {/* Top Wave Transition */}
+      <WaveTransition scrollProgress={scrollProgress} position="top" color="#EBE6D4" />
       
       {/* Background overlay with solid opacity */}
       <div 
@@ -142,6 +142,9 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
           </Button>
         </form>
       </div>
+      
+      {/* Bottom Wave Transition */}
+      <WaveTransition scrollProgress={scrollProgress} position="bottom" color="#F5F5DC" />
     </motion.section>
   );
 };
