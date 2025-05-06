@@ -29,7 +29,7 @@ const FloatingShapes = ({
       }}
     >
       <svg
-        viewBox="0 0 1440 160"
+        viewBox="0 0 1440 200"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="none"
@@ -41,7 +41,7 @@ const FloatingShapes = ({
         <path
           
           
-          d="M-80,100 C180,20 380,180 720,100 C1060,-20 1260,160 1520,80 L1440,160 L1440,160 L-80,160 L-80,100 Z"
+          d="M-80,100 C180,20 380,180 720,100 C1060,-20 1260,200 1520,80 L1440,200 L-80,200 Z"
         />
       </svg>
       {/* <div 
