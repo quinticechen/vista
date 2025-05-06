@@ -11,10 +11,10 @@ import { motion } from "framer-motion";
    scrollProgress,
    position,
    color = "#EBE6D4",
-   opacity = 1
+   opacity = 0.5
  }: FloatingShapesProps) => {
    // Ensure the wave stays at the correct position
-   const wavePosition = Math.min(100, scrollProgress * 70);
+   const wavePosition = Math.min(100, scrollProgress * 50);
 
    // Render the wave SVG differently based on position
    return (
