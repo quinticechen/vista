@@ -7,7 +7,7 @@ interface WaveTransitionProps {
 
 const WaveTransition = ({ scrollProgress }: WaveTransitionProps) => {
   // Ensure the wave stays at the top of the PurposeInput section
-  const wavePosition = Math.min(100, scrollProgress * 10);
+  const wavePosition = Math.min(100, scrollProgress * 50);
   
   return (
     <div 
