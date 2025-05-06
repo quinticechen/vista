@@ -98,10 +98,10 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
       }}
     >
       {/* Top Wave Transition */}
-      <WaveTransition scrollProgress={scrollProgress} position="top" color="#EBE6D4" />
+      <WaveTransition scrollProgress={scrollProgress} position="top" />
       
       {/* Floating animated shapes */}
-      <FloatingShapes scrollProgress={scrollProgress} position="top" color="#EBE6D4" opacity={0.5}/>
+      <FloatingShapes scrollProgress={scrollProgress} position="top" />
       
       {/* Background overlay with solid opacity */}
       <div 
