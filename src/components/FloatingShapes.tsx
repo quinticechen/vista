@@ -29,7 +29,7 @@ const FloatingShapes = ({
       }}
     >
       <svg
-        viewBox="0 0 1440 160"
+        viewBox="0 0 1440 180"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="none"
