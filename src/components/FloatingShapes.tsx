@@ -4,12 +4,14 @@ import { motion } from "framer-motion";
    scrollProgress: number;
    position: "top" | "bottom";
    color?: string;
+   opacity?: number;
  }
 
  const FloatingShapes = ({
    scrollProgress,
    position,
-   color = "#EBE6D4"
+   color = "#EBE6D4",
+   opacity = 1
  }: FloatingShapesProps) => {
    // Ensure the wave stays at the correct position
    const wavePosition = Math.min(100, scrollProgress * 70);
@@ -21,7 +23,8 @@ import { motion } from "framer-motion";
        style={{
          transform: position === "top"
            ? `translateY(${-100 + wavePosition}%)`
-           : `translateY(${100 - wavePosition}%)`
+           : `translateY(${100 - wavePosition}%)`,
+         opacity: opacity 
        }}
      >
        <svg
