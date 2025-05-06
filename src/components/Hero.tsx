@@ -42,7 +42,7 @@ const Hero = ({ scrollToInput, scrollProgress }: HeroProps) => {
       </div>
       
       <motion.div 
-        className="absolute bottom-12 left-1/2 transform -translate-x-1/2 cursor-pointer"
+        className="absolute bottom-20 left-1/2 transform -translate-x-1/2 cursor-pointer"
         animate={{ y: [0, 10, 0] }}
         transition={{ repeat: Infinity, duration: 1.5 }}
         onClick={scrollToInput}
