@@ -48,7 +48,7 @@ const Hero = ({ scrollToInput, scrollProgress }: HeroProps) => {
         onClick={scrollToInput}
         style={{ opacity: 1 - scrollProgress * 2 }}
       >
-        <ArrowDown className="w-6 h-6 text-beige-600" />
+        <ArrowDown className="w-6 h-6 text-beige-600 top-[60px]" />
       </motion.div>
     </motion.section>
   );
