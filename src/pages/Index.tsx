@@ -5,6 +5,8 @@ import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
 import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
+import WaveTransition from '@/components/WaveTransition';
+import FloatingShapes from '@/components/FloatingShapes';
 
 const Index = () => {
   const [userPurpose, setUserPurpose] = useState<string | null>(null);

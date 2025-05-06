@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -97,11 +98,11 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
         position: "relative"
       }}
     >
-      {/* Top Wave Transition */}
-      <WaveTransition scrollProgress={scrollProgress} position="top" />
+      {/* Top Wave Transition with direct Tailwind class */}
+      <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
       
-      {/* Floating animated shapes */}
-      <FloatingShapes scrollProgress={scrollProgress} position="top" />
+      {/* Floating animated shapes with direct Tailwind class */}
+      <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
       
       {/* Background overlay with solid opacity */}
       <div 
@@ -146,8 +147,8 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
         </form>
       </div>
       
-      {/* Bottom Wave Transition */}
-      <WaveTransition scrollProgress={scrollProgress} position="bottom" color="#F5F5DC" />
+      {/* Bottom Wave Transition with direct Tailwind class */}
+      <WaveTransition scrollProgress={scrollProgress} position="bottom" color="fill-beige-50" />
     </motion.section>
   );
 };
