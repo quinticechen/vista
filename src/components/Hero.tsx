@@ -32,13 +32,13 @@ const Hero = ({ scrollToInput, scrollProgress }: HeroProps) => {
           with over 10 years of experience helping businesses integrate cutting-edge technologies.
         </p>
         
-        <button 
+        {/* <button 
           className="flex items-center justify-center px-6 py-3 rounded-md bg-beige-800 text-beige-50 hover:bg-beige-700 transition-all duration-300 mx-auto group"
           onClick={scrollToInput}
         >
           Tell me why you're here
           <ArrowDown className="ml-2 w-4 h-4 group-hover:translate-y-1 transition-transform duration-300" />
-        </button>
+        </button> */}
       </div>
       
       <motion.div 
