@@ -20,8 +20,8 @@ import { motion } from "framer-motion";
        className={`absolute ${position === "top" ? "top-0" : "bottom-0"} left-0 right-0 z-20 pointer-events-none w-full overflow-hidden`}
        style={{
          transform: position === "top"
-           ? `translateY(${-100 + wavePosition}%)` // 移除 translateX 和 scaleX
-           : `translateY(${100 - wavePosition}%)` // 移除 translateX 和 scaleX
+           ? `translateY(${-100 + wavePosition}%)`
+           : `translateY(${100 - wavePosition}%)`
        }}
      >
        <svg
@@ -35,7 +35,7 @@ import { motion } from "framer-motion";
          }}
        >
          <path
-           d="M-60,0 C260,100 360,0 660,70 C960,140 1260,40 1380,20 L1440,120 L-60,120 Z" // 修改了起始點和控制點
+           d="M-60,20 C260,100 420,0 720,70 C1020,140 1320,40 1500,20 L1440,120 L-60,120 Z"
            fill={color}
          />
        </svg>
