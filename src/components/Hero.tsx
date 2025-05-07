@@ -3,11 +3,11 @@ import { ArrowDown } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface HeroProps {
-  scrollToInput?: () => void;
-  scrollProgress?: number;
+  scrollToInput: () => void;
+  scrollProgress: number;
 }
 
-const Hero = ({ scrollToInput, scrollProgress = 0 }: HeroProps) => {
+const Hero = ({ scrollToInput, scrollProgress }: HeroProps) => {
   return (
     <motion.section 
       className="min-h-screen flex flex-col justify-center items-center px-4 md:px-8 lg:px-16 py-16 bg-beige-50 relative"
@@ -31,19 +31,25 @@ const Hero = ({ scrollToInput, scrollProgress = 0 }: HeroProps) => {
           Specialized in AI implementation strategies, team training, and product development 
           with over 10 years of experience helping businesses integrate cutting-edge technologies.
         </p>
+        
+        {/* <button 
+          className="flex items-center justify-center px-6 py-3 rounded-md bg-beige-800 text-beige-50 hover:bg-beige-700 transition-all duration-300 mx-auto group"
+          onClick={scrollToInput}
+        >
+          Tell me why you're here
+          <ArrowDown className="ml-2 w-4 h-4 group-hover:translate-y-1 transition-transform duration-300" />
+        </button> */}
       </div>
       
-      {scrollToInput && (
-        <motion.div 
-          className="absolute bottom-20 left-1/2 transform -translate-x-1/2 cursor-pointer"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
-          onClick={scrollToInput}
-          style={{ opacity: 1 - scrollProgress * 2 }}
-        >
-          <ArrowDown className="w-6 h-6 text-beige-600" />
-        </motion.div>
-      )}
+      <motion.div 
+        className="absolute bottom-20 left-1/2 transform -translate-x-1/2 cursor-pointer"
+        animate={{ y: [0, 10, 0] }}
+        transition={{ repeat: Infinity, duration: 1.5 }}
+        onClick={scrollToInput}
+        style={{ opacity: 1 - scrollProgress * 2 }}
+      >
+        <ArrowDown className="w-6 h-6 text-beige-600" />
+      </motion.div>
     </motion.section>
   );
 };
