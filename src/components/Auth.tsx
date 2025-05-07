@@ -12,6 +12,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [adminLoading, setAdminLoading] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -68,16 +69,39 @@ const Auth = () => {
 
   const makeUserAdmin = async () => {
     try {
-      // Using 'as any' to bypass type checking since the profiles table isn't in the generated types
-      const { error } = await (supabase as any)
+      setAdminLoading(true);
+      
+      // First ensure the profile exists
+      const { error: profileCheckError, count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        .eq('id', user.id);
+        
+      if (profileCheckError) throw profileCheckError;
+      
+      // If profile doesn't exist, create it
+      if (count === 0) {
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({ id: user.id });
+          
+        if (insertError) throw insertError;
+      }
+      
+      // Now update is_admin to true
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ is_admin: true })
         .eq('id', user.id);
       
-      if (error) throw error;
+      if (updateError) throw updateError;
+      
       toast.success("You are now an admin! Try accessing the admin page.");
     } catch (error: any) {
       toast.error(`Failed to set admin status: ${error.message}`);
+      console.error("Admin setting error:", error);
+    } finally {
+      setAdminLoading(false);
     }
   };
 
@@ -101,8 +125,12 @@ const Auth = () => {
             <p><strong>Email:</strong> {user.email}</p>
             <p className="text-xs break-all"><strong>User ID:</strong> {user.id}</p>
             <div className="flex flex-col gap-2 mt-4">
-              <Button onClick={makeUserAdmin} className="w-full bg-green-600 hover:bg-green-700">
-                Make Yourself Admin
+              <Button 
+                onClick={makeUserAdmin} 
+                className="w-full bg-green-600 hover:bg-green-700"
+                disabled={adminLoading}
+              >
+                {adminLoading ? "Setting Admin..." : "Make Yourself Admin"}
               </Button>
               <Button variant="outline" onClick={handleSignOut} className="w-full">
                 Sign Out

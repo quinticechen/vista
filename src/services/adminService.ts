@@ -24,20 +24,18 @@ export interface EmbeddingJob {
 // Check if a user is an admin
 export async function checkAdminStatus(userId: string): Promise<boolean> {
   try {
-    // Using any to bypass TypeScript's strict checking since our profiles table
-    // is not yet in the generated types
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('profiles')
       .select('is_admin')
       .eq('id', userId)
       .single();
     
-    if (error || !data) {
+    if (error) {
       console.error("Error checking admin status:", error);
       return false;
     }
     
-    return !!data.is_admin;
+    return !!data?.is_admin;
   } catch (error) {
     console.error("Exception checking admin status:", error);
     return false;
@@ -47,8 +45,7 @@ export async function checkAdminStatus(userId: string): Promise<boolean> {
 // Fetch embedding jobs
 export async function fetchEmbeddingJobs(): Promise<EmbeddingJob[]> {
   try {
-    // Using any to bypass TypeScript's strict checking
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('embedding_jobs')
       .select('*')
       .order('created_at', { ascending: false })
@@ -69,8 +66,7 @@ export async function fetchEmbeddingJobs(): Promise<EmbeddingJob[]> {
 // Get specific embedding job
 export async function getEmbeddingJob(jobId: string): Promise<EmbeddingJob | null> {
   try {
-    // Using any to bypass TypeScript's strict checking
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('embedding_jobs')
       .select('*')
       .eq('id', jobId)
@@ -91,8 +87,7 @@ export async function getEmbeddingJob(jobId: string): Promise<EmbeddingJob | nul
 // Create a new embedding job
 export async function createEmbeddingJob(userId: string): Promise<EmbeddingJob | null> {
   try {
-    // Using any to bypass TypeScript's strict checking
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('embedding_jobs')
       .insert([{ 
         status: 'pending', 

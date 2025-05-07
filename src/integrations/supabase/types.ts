@@ -115,6 +115,24 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_admin: boolean
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          is_admin?: boolean
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean
+        }
+        Relationships: []
+      }
       testimonials: {
         Row: {
           author_avatar: string | null
