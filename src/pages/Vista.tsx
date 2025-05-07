@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import ContentDisplay from "@/components/ContentDisplay";
+import { ContentDisplayItem } from "@/components/ContentDisplay";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { toast } from "@/components/ui/sonner";
@@ -49,7 +49,7 @@ const Vista = () => {
                 to={`/vista/${item.id}`}
                 className="block group"
               >
-                <ContentDisplay content={item} />
+                <ContentDisplayItem content={item} />
               </Link>
             ))}
           </div>

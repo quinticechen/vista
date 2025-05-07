@@ -15,7 +15,17 @@ interface ContentItem {
   ctaLink?: string;
 }
 
-// Mock database content - in a real app, this would come from Supabase
+// For the Vista page
+interface ContentDisplayItemProps {
+  content: any; // This accepts the content items from Supabase
+}
+
+// For the Index page
+interface ContentDisplayProps {
+  userPurpose: string | null;
+}
+
+// Mock database content for the home page
 const mockContentDatabase: ContentItem[] = [
   {
     id: 1,
@@ -69,10 +79,7 @@ const mockContentDatabase: ContentItem[] = [
   }
 ];
 
-interface ContentDisplayProps {
-  userPurpose: string | null;
-}
-
+// This is the original component used on the Index page
 const ContentDisplay = ({ userPurpose }: ContentDisplayProps) => {
   const [filteredContent, setFilteredContent] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -191,6 +198,41 @@ const ContentDisplay = ({ userPurpose }: ContentDisplayProps) => {
         )}
       </div>
     </section>
+  );
+};
+
+// This is a new component for the Vista page
+export const ContentDisplayItem = ({ content }: ContentDisplayItemProps) => {
+  return (
+    <Card className="bg-white border-beige-200 overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full">
+      {content.imageUrl && (
+        <div className="w-full h-40 bg-beige-200 overflow-hidden">
+          <img 
+            src={content.imageUrl || "/placeholder.svg"} 
+            alt={content.title} 
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      <CardHeader>
+        <CardTitle>{content.title}</CardTitle>
+        <CardDescription>
+          {content.tags && content.tags.map((tag: string, index: number) => (
+            <span key={index} className="inline-block bg-beige-100 text-beige-800 text-xs px-2 py-1 rounded mr-2 mb-2">
+              {tag}
+            </span>
+          ))}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-beige-700">{content.description}</p>
+      </CardContent>
+      <CardFooter>
+        <Button className="w-full bg-beige-800 hover:bg-beige-700 text-white" asChild>
+          <a href={content.ctaLink || "#"}>{content.ctaText || "Learn More"}</a>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 
