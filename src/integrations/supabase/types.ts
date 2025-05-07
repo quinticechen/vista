@@ -16,6 +16,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          notion_url: string | null
           start_date: string | null
           tags: string[] | null
           title: string
@@ -27,6 +28,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          notion_url?: string | null
           start_date?: string | null
           tags?: string[] | null
           title: string
@@ -38,6 +40,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          notion_url?: string | null
           start_date?: string | null
           tags?: string[] | null
           title?: string
