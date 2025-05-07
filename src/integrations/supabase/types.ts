@@ -48,6 +48,42 @@ export type Database = {
         }
         Relationships: []
       }
+      embedding_jobs: {
+        Row: {
+          completed_at: string | null
+          created_by: string | null
+          error: string | null
+          id: string
+          items_processed: number
+          started_at: string | null
+          status: string
+          total_items: number
+          updated_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          items_processed?: number
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          updated_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_by?: string | null
+          error?: string | null
+          id?: string
+          items_processed?: number
+          started_at?: string | null
+          status?: string
+          total_items?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       image_contents: {
         Row: {
           alt_text: string | null

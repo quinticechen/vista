@@ -45,8 +45,9 @@ export async function checkAdminStatus(userId: string): Promise<boolean> {
 // Fetch embedding jobs
 export async function fetchEmbeddingJobs(): Promise<EmbeddingJob[]> {
   try {
+    // Use "embedding_jobs" as a string literal
     const { data, error } = await supabase
-      .from('embedding_jobs')
+      .from("embedding_jobs")
       .select('*')
       .order('created_at', { ascending: false })
       .limit(10);
@@ -56,7 +57,7 @@ export async function fetchEmbeddingJobs(): Promise<EmbeddingJob[]> {
       return [];
     }
     
-    return data || [];
+    return data as EmbeddingJob[] || [];
   } catch (error) {
     console.error("Exception fetching embedding jobs:", error);
     return [];
@@ -66,8 +67,9 @@ export async function fetchEmbeddingJobs(): Promise<EmbeddingJob[]> {
 // Get specific embedding job
 export async function getEmbeddingJob(jobId: string): Promise<EmbeddingJob | null> {
   try {
+    // Use "embedding_jobs" as a string literal
     const { data, error } = await supabase
-      .from('embedding_jobs')
+      .from("embedding_jobs")
       .select('*')
       .eq('id', jobId)
       .single();
@@ -77,7 +79,7 @@ export async function getEmbeddingJob(jobId: string): Promise<EmbeddingJob | nul
       return null;
     }
     
-    return data;
+    return data as EmbeddingJob;
   } catch (error) {
     console.error("Exception fetching embedding job:", error);
     return null;
@@ -87,8 +89,9 @@ export async function getEmbeddingJob(jobId: string): Promise<EmbeddingJob | nul
 // Create a new embedding job
 export async function createEmbeddingJob(userId: string): Promise<EmbeddingJob | null> {
   try {
+    // Use "embedding_jobs" as a string literal
     const { data, error } = await supabase
-      .from('embedding_jobs')
+      .from("embedding_jobs")
       .insert([{ 
         status: 'pending', 
         created_by: userId 
@@ -101,7 +104,7 @@ export async function createEmbeddingJob(userId: string): Promise<EmbeddingJob |
       return null;
     }
     
-    return data;
+    return data as EmbeddingJob;
   } catch (error) {
     console.error("Exception creating embedding job:", error);
     return null;
