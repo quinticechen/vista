@@ -3,15 +3,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
+import { checkAdminStatus } from "@/services/adminService";
 
 interface AdminGuardProps {
   children: React.ReactNode;
-}
-
-// Define the profile type to match our database
-interface Profile {
-  id: string;
-  is_admin: boolean;
 }
 
 const AdminGuard = ({ children }: AdminGuardProps) => {
@@ -20,7 +15,7 @@ const AdminGuard = ({ children }: AdminGuardProps) => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkAccess = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -30,14 +25,9 @@ const AdminGuard = ({ children }: AdminGuardProps) => {
           return;
         }
         
-        // Use type assertion to handle the new profiles table
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single() as unknown as { data: Profile | null, error: Error | null };
+        const isUserAdmin = await checkAdminStatus(session.user.id);
         
-        if (error || !data || !data.is_admin) {
+        if (!isUserAdmin) {
           navigate('/');
           toast.error("You don't have permission to access this page");
           return;
@@ -53,7 +43,7 @@ const AdminGuard = ({ children }: AdminGuardProps) => {
       }
     };
     
-    checkAdminStatus();
+    checkAccess();
   }, [navigate]);
 
   if (loading) {

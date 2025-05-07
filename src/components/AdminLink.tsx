@@ -2,19 +2,14 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "@/components/ui/nav-link";
 import { supabase } from "@/integrations/supabase/client";
-
-// Define the profile type to match our database
-interface Profile {
-  id: string;
-  is_admin: boolean;
-}
+import { checkAdminStatus } from "@/services/adminService";
 
 const AdminLink = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkAdmin = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -23,14 +18,8 @@ const AdminLink = () => {
           return;
         }
         
-        // Use type assertion to handle the new profiles table
-        const { data } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single() as unknown as { data: Profile | null };
-        
-        setIsAdmin(data?.is_admin || false);
+        const isUserAdmin = await checkAdminStatus(session.user.id);
+        setIsAdmin(isUserAdmin);
       } catch (error) {
         console.error("Error checking admin status:", error);
         setIsAdmin(false);
@@ -39,10 +28,10 @@ const AdminLink = () => {
       }
     };
     
-    checkAdminStatus();
+    checkAdmin();
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      checkAdminStatus();
+      checkAdmin();
     });
     
     return () => subscription.unsubscribe();
