@@ -66,6 +66,21 @@ const Auth = () => {
     }
   };
 
+  const makeUserAdmin = async () => {
+    try {
+      // Using 'as any' to bypass type checking since the profiles table isn't in the generated types
+      const { error } = await (supabase as any)
+        .from('profiles')
+        .update({ is_admin: true })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      toast.success("You are now an admin! Try accessing the admin page.");
+    } catch (error: any) {
+      toast.error(`Failed to set admin status: ${error.message}`);
+    }
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -84,9 +99,15 @@ const Auth = () => {
         <CardContent>
           <div className="space-y-2">
             <p><strong>Email:</strong> {user.email}</p>
-            <Button variant="outline" onClick={handleSignOut} className="w-full">
-              Sign Out
-            </Button>
+            <p className="text-xs break-all"><strong>User ID:</strong> {user.id}</p>
+            <div className="flex flex-col gap-2 mt-4">
+              <Button onClick={makeUserAdmin} className="w-full bg-green-600 hover:bg-green-700">
+                Make Yourself Admin
+              </Button>
+              <Button variant="outline" onClick={handleSignOut} className="w-full">
+                Sign Out
+              </Button>
+            </div>
           </div>
         </CardContent>
       ) : (
