@@ -8,12 +8,30 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define types to match our database structure
+interface Profile {
+  id: string;
+  is_admin: boolean;
+}
+
+interface EmbeddingJob {
+  id: string;
+  status: string;
+  started_at: string;
+  completed_at: string | null;
+  items_processed: number;
+  total_items: number;
+  error: string | null;
+  created_by: string;
+  updated_at: string;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentJob, setCurrentJob] = useState<any>(null);
-  const [previousJobs, setPreviousJobs] = useState<any[]>([]);
+  const [currentJob, setCurrentJob] = useState<EmbeddingJob | null>(null);
+  const [previousJobs, setPreviousJobs] = useState<EmbeddingJob[]>([]);
 
   // Check if current user is admin
   useEffect(() => {
@@ -26,11 +44,12 @@ const Admin = () => {
         return;
       }
       
+      // Use type assertion to handle the new profiles table
       const { data, error } = await supabase
         .from('profiles')
         .select('is_admin')
         .eq('id', session.user.id)
-        .single();
+        .single() as unknown as { data: Profile | null, error: Error | null };
       
       if (error || !data || !data.is_admin) {
         navigate('/');
@@ -48,11 +67,12 @@ const Admin = () => {
 
   // Fetch job history
   const fetchJobHistory = async () => {
+    // Use type assertion to handle the new embedding_jobs table
     const { data, error } = await supabase
       .from('embedding_jobs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(10) as unknown as { data: EmbeddingJob[], error: Error | null };
     
     if (error) {
       toast.error("Failed to fetch job history");
@@ -78,11 +98,12 @@ const Admin = () => {
 
   // Poll job status
   const pollJobStatus = async (jobId: string) => {
+    // Use type assertion to handle the new embedding_jobs table
     const { data, error } = await supabase
       .from('embedding_jobs')
       .select('*')
       .eq('id', jobId)
-      .single();
+      .single() as unknown as { data: EmbeddingJob, error: Error | null };
     
     if (error) {
       toast.error("Failed to poll job status");
@@ -101,11 +122,12 @@ const Admin = () => {
     setIsLoading(true);
     try {
       // Create a new job
+      // Use type assertion to handle the new embedding_jobs table
       const { data: jobData, error: jobError } = await supabase
         .from('embedding_jobs')
         .insert([{ status: 'pending', created_by: (await supabase.auth.getUser()).data.user?.id }])
         .select()
-        .single();
+        .single() as unknown as { data: EmbeddingJob, error: Error | null };
       
       if (jobError || !jobData) {
         throw new Error(jobError?.message || "Failed to create job");

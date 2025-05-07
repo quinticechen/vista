@@ -8,6 +8,12 @@ interface AdminGuardProps {
   children: React.ReactNode;
 }
 
+// Define the profile type to match our database
+interface Profile {
+  id: string;
+  is_admin: boolean;
+}
+
 const AdminGuard = ({ children }: AdminGuardProps) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -24,11 +30,12 @@ const AdminGuard = ({ children }: AdminGuardProps) => {
           return;
         }
         
+        // Use type assertion to handle the new profiles table
         const { data, error } = await supabase
           .from('profiles')
           .select('is_admin')
           .eq('id', session.user.id)
-          .single();
+          .single() as unknown as { data: Profile | null, error: Error | null };
         
         if (error || !data || !data.is_admin) {
           navigate('/');
