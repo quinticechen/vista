@@ -49,7 +49,7 @@ export async function fetchEmbeddingJobs(): Promise<EmbeddingJob[]> {
     const { data, error } = await supabase
       .from("embedding_jobs")
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false }) // Changed from 'created_at' to 'updated_at'
       .limit(10);
     
     if (error) {
