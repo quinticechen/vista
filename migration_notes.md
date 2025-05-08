@@ -32,3 +32,37 @@ ALTER TABLE public.embedding_jobs
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT now();
 ```
+
+# Create Vector Similarity Search Function
+
+To enable semantic search functionality, add this SQL function to your Supabase database:
+
+```sql
+-- Create a function that performs vector similarity search
+CREATE OR REPLACE FUNCTION match_content_items(query_embedding vector(768), match_threshold float, match_count int)
+RETURNS TABLE (
+    id uuid,
+    title text,
+    description text,
+    category text,
+    tags text[],
+    similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        content_items.id,
+        content_items.title,
+        content_items.description,
+        content_items.category,
+        content_items.tags,
+        1 - (content_items.embedding <=> query_embedding) AS similarity
+    FROM content_items
+    WHERE 1 - (content_items.embedding <=> query_embedding) > match_threshold
+    ORDER BY similarity DESC
+    LIMIT match_count;
+END;
+$$;
+```

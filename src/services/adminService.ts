@@ -21,6 +21,18 @@ export interface EmbeddingJob {
   updated_at: string;
 }
 
+// Define the content item type with embedding
+export interface ContentItem {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  embedding?: number[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Check if a user is an admin
 export async function checkAdminStatus(userId: string): Promise<boolean> {
   try {
@@ -127,5 +139,42 @@ export async function startEmbeddingProcess(jobId: string): Promise<boolean> {
   } catch (error) {
     console.error("Exception starting embedding process:", error);
     return false;
+  }
+}
+
+// Perform semantic search using vector similarity
+export async function semanticSearch(query: string, limit: number = 5): Promise<ContentItem[]> {
+  try {
+    // First generate an embedding for the search query
+    const response = await supabase.functions.invoke('generate-embeddings', {
+      body: { text: query }
+    });
+    
+    if (response.error || !response.data || !response.data.embedding) {
+      console.error("Error generating query embedding:", response.error || "No embedding returned");
+      return [];
+    }
+    
+    const queryEmbedding = response.data.embedding;
+    
+    // Then perform vector similarity search
+    const { data, error } = await supabase.rpc(
+      'match_content_items',
+      { 
+        query_embedding: queryEmbedding,
+        match_threshold: 0.5,
+        match_count: limit
+      }
+    );
+    
+    if (error) {
+      console.error("Error executing vector search:", error);
+      return [];
+    }
+    
+    return data as ContentItem[] || [];
+  } catch (error) {
+    console.error("Exception during semantic search:", error);
+    return [];
   }
 }

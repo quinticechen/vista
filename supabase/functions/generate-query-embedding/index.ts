@@ -1,13 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const googleCredentials = Deno.env.get('GOOGLE_APPLICATION_CREDENTIALS_JSON') || '';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,21 +16,21 @@ serve(async (req) => {
   }
 
   try {
-    // Get the job ID from the request body
-    const { jobId } = await req.json();
+    // Get the text to embed from the request body
+    const { text } = await req.json();
 
-    if (!jobId) {
+    if (!text) {
       return new Response(
-        JSON.stringify({ error: 'Job ID is required' }),
+        JSON.stringify({ error: 'Text is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Start processing in the background
-    EdgeRuntime.waitUntil(processContentEmbedding(jobId));
+    // Generate embedding for the text
+    const embedding = await generateVertexAIEmbedding(text);
 
     return new Response(
-      JSON.stringify({ message: 'Embedding process started' }),
+      JSON.stringify({ embedding }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
@@ -46,101 +41,6 @@ serve(async (req) => {
     );
   }
 });
-
-async function processContentEmbedding(jobId: string) {
-  try {
-    // Update job status to processing
-    await supabase
-      .from('embedding_jobs')
-      .update({ 
-        status: 'processing',
-        started_at: new Date().toISOString()
-      })
-      .eq('id', jobId);
-
-    // Get all content items
-    const { data: contentItems, error: contentError } = await supabase
-      .from('content_items')
-      .select('*');
-
-    if (contentError) {
-      throw new Error(`Error fetching content items: ${contentError.message}`);
-    }
-
-    // Update total items count
-    await supabase
-      .from('embedding_jobs')
-      .update({ total_items: contentItems.length })
-      .eq('id', jobId);
-
-    // Process each content item
-    let itemsProcessed = 0;
-    
-    for (const item of contentItems) {
-      try {
-        // Prepare text for embedding
-        const textToEmbed = [
-          item.title,
-          item.description,
-          item.category,
-          item.tags ? item.tags.join(' ') : ''
-        ].filter(Boolean).join(' ');
-        
-        if (!textToEmbed.trim()) {
-          console.log(`Skipping item ${item.id} - no text content`);
-          continue; // Skip items with no text
-        }
-
-        // Generate embedding using Vertex AI
-        const embedding = await generateVertexAIEmbedding(textToEmbed);
-        
-        // Store embedding in Supabase
-        await supabase
-          .from('content_items')
-          .update({ embedding })
-          .eq('id', item.id);
-        
-        // Update processed count
-        itemsProcessed++;
-        await supabase
-          .from('embedding_jobs')
-          .update({ items_processed: itemsProcessed })
-          .eq('id', jobId);
-        
-        // Add small delay to avoid API rate limits
-        await new Promise(r => setTimeout(r, 100));
-      } catch (error) {
-        console.error(`Error processing content item ${item.id}:`, error);
-      }
-    }
-
-    // Update job status to completed
-    await supabase
-      .from('embedding_jobs')
-      .update({ 
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        items_processed: itemsProcessed,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', jobId);
-
-    console.log(`Embedding job ${jobId} completed - ${itemsProcessed}/${contentItems.length} items processed`);
-  } catch (error) {
-    console.error(`Error processing embedding job ${jobId}:`, error);
-    
-    // Update job status to error
-    await supabase
-      .from('embedding_jobs')
-      .update({ 
-        status: 'error',
-        error: error.message,
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', jobId);
-  }
-}
 
 // Function to get a Google Cloud Access Token from service account credentials
 async function getGoogleAccessToken() {
