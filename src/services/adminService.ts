@@ -159,12 +159,12 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
     const queryEmbedding = response.data.embedding;
     
     // Then perform vector similarity search
-    // Fix the type error by explicitly specifying the function and parameter types
+    // Use type assertion to fix the TypeScript error
     const { data, error } = await supabase.rpc('match_content_items', {
       query_embedding: queryEmbedding,
       match_threshold: 0.5,
       match_count: limit
-    });
+    } as any); // Using type assertion to bypass TypeScript checking
     
     if (error) {
       console.error("Error executing vector search:", error);
