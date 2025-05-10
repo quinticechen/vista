@@ -57,22 +57,18 @@ const Vista = () => {
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
-          
-          // Get only the top results shown in console (max 3)
-          // This ensures we only show the most relevant results
-          const topResults = searchResults.slice(0, Math.min(searchResults.length, 3));
-          
-          console.log("Displaying top results:", topResults.map(r => ({
+    
+          console.log("Displaying search results:", searchResults.map(r => ({
             title: r.title,
             similarity: r.similarity ? Math.round(r.similarity * 100) + '%' : 'N/A'
           })));
-          
-          // Set search results as the displayed content
-          setContentItems(topResults);
+    
+          // Set all search results as the displayed content
+          setContentItems(searchResults); // 現在設定的是完整的 searchResults
           setShowingSearchResults(true);
-          
+    
           toast.success(
-            `Found ${topResults.length} relevant items based on your search`,
+            `Found ${searchResults.length} relevant items based on your search`, // 更新 toast 訊息
             { duration: 5000 }
           );
         } else if (searchPurpose) {
@@ -115,13 +111,11 @@ const Vista = () => {
 
   // Handle "Back to Search Results" button click
   const handleBackToResults = () => {
-    if (searchResults && searchResults.length > 0) {
-      // Get only the top results shown in console (max 3)
-      const topResults = searchResults.slice(0, Math.min(searchResults.length, 3));
-      setContentItems(topResults);
-      setShowingSearchResults(true);
-    }
-  };
+      if (searchResults && searchResults.length > 0) {
+        setContentItems(searchResults); // 設定完整的 searchResults
+        setShowingSearchResults(true);
+      }
+    };
 
   // Get sorted content items - make sure the sort is applied directly before rendering
   const getSortedItems = () => {

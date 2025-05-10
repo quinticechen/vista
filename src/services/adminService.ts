@@ -169,7 +169,7 @@ export async function startEmbeddingProcess(jobId: string): Promise<boolean> {
 // Perform semantic search using vector similarity
 export async function semanticSearch(
       query: string,
-      limit: number = 8, 
+      limit: number = 20, 
       matchThreshold: number = 0.45 // Lower threshold to ensure we get results
 ): Promise<ContentItem[]> {
   try {
