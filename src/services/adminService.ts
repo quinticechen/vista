@@ -165,14 +165,22 @@ export async function startEmbeddingProcess(jobId: string): Promise<boolean> {
 export async function semanticSearch(
       query: string,
       limit: number = 5,
-      matchThreshold: number = 0.5 // Add matchThreshold with a default value
+      matchThreshold: number = 0.5 // Lower default threshold from 0.5 for better recall
 ): Promise<ContentItem[]> {
   try {
-    console.log(`Starting semantic search for query: "${query}" with limit: ${limit}, threshold: ${matchThreshold}`);
+    // Log query length to help debug short query issues
+    console.log(`Starting semantic search for query: "${query}" (length: ${query.length}) with limit: ${limit}, threshold: ${matchThreshold}`);
+    
+    // For very short queries, add some context to help the embedding generation
+    const enrichedQuery = query.length < 5 
+      ? `Find content related to the term: ${query}` 
+      : query;
+    
+    console.log(`Using enriched query: "${enrichedQuery}"`);
     
     // First generate an embedding for the search query
     const response = await supabase.functions.invoke('generate-query-embedding', {
-      body: { text: query }
+      body: { text: enrichedQuery }
     });
     
     if (response.error || !response.data || !response.data.embedding) {
@@ -218,6 +226,8 @@ export async function semanticSearch(
         similarity: r.similarity,
         category: r.category
       })));
+    } else {
+      console.log("No matching results found. Consider lowering the match threshold.");
     }
     
     // Map the results to ContentItem format

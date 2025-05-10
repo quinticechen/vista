@@ -75,11 +75,11 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
 
         console.log("Starting search with query:", purpose.trim());
         
-        // Perform semantic search with the user's purpose and higher matching threshold
+        // Perform semantic search with the user's purpose and LOWER matching threshold for better recall
         const searchResults = await semanticSearch(
           purpose.trim(),
-          8,       // Request up to 8 results for more variety
-          0.75     // Use a higher threshold for better quality matches
+          10,       // Request more results for better coverage
+          0.5       // Lower the threshold significantly to improve recall
         );
 
         console.log(`Search completed. Found ${searchResults.length} results`);

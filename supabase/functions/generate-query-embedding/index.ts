@@ -26,10 +26,14 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating embedding for query: "${text.substring(0, 100)}..."`);
+    console.log(`Generating embedding for query: "${text}" (length: ${text.length})`);
+    
+    // For very short queries, ensure we add more context for better embeddings
+    const textToEmbed = text.length < 5 ? `Find content related to the term: ${text}` : text;
+    console.log(`Using text for embedding: "${textToEmbed}"`);
 
     // Generate embedding for the text
-    const embedding = await generateVertexAIEmbedding(text);
+    const embedding = await generateVertexAIEmbedding(textToEmbed);
 
     console.log(`Successfully generated embedding with ${embedding.length} dimensions`);
 
@@ -222,20 +226,30 @@ async function generateSimpleMockEmbedding(text: string): Promise<number[]> {
   
   // Generate unique patterns based on input text
   const baseHash = hashCode(text);
+  const lowerText = text.toLowerCase();
+  
   for (let i = 0; i < 768; i++) {
     const patternValue = Math.sin(i * 0.1 + hashCode(text[i % text.length] || '') * 0.01);
     mockEmbedding[i] = patternValue * 0.5;
     
-    // Add some category-specific patterns to make searches more meaningful
-    if (text.toLowerCase().includes('hr') && i % 5 === 0) {
-      mockEmbedding[i] += 0.3;
-    } else if (text.toLowerCase().includes('design') && i % 7 === 0) {
-      mockEmbedding[i] += 0.3;
-    } else if (text.toLowerCase().includes('architect') && i % 11 === 0) {
-      mockEmbedding[i] += 0.3;
+    // Add stronger category-specific patterns to make searches more meaningful
+    if (lowerText.includes('hr') || lowerText.includes('hiring') || lowerText.includes('talent')) {
+      if (i % 5 === 0) mockEmbedding[i] += 0.5;
+    } 
+    if (lowerText.includes('design') || lowerText.includes('portfolio')) {
+      if (i % 7 === 0) mockEmbedding[i] += 0.5;
+    } 
+    if (lowerText.includes('architect') || lowerText.includes('structure')) {
+      if (i % 11 === 0) mockEmbedding[i] += 0.5;
+    }
+    if (lowerText.includes('product') || lowerText.includes('development')) {
+      if (i % 13 === 0) mockEmbedding[i] += 0.5;
+    }
+    if (lowerText.includes('ai') || lowerText.includes('implementation')) {
+      if (i % 17 === 0) mockEmbedding[i] += 0.5;
     }
   }
   
-  console.log(`Created mock embedding with unique pattern for: "${text.substring(0, 20)}..."`);
+  console.log(`Created mock embedding with unique pattern for: "${text.substring(0, 50)}..."`);
   return mockEmbedding;
 }

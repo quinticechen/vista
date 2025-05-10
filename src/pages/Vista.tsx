@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +30,7 @@ const Vista = () => {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
           console.log("First few results:", searchResults.slice(0, 3).map(r => ({
             title: r.title,
-            similarity: r.similarity,
+            similarity: r.similarity ? Math.round(r.similarity * 100) + '%' : 'N/A',
             id: r.id
           })));
           
@@ -52,6 +53,14 @@ const Vista = () => {
 
           console.log(`Fetched ${data?.length || 0} content items from the database`);
           setContentItems(data || []);
+          
+          // If we had a search but it returned no results, show a message
+          if (searchPurpose) {
+            toast.warning(
+              `No matches found for "${searchPurpose}". Showing all content instead.`,
+              { duration: 5000 }
+            );
+          }
         }
       } catch (error) {
         console.error("Error fetching content:", error);
