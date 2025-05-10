@@ -28,7 +28,7 @@ export interface ContentItem {
   description?: string;
   category?: string;
   tags?: string[];
-  embedding?: number[];
+  embedding?: number[] | string; // Update to accept both number[] and string
   created_at?: string;
   updated_at?: string;
   similarity?: number;

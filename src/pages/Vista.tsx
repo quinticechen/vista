@@ -38,7 +38,20 @@ const Vista = () => {
         }
         
         console.log(`Fetched ${data?.length || 0} content items from the database`);
-        setAllContentItems(data || []);
+        
+        // Process the data to match ContentItem interface
+        const processedData = (data || []).map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          category: item.category,
+          tags: item.tags,
+          embedding: item.embedding, // This can be string or number[]
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        })) as ContentItem[];
+        
+        setAllContentItems(processedData);
         
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
@@ -59,7 +72,7 @@ const Vista = () => {
           );
         } else {
           // If no search results, use all content items
-          setContentItems(data || []);
+          setContentItems(processedData);
           setShowingSearchResults(false);
           
           // If we had a search but it returned no results, show a message

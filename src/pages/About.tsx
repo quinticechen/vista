@@ -27,7 +27,20 @@ const About = () => {
         }
 
         console.log(`Fetched ${data?.length || 0} content items for About page`);
-        setContentItems(data || []);
+        
+        // Process the data to match ContentItem interface
+        const processedData = (data || []).map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          category: item.category,
+          tags: item.tags,
+          embedding: item.embedding, // This can be string or number[]
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        })) as ContentItem[];
+        
+        setContentItems(processedData);
       } catch (error) {
         console.error("Error fetching content for About page:", error);
         toast.error("Failed to load content items");
