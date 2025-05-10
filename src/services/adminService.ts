@@ -35,8 +35,9 @@ export interface ContentItem {
 }
 
 // Define interface for vector search parameters
+// Update: changed query_embedding type from number[] to string to match what the DB expects
 export interface VectorSearchParams {
-  query_embedding: number[];
+  query_embedding: string;
   match_threshold: number;
   match_count: number;
 }
@@ -176,8 +177,9 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
     const queryEmbedding = response.data.embedding;
     
     // Define parameters for vector search
+    // Update: convert the number[] to string before passing it to the RPC function
     const searchParams: VectorSearchParams = {
-      query_embedding: queryEmbedding,
+      query_embedding: JSON.stringify(queryEmbedding),
       match_threshold: 0.5,
       match_count: limit
     };
