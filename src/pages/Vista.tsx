@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,18 +56,16 @@ const Vista = () => {
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
+          
+          // Debug the search results we're getting
+          console.log("Search results:", searchResults);
     
-          console.log("Displaying search results:", searchResults.map(r => ({
-            title: r.title,
-            similarity: r.similarity ? Math.round(r.similarity * 100) + '%' : 'N/A'
-          })));
-    
-          // Set all search results as the displayed content
-          setContentItems(searchResults); // 現在設定的是完整的 searchResults
+          // Set all search results as the displayed content (not just top 3)
+          setContentItems(searchResults);
           setShowingSearchResults(true);
     
           toast.success(
-            `Found ${searchResults.length} relevant items based on your search`, // 更新 toast 訊息
+            `Found ${searchResults.length} relevant items based on your search`,
             { duration: 5000 }
           );
         } else if (searchPurpose) {
@@ -96,7 +93,7 @@ const Vista = () => {
     };
 
     fetchContentItems();
-  }, [searchResults, searchPurpose, searchQuery]); // Include searchQuery to force re-render
+  }, [searchResults, searchPurpose, searchQuery]);
 
   // Handle "View All" button click
   const handleViewAll = () => {
@@ -109,34 +106,32 @@ const Vista = () => {
     toast.info("Showing all content items", { duration: 3000 });
   };
 
-  // Handle "Back to Search Results" button click
+  // Handle "Back to Results" button click
   const handleBackToResults = () => {
-      if (searchResults && searchResults.length > 0) {
-        setContentItems(searchResults); // 設定完整的 searchResults
-        setShowingSearchResults(true);
-      }
-    };
+    if (searchResults && searchResults.length > 0) {
+      setContentItems(searchResults);
+      setShowingSearchResults(true);
+    }
+  };
 
   // Get sorted content items - make sure the sort is applied directly before rendering
   const getSortedItems = () => {
-      // If showing search results, sort by similarity
-      if (showingSearchResults) {
-        const sorted = [...contentItems].sort((a, b) => {
-          if (a.similarity !== undefined && b.similarity !== undefined) {
-            return b.similarity - a.similarity;
-          }
-          if (a.similarity !== undefined) return -1;
-          if (b.similarity !== undefined) return 1;
-          return a.title?.localeCompare(b.title || '') || 0;
-        });
-        console.log("sortedItems in getSortedItems (search results):", sorted); // 添加這行
-        return sorted;
-      }
-  
-      // If not showing search results, just return the content items
-      console.log("sortedItems in getSortedItems (all content):", contentItems); // 添加這行
-      return contentItems;
-    };
+    // If showing search results, sort by similarity
+    if (showingSearchResults) {
+      const sorted = [...contentItems].sort((a, b) => {
+        if (a.similarity !== undefined && b.similarity !== undefined) {
+          return b.similarity - a.similarity;
+        }
+        if (a.similarity !== undefined) return -1;
+        if (b.similarity !== undefined) return 1;
+        return a.title?.localeCompare(b.title || '') || 0;
+      });
+      return sorted;
+    }
+
+    // If not showing search results, just return the content items
+    return contentItems;
+  };
 
   const sortedItems = getSortedItems();
 
@@ -210,7 +205,7 @@ const Vista = () => {
             ))}
           </div>
         ) : showingSearchResults ? (
-          <div className="text-center py-10">
+          <div className="text-center py-10 bg-beige-50 rounded-lg">
             <p className="text-xl text-gray-500 mb-4">No relevant content found.</p>
             <p className="text-gray-400 mb-6">
               Try adjusting your search term or exploring our general content.
