@@ -161,7 +161,11 @@ export async function startEmbeddingProcess(jobId: string): Promise<boolean> {
 }
 
 // Perform semantic search using vector similarity
-export async function semanticSearch(query: string, limit: number = 5): Promise<ContentItem[]> {
+export async function semanticSearch(
+      query: string,
+      limit: number = 5,
+      matchThreshold: number = 0.5 // Add matchThreshold with a default value
+): Promise<ContentItem[]> {
   try {
     // First generate an embedding for the search query
     const response = await supabase.functions.invoke('generate-query-embedding', {
@@ -176,10 +180,9 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
     const queryEmbedding = response.data.embedding;
     
     // Define parameters for vector search
-    // Update: convert the number[] to string before passing it to the RPC function
     const searchParams: VectorSearchParams = {
       query_embedding: JSON.stringify(queryEmbedding),
-      match_threshold: 0.5,
+      match_threshold: matchThreshold,
       match_count: limit
     };
     
