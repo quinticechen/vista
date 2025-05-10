@@ -57,32 +57,37 @@ const Vista = () => {
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
-          console.log("First few results:", searchResults.slice(0, 3).map(r => ({
+          
+          // Get only the top results shown in console (max 3)
+          // This ensures we only show the most relevant results
+          const topResults = searchResults.slice(0, Math.min(searchResults.length, 3));
+          
+          console.log("Displaying top results:", topResults.map(r => ({
             title: r.title,
-            similarity: r.similarity ? Math.round(r.similarity * 100) + '%' : 'N/A',
-            id: r.id
+            similarity: r.similarity ? Math.round(r.similarity * 100) + '%' : 'N/A'
           })));
           
           // Set search results as the displayed content
-          setContentItems(searchResults);
+          setContentItems(topResults);
           setShowingSearchResults(true);
           
           toast.success(
-            `Found ${searchResults.length} relevant items based on your search`,
+            `Found ${topResults.length} relevant items based on your search`,
+            { duration: 5000 }
+          );
+        } else if (searchPurpose) {
+          // If we had a search but it returned no results, show a message and empty content
+          setContentItems([]);
+          setShowingSearchResults(true);
+          
+          toast.warning(
+            `No matches found for "${searchPurpose}". Try a different search.`,
             { duration: 5000 }
           );
         } else {
           // If no search results, use all content items
           setContentItems(processedData);
           setShowingSearchResults(false);
-          
-          // If we had a search but it returned no results, show a message
-          if (searchPurpose) {
-            toast.warning(
-              `No matches found for "${searchPurpose}". Showing all content instead.`,
-              { duration: 5000 }
-            );
-          }
         }
       } catch (error) {
         console.error("Error fetching content:", error);
@@ -111,7 +116,9 @@ const Vista = () => {
   // Handle "Back to Search Results" button click
   const handleBackToResults = () => {
     if (searchResults && searchResults.length > 0) {
-      setContentItems(searchResults);
+      // Get only the top results shown in console (max 3)
+      const topResults = searchResults.slice(0, Math.min(searchResults.length, 3));
+      setContentItems(topResults);
       setShowingSearchResults(true);
     }
   };
@@ -154,16 +161,18 @@ const Vista = () => {
         
         {/* Search result controls */}
         <div className="mb-6 flex justify-between items-center">
-          {showingSearchResults ? (
+          {showingSearchResults && sortedItems.length > 0 ? (
             <div className="text-sm text-beige-600">
               Showing {sortedItems.length} relevant results sorted by relevance
             </div>
-          ) : searchPurpose ? (
+          ) : showingSearchResults && sortedItems.length === 0 ? (
+            <div className="text-sm text-beige-600">
+              No relevant content found for your search
+            </div>
+          ) : (
             <div className="text-sm text-beige-600">
               Showing all content items
             </div>
-          ) : (
-            <div></div>
           )}
           
           <div>
@@ -207,14 +216,19 @@ const Vista = () => {
               </div>
             ))}
           </div>
+        ) : showingSearchResults ? (
+          <div className="text-center py-10">
+            <p className="text-xl text-gray-500 mb-4">No relevant content found.</p>
+            <p className="text-gray-400 mb-6">
+              Try adjusting your search term or exploring our general content.
+            </p>
+            <Button onClick={handleViewAll} variant="secondary">
+              View All Content
+            </Button>
+          </div>
         ) : (
           <div className="text-center py-10">
-            <p className="text-xl text-gray-500 mb-4">No content items found.</p>
-            {searchPurpose && (
-              <p className="text-gray-400">
-                Try adjusting your search or explore our general content.
-              </p>
-            )}
+            <p className="text-xl text-gray-500 mb-4">No content items available.</p>
           </div>
         )}
         
