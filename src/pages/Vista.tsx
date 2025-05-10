@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentDisplayItem } from "@/components/ContentDisplay";
 import Header from "@/components/Header";
@@ -8,11 +7,15 @@ import Footer from "@/components/Footer";
 import { toast } from "@/components/ui/sonner";
 import { ContentItem } from "@/services/adminService";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Vista = () => {
-  const [contentItems, setContentItems] = useState<any[]>([]);
+  const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showingSearchResults, setShowingSearchResults] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Check if we have search results from the navigation state
   const searchResults = location.state?.searchResults as ContentItem[] | undefined;
@@ -25,6 +28,18 @@ const Vista = () => {
       try {
         setLoading(true);
         
+        // Always fetch all content items for "View All" functionality
+        const { data, error } = await supabase
+          .from("content_items")
+          .select("*");
+
+        if (error) {
+          throw error;
+        }
+        
+        console.log(`Fetched ${data?.length || 0} content items from the database`);
+        setAllContentItems(data || []);
+        
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
@@ -34,25 +49,18 @@ const Vista = () => {
             id: r.id
           })));
           
+          // Set search results as the displayed content
           setContentItems(searchResults);
+          setShowingSearchResults(true);
           
           toast.success(
-            `Found ${searchResults.length} relevant items based on your purpose`,
+            `Found ${searchResults.length} relevant items based on your search`,
             { duration: 5000 }
           );
         } else {
-          console.log("No search results provided, fetching all content items");
-          // Otherwise, fall back to fetching all content items
-          const { data, error } = await supabase
-            .from("content_items")
-            .select("*");
-
-          if (error) {
-            throw error;
-          }
-
-          console.log(`Fetched ${data?.length || 0} content items from the database`);
+          // If no search results, use all content items
           setContentItems(data || []);
+          setShowingSearchResults(false);
           
           // If we had a search but it returned no results, show a message
           if (searchPurpose) {
@@ -65,6 +73,8 @@ const Vista = () => {
       } catch (error) {
         console.error("Error fetching content:", error);
         toast.error("Failed to load content items");
+        setContentItems([]);
+        setShowingSearchResults(false);
       } finally {
         setLoading(false);
       }
@@ -72,6 +82,25 @@ const Vista = () => {
 
     fetchContentItems();
   }, [searchResults, searchPurpose, searchQuery]); // Add searchQuery to dependencies to force re-render
+
+  // Handle "View All" button click
+  const handleViewAll = () => {
+    setContentItems(allContentItems);
+    setShowingSearchResults(false);
+    
+    // Clear the search state but keep on same page
+    navigate('/vista', { replace: true });
+    
+    toast.info("Showing all content items", { duration: 3000 });
+  };
+
+  // Handle "Back to Search Results" button click
+  const handleBackToResults = () => {
+    if (searchResults && searchResults.length > 0) {
+      setContentItems(searchResults);
+      setShowingSearchResults(true);
+    }
+  };
 
   // Sort content items by similarity if available
   const sortedItems = [...contentItems].sort((a, b) => {
@@ -91,12 +120,47 @@ const Vista = () => {
       <Header />
       <main className="flex-1 container py-8">
         <h1 className="text-3xl font-bold mb-6">
-          {searchPurpose ? (
+          {searchPurpose && showingSearchResults ? (
             <>Content for: <span className="text-beige-700 italic">"{searchPurpose}"</span></>
           ) : (
             "Content Vista"
           )}
         </h1>
+        
+        {/* Search result controls */}
+        <div className="mb-6 flex justify-between items-center">
+          {showingSearchResults ? (
+            <div className="text-sm text-beige-600">
+              Showing {sortedItems.length} relevant results
+            </div>
+          ) : searchPurpose ? (
+            <div className="text-sm text-beige-600">
+              Showing all content items
+            </div>
+          ) : (
+            <div></div>
+          )}
+          
+          <div>
+            {showingSearchResults ? (
+              <Button 
+                onClick={handleViewAll} 
+                variant="outline"
+                className="text-sm"
+              >
+                View All Content
+              </Button>
+            ) : searchResults && searchResults.length > 0 ? (
+              <Button 
+                onClick={handleBackToResults} 
+                variant="outline"
+                className="text-sm"
+              >
+                Back to Search Results
+              </Button>
+            ) : null}
+          </div>
+        </div>
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
@@ -128,6 +192,17 @@ const Vista = () => {
             )}
           </div>
         )}
+        
+        {/* About page link */}
+        <div className="mt-12 text-center border-t pt-8">
+          <p className="text-beige-600 mb-4">Want to explore all our content in detail?</p>
+          <Button 
+            asChild
+            variant="secondary"
+          >
+            <Link to="/about">Visit Our About Page</Link>
+          </Button>
+        </div>
       </main>
       <Footer />
     </div>

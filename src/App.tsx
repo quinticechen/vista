@@ -11,6 +11,7 @@ import Admin from "./pages/Admin";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import AdminGuard from "./components/AdminGuard";
+import About from "./pages/About";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/vista/:contentId" element={<ContentDetail />} />
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
