@@ -115,18 +115,23 @@ const Vista = () => {
     }
   };
 
-  // Sort content items by similarity if available
-  const sortedItems = [...contentItems].sort((a, b) => {
-    // If both have similarity scores, sort by similarity (descending)
-    if (a.similarity !== undefined && b.similarity !== undefined) {
-      return b.similarity - a.similarity;
-    }
-    // If only one has similarity score, prioritize that one
-    if (a.similarity !== undefined) return -1;
-    if (b.similarity !== undefined) return 1;
-    // Otherwise, sort alphabetically by title
-    return a.title?.localeCompare(b.title || '') || 0;
-  });
+  // Get sorted content items - make sure the sort is applied directly before rendering
+  const getSortedItems = () => {
+    // Make a copy of the contentItems to avoid mutating the state directly
+    return [...contentItems].sort((a, b) => {
+      // If both have similarity scores, sort by similarity (descending)
+      if (a.similarity !== undefined && b.similarity !== undefined) {
+        return b.similarity - a.similarity;
+      }
+      // If only one has similarity score, prioritize that one
+      if (a.similarity !== undefined) return -1;
+      if (b.similarity !== undefined) return 1;
+      // Otherwise, sort alphabetically by title
+      return a.title?.localeCompare(b.title || '') || 0;
+    });
+  };
+
+  const sortedItems = getSortedItems();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -144,7 +149,7 @@ const Vista = () => {
         <div className="mb-6 flex justify-between items-center">
           {showingSearchResults ? (
             <div className="text-sm text-beige-600">
-              Showing {sortedItems.length} relevant results
+              Showing {sortedItems.length} relevant results sorted by relevance
             </div>
           ) : searchPurpose ? (
             <div className="text-sm text-beige-600">
