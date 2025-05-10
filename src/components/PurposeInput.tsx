@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import WaveTransition from "./WaveTransition";
 import FloatingShapes from "./FloatingShapes";
+import { semanticSearch } from "@/services/adminService";
 
 interface PurposeOption {
   id: string;
@@ -48,7 +50,9 @@ const purposeOptions: PurposeOption[] = [
 
 const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) => {
   const [purpose, setPurpose] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleOptionClick = (inputContent: string) => {
@@ -58,14 +62,45 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (purpose.trim()) {
-      onPurposeSubmit(purpose.trim());
-      toast({
-        title: "Purpose submitted",
-        description: "Loading content tailored to your needs...",
-      });
+      try {
+        setIsSearching(true);
+        toast({
+          title: "Searching for relevant content",
+          description: "Please wait while we find what you're looking for...",
+        });
+        
+        // Perform semantic search with the user's purpose
+        const searchResults = await semanticSearch(purpose.trim(), 10);
+        
+        // Navigate to Vista page with search results
+        navigate("/vista", { 
+          state: { 
+            purpose: purpose.trim(),
+            searchResults 
+          } 
+        });
+        
+        // Also call the original onPurposeSubmit for backward compatibility
+        onPurposeSubmit(purpose.trim());
+        
+      } catch (error) {
+        console.error("Error performing semantic search:", error);
+        toast({
+          title: "Search error",
+          description: "There was a problem finding relevant content. Please try again.",
+          variant: "destructive",
+        });
+        
+        // Still navigate but without search results
+        navigate("/vista", { state: { purpose: purpose.trim() } });
+        onPurposeSubmit(purpose.trim());
+      } finally {
+        setIsSearching(false);
+      }
     } else {
       toast({
         title: "Please enter your purpose",
@@ -86,7 +121,6 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
   };
 
   // Calculate background opacity based on scroll progress
-  // Start with higher base opacity and increase to nearly opaque when fully scrolled
   const backgroundOpacity = Math.min(1, 0.9 + (scrollProgress * 0.1));
 
   return (
@@ -102,7 +136,6 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
       <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
       
       {/* Floating animated shapes with direct Tailwind class */}
-      {/* <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" /> */}
       <div 
         className="absolute top-[100px] left-0 w-full "
       >
@@ -145,9 +178,10 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
           <Button 
             type="submit" 
             className="bg-beige-800 hover:bg-beige-700 text-white"
+            disabled={isSearching}
           >
-            Submit
-            <ArrowRight className="ml-2 w-4 h-4" />
+            {isSearching ? 'Searching...' : 'Submit'}
+            {!isSearching && <ArrowRight className="ml-2 w-4 h-4" />}
           </Button>
         </form>
       </div>

@@ -26,8 +26,12 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Generating embedding for query: "${text.substring(0, 50)}..."`);
+
     // Generate embedding for the text
     const embedding = await generateVertexAIEmbedding(text);
+
+    console.log(`Successfully generated embedding with ${embedding.length} dimensions`);
 
     return new Response(
       JSON.stringify({ embedding }),
