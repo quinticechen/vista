@@ -34,6 +34,13 @@ export interface ContentItem {
   similarity?: number;
 }
 
+// Define interface for vector search parameters
+interface VectorSearchParams {
+  query_embedding: number[];
+  match_threshold: number;
+  match_count: number;
+}
+
 // Check if a user is an admin
 export async function checkAdminStatus(userId: string): Promise<boolean> {
   try {
@@ -158,13 +165,18 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
     
     const queryEmbedding = response.data.embedding;
     
-    // Then perform vector similarity search
-    // Use type assertion to fix the TypeScript error
-    const { data, error } = await supabase.rpc('match_content_items', {
+    // Define parameters for vector search
+    const searchParams: VectorSearchParams = {
       query_embedding: queryEmbedding,
       match_threshold: 0.5,
       match_count: limit
-    } as any); // Using type assertion to bypass TypeScript checking
+    };
+    
+    // Then perform vector similarity search with properly typed parameters
+    const { data, error } = await supabase.rpc(
+      'match_content_items', 
+      searchParams
+    );
     
     if (error) {
       console.error("Error executing vector search:", error);
