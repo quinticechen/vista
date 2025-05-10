@@ -66,6 +66,7 @@ const Vista = () => {
           // Set all search results as the displayed content
           setContentItems(searchResults); // 現在設定的是完整的 searchResults
           setShowingSearchResults(true);
+          console.log("showingSearchResults set to:", showingSearchResults); // 檢查 showingSearchResults
     
           toast.success(
             `Found ${searchResults.length} relevant items based on your search`, // 更新 toast 訊息
@@ -75,6 +76,7 @@ const Vista = () => {
           // If we had a search but it returned no results, show a message and empty content
           setContentItems([]);
           setShowingSearchResults(true);
+          console.log("showingSearchResults set to true for no results"); // 檢查 showingSearchResults
           
           toast.warning(
             `No matches found for "${searchPurpose}". Try a different search.`,
@@ -84,6 +86,7 @@ const Vista = () => {
           // If no search results, use all content items
           setContentItems(processedData);
           setShowingSearchResults(false);
+          console.log("showingSearchResults set to false for all content"); // 檢查 showingSearchResults
         }
       } catch (error) {
         console.error("Error fetching content:", error);
@@ -112,33 +115,32 @@ const Vista = () => {
   // Handle "Back to Search Results" button click
   const handleBackToResults = () => {
       if (searchResults && searchResults.length > 0) {
+        console.log(`Displaying <span class="math-inline">\{searchResults\.length\} search results for\: "</span>{searchPurpose}"`);
         setContentItems(searchResults); // 設定完整的 searchResults
+        console.log("contentItems after setting searchResults:", contentItems); // 檢查 contentItems
         setShowingSearchResults(true);
+        console.log("showingSearchResults set to:", showingSearchResults); // 檢查 showingSearchResults
       }
     };
 
   // Get sorted content items - make sure the sort is applied directly before rendering
   const getSortedItems = () => {
-    // If showing search results, sort by similarity
     if (showingSearchResults) {
-      // Make a copy of the contentItems to avoid mutating the state directly
-      return [...contentItems].sort((a, b) => {
-        // If both have similarity scores, sort by similarity (descending)
+      const sorted = [...contentItems].sort((a, b) => {
         if (a.similarity !== undefined && b.similarity !== undefined) {
           return b.similarity - a.similarity;
         }
-        // If only one has similarity score, prioritize that one
         if (a.similarity !== undefined) return -1;
         if (b.similarity !== undefined) return 1;
-        // Otherwise, sort alphabetically by title
         return a.title?.localeCompare(b.title || '') || 0;
       });
+      console.log("sortedItems (search results):", sorted); // 檢查排序後的結果
+      return sorted;
     }
-    
-    // If not showing search results, just return the content items
+    console.log("sortedItems (all content):", contentItems); // 檢查所有內容
     return contentItems;
   };
-
+  
   const sortedItems = getSortedItems();
 
   return (
