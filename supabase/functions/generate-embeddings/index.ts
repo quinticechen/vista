@@ -96,22 +96,21 @@ async function processContentEmbedding(jobId: string) {
         // Generate embedding using Vertex AI
         const embedding = await generateVertexAIEmbedding(textToEmbed);
         
-        // Store embedding in Supabase as a string
+        // Store embedding in Supabase
         // First convert the embedding array to a string
         const embeddingString = JSON.stringify(embedding);
         
-        // Store the embedding in the database using :: cast to vector type
-        const { data: updateData, error: updateError } = await supabase.rpc(
+        // Use the store_content_embedding function we just fixed
+        const { data, error } = await supabase.rpc(
           'store_content_embedding',
           { 
             content_id: item.id, 
             embedding_vector: embeddingString 
           }
         );
-        
-        // Verify update success and log the result
-        if (updateError) {
-          console.error(`Error storing embedding for item ${item.id}:`, updateError);
+
+        if (error) {
+          console.error(`Error storing embedding for item ${item.id}:`, error);
           errorCount++;
         } else {
           console.log(`Embedding stored successfully for item ${item.id}`);
@@ -133,11 +132,18 @@ async function processContentEmbedding(jobId: string) {
       }
     }
 
-    // Update job status to completed
+    // Update job status based on success/error counts
+    const finalStatus = errorCount === contentItems.length ? 'error' : 
+                       errorCount > 0 ? 'partial_success' : 'completed';
+    
+    const errorMessage = errorCount > 0 ? 
+      `${errorCount} items failed embedding generation` : null;
+    
     await supabase
       .from('embedding_jobs')
       .update({ 
-        status: 'completed',
+        status: finalStatus,
+        error: errorMessage,
         completed_at: new Date().toISOString(),
         items_processed: itemsProcessed,
         updated_at: new Date().toISOString()
@@ -276,6 +282,8 @@ async function generateVertexAIEmbedding(text: string): Promise<number[]> {
     // Parse the credentials to get the project ID
     const credentials = JSON.parse(googleCredentials);
     const projectId = credentials.project_id;
+    
+    console.log(`Calling Vertex AI with project: ${projectId} and text length: ${text.length}`);
     
     // Call Vertex AI Embeddings API - Update to use text-embedding-005
     const response = await fetch(

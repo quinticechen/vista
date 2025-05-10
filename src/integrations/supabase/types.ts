@@ -359,6 +359,10 @@ export type Database = {
         Args: { "": unknown[] }
         Returns: number
       }
+      store_content_embedding: {
+        Args: { content_id: string; embedding_vector: string }
+        Returns: boolean
+      }
       vector_avg: {
         Args: { "": number[] }
         Returns: string

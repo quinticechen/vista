@@ -83,7 +83,14 @@ const Admin = () => {
     
     setCurrentJob(jobData);
     
-    if (jobData.status === 'completed' || jobData.status === 'error') {
+    if (jobData.status === 'completed' || jobData.status === 'error' || jobData.status === 'partial_success') {
+      if (jobData.status === 'error') {
+        toast.error(`Embedding process failed: ${jobData.error || 'Unknown error'}`);
+      } else if (jobData.status === 'partial_success') {
+        toast.warning(`Embedding process completed with some errors: ${jobData.error}`);
+      } else {
+        toast.success("Embedding process completed successfully");
+      }
       await refreshJobHistory();
     }
   };
@@ -124,6 +131,7 @@ const Admin = () => {
       return () => clearInterval(intervalId);
     } catch (error: any) {
       toast.error(`Error: ${error.message}`);
+      await refreshJobHistory(); // Refresh to get accurate state
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +139,7 @@ const Admin = () => {
 
   // Format date
   const formatDate = (dateString: string) => {
-    if (!dateString) return "";
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleString();
   };
 
@@ -146,6 +154,8 @@ const Admin = () => {
         return <Badge className="bg-yellow-500">Pending</Badge>;
       case 'error':
         return <Badge className="bg-red-500">Error</Badge>;
+      case 'partial_success':
+        return <Badge className="bg-orange-500">Partial Success</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -190,12 +200,19 @@ const Admin = () => {
               <p>Click the button below to start generating embeddings for all content items.</p>
             )}
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex justify-between">
             <Button 
               onClick={startEmbedding} 
               disabled={isLoading || (currentJob && (currentJob.status === 'processing' || currentJob.status === 'pending'))}
             >
               {isLoading ? "Starting..." : "Generate Embeddings"}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={refreshJobHistory} 
+              disabled={isLoading}
+            >
+              Refresh Status
             </Button>
           </CardFooter>
         </Card>

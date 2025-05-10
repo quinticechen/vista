@@ -125,7 +125,10 @@ export async function createEmbeddingJob(userId: string): Promise<EmbeddingJob |
       .from("embedding_jobs")
       .insert([{ 
         status: 'pending', 
-        created_by: userId 
+        created_by: userId,
+        items_processed: 0,
+        total_items: 0,
+        error: null
       }])
       .select()
       .single();
@@ -145,6 +148,7 @@ export async function createEmbeddingJob(userId: string): Promise<EmbeddingJob |
 // Start the embedding process
 export async function startEmbeddingProcess(jobId: string): Promise<boolean> {
   try {
+    console.log(`Starting embedding process for job: ${jobId}`);
     const response = await supabase.functions.invoke('generate-embeddings', {
       body: { jobId }
     });
@@ -154,6 +158,7 @@ export async function startEmbeddingProcess(jobId: string): Promise<boolean> {
       return false;
     }
     
+    console.log("Embedding process started successfully");
     return true;
   } catch (error) {
     console.error("Exception starting embedding process:", error);
@@ -164,8 +169,8 @@ export async function startEmbeddingProcess(jobId: string): Promise<boolean> {
 // Perform semantic search using vector similarity
 export async function semanticSearch(
       query: string,
-      limit: number = 5,
-      matchThreshold: number = 0.5 // Lower default threshold from 0.5 for better recall
+      limit: number = 8, 
+      matchThreshold: number = 0.45 // Lower threshold to ensure we get results
 ): Promise<ContentItem[]> {
   try {
     // Log query length to help debug short query issues
