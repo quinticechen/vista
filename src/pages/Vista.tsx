@@ -56,15 +56,19 @@ const Vista = () => {
         
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
-          console.log(`Displaying <span class="math-inline">\{searchResults\.length\} search results for\: "</span>{searchPurpose}"`);
+          console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
+    
           console.log("Displaying search results:", searchResults.map(r => ({
             title: r.title,
             similarity: r.similarity ? Math.round(r.similarity * 100) + '%' : 'N/A'
           })));
-          setContentItems(searchResults); // 使用完整的 searchResults
+    
+          // Set all search results as the displayed content
+          setContentItems(searchResults); // 現在設定的是完整的 searchResults
           setShowingSearchResults(true);
+    
           toast.success(
-            `Found ${searchResults.length} relevant items based on your search`, // 使用 searchResults.length
+            `Found ${searchResults.length} relevant items based on your search`, // 更新 toast 訊息
             { duration: 5000 }
           );
         } else if (searchPurpose) {
@@ -107,11 +111,12 @@ const Vista = () => {
 
   // Handle "Back to Search Results" button click
   const handleBackToResults = () => {
-    if (searchResults && searchResults.length > 0) {
-      setContentItems(searchResults); // 使用完整的 searchResults
-      setShowingSearchResults(true);
-    }
-  };
+      if (searchResults && searchResults.length > 0) {
+        setContentItems(searchResults); // 設定完整的 searchResults
+        setShowingSearchResults(true);
+      }
+    };
+
   // Get sorted content items - make sure the sort is applied directly before rendering
   const getSortedItems = () => {
     // If showing search results, sort by similarity
@@ -194,26 +199,51 @@ const Vista = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedItems.map((item) => (
               <div key={item.id} className="block group">
-                <ContentDisplayItem
+                <ContentDisplayItem 
                   content={{
                     ...item,
-                    similarityScore: item.similarity !== undefined
-                      ? `${Math.round(item.similarity * 100)}% match`
-                      : undefined
-                  }}
+                    // If item has a similarity score, show it as a percentage in the UI
+                    similarityScore: item.similarity !== undefined ? 
+                      `${Math.round(item.similarity * 100)}% match` : undefined
+                  }} 
                 />
               </div>
             ))}
           </div>
         ) : showingSearchResults ? (
-          <div className="text-center py-10">
-            <p className="text-xl text-gray-500 mb-4">No relevant content found.</p>
-            <p className="text-gray-400 mb-6">
-              Try adjusting your search term or exploring our general content.
-            </p>
-            <Button onClick={handleViewAll} variant="secondary">
-              View All Content
-            </Button>
+          sortedItems.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sortedItems.map((item) => (
+                <div key={item.id} className="block group">
+                  <ContentDisplayItem
+                    content={{
+                      ...item,
+                      similarityScore: item.similarity !== undefined
+                        ? `${Math.round(item.similarity * 100)}% match`
+                        : undefined
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-xl text-gray-500 mb-4">No relevant content found.</p>
+              <p className="text-gray-400 mb-6">
+                Try adjusting your search term or exploring our general content.
+              </p>
+              <Button onClick={handleViewAll} variant="secondary">
+                View All Content
+              </Button>
+            </div>
+          )
+        ) : sortedItems.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sortedItems.map((item) => (
+              <div key={item.id} className="block group">
+                <ContentDisplayItem content={item} />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-10">
