@@ -73,29 +73,42 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
           description: "Please wait while we find what you're looking for...",
         });
 
-        // Perform semantic search with the user's purpose and control parameters
+        console.log("Starting search with query:", purpose.trim());
+        
+        // Perform semantic search with the user's purpose and higher matching threshold
         const searchResults = await semanticSearch(
           purpose.trim(),
-          5,       // Example: Request up to 8 results
-          0.9      // Example: Set a the higher the matcher threshold
+          8,       // Request up to 8 results for more variety
+          0.75     // Use a higher threshold for better quality matches
         );
+
+        console.log(`Search completed. Found ${searchResults.length} results`);
 
         // Navigate to Vista page with search results
         navigate("/vista", {
           state: {
             purpose: purpose.trim(),
-            searchResults
+            searchResults,
+            searchQuery: Date.now() // Add timestamp to force re-render
           }
         });
 
         // Also call the original onPurposeSubmit for backward compatibility
         onPurposeSubmit(purpose.trim());
-        const textarea = e.target as HTMLTextAreaElement; // Explicitly cast the target
-        textarea.style.height = 'auto';
-        textarea.style.height = `${textarea.scrollHeight}px`;
+        
+        // Reset form state
+        if (e.target) {
+          const textarea = e.target as HTMLTextAreaElement; 
+          textarea.style.height = 'auto';
+          textarea.style.height = `${textarea.scrollHeight}px`;
+        }
       } catch (error) {
         console.error("Exception during search:", error);
-        toast.error("An error occurred during search.");
+        toast({
+          title: "Search Error",
+          description: "An error occurred during the search. Please try again.",
+          variant: "destructive"
+        });
       } finally {
         setIsSearching(false);
       }

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Define the profile type to match our database
@@ -167,6 +168,8 @@ export async function semanticSearch(
       matchThreshold: number = 0.5 // Add matchThreshold with a default value
 ): Promise<ContentItem[]> {
   try {
+    console.log(`Starting semantic search for query: "${query}" with limit: ${limit}, threshold: ${matchThreshold}`);
+    
     // First generate an embedding for the search query
     const response = await supabase.functions.invoke('generate-query-embedding', {
       body: { text: query }
@@ -178,6 +181,7 @@ export async function semanticSearch(
     }
     
     const queryEmbedding = response.data.embedding;
+    console.log(`Successfully generated embedding with ${queryEmbedding.length} dimensions`);
     
     // Define parameters for vector search
     const searchParams: VectorSearchParams = {
@@ -185,6 +189,12 @@ export async function semanticSearch(
       match_threshold: matchThreshold,
       match_count: limit
     };
+    
+    console.log(`Executing vector search with parameters:`, {
+      match_threshold: matchThreshold,
+      match_count: limit,
+      embeddingLength: queryEmbedding.length
+    });
     
     // Use the rpc method without specifying type parameters to let TypeScript infer them
     const { data, error } = await supabase.rpc(
@@ -199,6 +209,16 @@ export async function semanticSearch(
     
     // Convert the results to ContentItem[]
     const results = data as MatchContentItem[];
+    console.log(`Vector search returned ${results.length} results`);
+    
+    // Debug the first few results
+    if (results.length > 0) {
+      console.log("Top results:", results.slice(0, 3).map(r => ({
+        title: r.title,
+        similarity: r.similarity,
+        category: r.category
+      })));
+    }
     
     // Map the results to ContentItem format
     return results.map(item => ({

@@ -26,7 +26,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating embedding for query: "${text.substring(0, 50)}..."`);
+    console.log(`Generating embedding for query: "${text.substring(0, 100)}..."`);
 
     // Generate embedding for the text
     const embedding = await generateVertexAIEmbedding(text);
@@ -34,11 +34,15 @@ serve(async (req) => {
     console.log(`Successfully generated embedding with ${embedding.length} dimensions`);
 
     return new Response(
-      JSON.stringify({ embedding }),
+      JSON.stringify({ 
+        embedding,
+        text: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+        dimensions: embedding.length
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error generating embedding:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -162,6 +166,8 @@ async function generateVertexAIEmbedding(text: string): Promise<number[]> {
     const credentials = JSON.parse(googleCredentials);
     const projectId = credentials.project_id;
     
+    console.log(`Calling Vertex AI with project: ${projectId} and text length: ${text.length}`);
+    
     // Call Vertex AI Embeddings API - Update to use text-embedding-005
     const response = await fetch(
       `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/text-embedding-005:predict`,
@@ -198,17 +204,38 @@ async function generateVertexAIEmbedding(text: string): Promise<number[]> {
   }
 }
 
-// For testing purposes, generate a mock embedding vector of 768 dimensions
+// Generate a deterministic embedding vector based on the input text
 async function generateSimpleMockEmbedding(text: string): Promise<number[]> {
-  // Create a deterministic but simple mock embedding based on the text
+  // Create a deterministic but unique mock embedding based on the text
   const mockEmbedding = new Array(768).fill(0);
   
-  // Use text to seed some values
-  const seed = text.length;
+  // Use different hashing for different texts
+  const hashCode = (s: string): number => {
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) {
+      const char = s.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+  };
+  
+  // Generate unique patterns based on input text
+  const baseHash = hashCode(text);
   for (let i = 0; i < 768; i++) {
-    // Simple hash function to create mock values
-    mockEmbedding[i] = Math.sin(i * seed * 0.1) * 0.5;
+    const patternValue = Math.sin(i * 0.1 + hashCode(text[i % text.length] || '') * 0.01);
+    mockEmbedding[i] = patternValue * 0.5;
+    
+    // Add some category-specific patterns to make searches more meaningful
+    if (text.toLowerCase().includes('hr') && i % 5 === 0) {
+      mockEmbedding[i] += 0.3;
+    } else if (text.toLowerCase().includes('design') && i % 7 === 0) {
+      mockEmbedding[i] += 0.3;
+    } else if (text.toLowerCase().includes('architect') && i % 11 === 0) {
+      mockEmbedding[i] += 0.3;
+    }
   }
   
+  console.log(`Created mock embedding with unique pattern for: "${text.substring(0, 20)}..."`);
   return mockEmbedding;
 }
