@@ -173,7 +173,8 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
     };
     
     // Then perform vector similarity search with properly typed parameters
-    const { data, error } = await supabase.rpc<ContentItem>(
+    // Fix: Add both type parameters to rpc method - first is the return type, second is input type
+    const { data, error } = await supabase.rpc<ContentItem, VectorSearchParams>(
       'match_content_items',
       searchParams
     );
@@ -183,7 +184,8 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
       return [];
     }
     
-    return data || [];
+    // Fix: Ensure proper type handling for the returned data
+    return (data as ContentItem[]) || [];
   } catch (error) {
     console.error("Exception during semantic search:", error);
     return [];
