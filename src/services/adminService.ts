@@ -35,7 +35,7 @@ export interface ContentItem {
 }
 
 // Define interface for vector search parameters
-interface VectorSearchParams {
+export interface VectorSearchParams {
   query_embedding: number[];
   match_threshold: number;
   match_count: number;
@@ -173,9 +173,9 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
     };
     
     // Then perform vector similarity search with properly typed parameters
-    const { data, error } = await supabase.rpc(
-      'match_content_items', 
-      searchParams as any  // Type assertion needed to satisfy TypeScript
+    const { data, error } = await supabase.rpc<ContentItem>(
+      'match_content_items',
+      searchParams
     );
     
     if (error) {
@@ -183,7 +183,7 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
       return [];
     }
     
-    return data as ContentItem[] || [];
+    return data || [];
   } catch (error) {
     console.error("Exception during semantic search:", error);
     return [];
