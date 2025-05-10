@@ -56,27 +56,21 @@ const Vista = () => {
         
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
-          console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
-    
+          console.log(`Displaying <span class="math-inline">\{searchResults\.length\} search results for\: "</span>{searchPurpose}"`);
           console.log("Displaying search results:", searchResults.map(r => ({
             title: r.title,
             similarity: r.similarity ? Math.round(r.similarity * 100) + '%' : 'N/A'
           })));
-    
-          // Set all search results as the displayed content
-          setContentItems(searchResults); // 現在設定的是完整的 searchResults
+          setContentItems(searchResults); // 使用完整的 searchResults
           setShowingSearchResults(true);
-          console.log("showingSearchResults set to:", showingSearchResults); // 檢查 showingSearchResults
-    
           toast.success(
-            `Found ${searchResults.length} relevant items based on your search`, // 更新 toast 訊息
+            `Found ${searchResults.length} relevant items based on your search`, // 使用 searchResults.length
             { duration: 5000 }
           );
         } else if (searchPurpose) {
           // If we had a search but it returned no results, show a message and empty content
           setContentItems([]);
           setShowingSearchResults(true);
-          console.log("showingSearchResults set to true for no results"); // 檢查 showingSearchResults
           
           toast.warning(
             `No matches found for "${searchPurpose}". Try a different search.`,
@@ -86,7 +80,6 @@ const Vista = () => {
           // If no search results, use all content items
           setContentItems(processedData);
           setShowingSearchResults(false);
-          console.log("showingSearchResults set to false for all content"); // 檢查 showingSearchResults
         }
       } catch (error) {
         console.error("Error fetching content:", error);
@@ -114,33 +107,33 @@ const Vista = () => {
 
   // Handle "Back to Search Results" button click
   const handleBackToResults = () => {
-      if (searchResults && searchResults.length > 0) {
-        console.log(`Displaying <span class="math-inline">\{searchResults\.length\} search results for\: "</span>{searchPurpose}"`);
-        setContentItems(searchResults); // 設定完整的 searchResults
-        console.log("contentItems after setting searchResults:", contentItems); // 檢查 contentItems
-        setShowingSearchResults(true);
-        console.log("showingSearchResults set to:", showingSearchResults); // 檢查 showingSearchResults
-      }
-    };
-
+    if (searchResults && searchResults.length > 0) {
+      setContentItems(searchResults); // 使用完整的 searchResults
+      setShowingSearchResults(true);
+    }
+  };
   // Get sorted content items - make sure the sort is applied directly before rendering
   const getSortedItems = () => {
+    // If showing search results, sort by similarity
     if (showingSearchResults) {
-      const sorted = [...contentItems].sort((a, b) => {
+      // Make a copy of the contentItems to avoid mutating the state directly
+      return [...contentItems].sort((a, b) => {
+        // If both have similarity scores, sort by similarity (descending)
         if (a.similarity !== undefined && b.similarity !== undefined) {
           return b.similarity - a.similarity;
         }
+        // If only one has similarity score, prioritize that one
         if (a.similarity !== undefined) return -1;
         if (b.similarity !== undefined) return 1;
+        // Otherwise, sort alphabetically by title
         return a.title?.localeCompare(b.title || '') || 0;
       });
-      console.log("sortedItems (search results):", sorted); // 檢查排序後的結果
-      return sorted;
     }
-    console.log("sortedItems (all content):", contentItems); // 檢查所有內容
+    
+    // If not showing search results, just return the content items
     return contentItems;
   };
-  
+
   const sortedItems = getSortedItems();
 
   return (
@@ -201,13 +194,13 @@ const Vista = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedItems.map((item) => (
               <div key={item.id} className="block group">
-                <ContentDisplayItem 
+                <ContentDisplayItem
                   content={{
                     ...item,
-                    // If item has a similarity score, show it as a percentage in the UI
-                    similarityScore: item.similarity !== undefined ? 
-                      `${Math.round(item.similarity * 100)}% match` : undefined
-                  }} 
+                    similarityScore: item.similarity !== undefined
+                      ? `${Math.round(item.similarity * 100)}% match`
+                      : undefined
+                  }}
                 />
               </div>
             ))}
