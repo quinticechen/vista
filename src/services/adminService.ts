@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Define the profile type to match our database
@@ -184,8 +183,7 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
       match_count: limit
     };
     
-    // Use the rpc method correctly without specifying type parameters
-    // Let TypeScript infer the types based on the function name and params
+    // Use the rpc method without specifying type parameters to let TypeScript infer them
     const { data, error } = await supabase.rpc(
       'match_content_items',
       searchParams

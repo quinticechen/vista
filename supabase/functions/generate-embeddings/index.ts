@@ -75,6 +75,8 @@ async function processContentEmbedding(jobId: string) {
 
     // Process each content item
     let itemsProcessed = 0;
+    let successCount = 0;
+    let errorCount = 0;
     
     for (const item of contentItems) {
       try {
@@ -94,11 +96,27 @@ async function processContentEmbedding(jobId: string) {
         // Generate embedding using Vertex AI
         const embedding = await generateVertexAIEmbedding(textToEmbed);
         
-        // Store embedding in Supabase
-        await supabase
-          .from('content_items')
-          .update({ embedding })
-          .eq('id', item.id);
+        // Store embedding in Supabase as a string
+        // First convert the embedding array to a string
+        const embeddingString = JSON.stringify(embedding);
+        
+        // Store the embedding in the database using :: cast to vector type
+        const { data: updateData, error: updateError } = await supabase.rpc(
+          'store_content_embedding',
+          { 
+            content_id: item.id, 
+            embedding_vector: embeddingString 
+          }
+        );
+        
+        // Verify update success and log the result
+        if (updateError) {
+          console.error(`Error storing embedding for item ${item.id}:`, updateError);
+          errorCount++;
+        } else {
+          console.log(`Embedding stored successfully for item ${item.id}`);
+          successCount++;
+        }
         
         // Update processed count
         itemsProcessed++;
@@ -111,6 +129,7 @@ async function processContentEmbedding(jobId: string) {
         await new Promise(r => setTimeout(r, 100));
       } catch (error) {
         console.error(`Error processing content item ${item.id}:`, error);
+        errorCount++;
       }
     }
 
@@ -125,7 +144,7 @@ async function processContentEmbedding(jobId: string) {
       })
       .eq('id', jobId);
 
-    console.log(`Embedding job ${jobId} completed - ${itemsProcessed}/${contentItems.length} items processed`);
+    console.log(`Embedding job ${jobId} completed - ${itemsProcessed}/${contentItems.length} items processed, ${successCount} successful, ${errorCount} failed`);
   } catch (error) {
     console.error(`Error processing embedding job ${jobId}:`, error);
     
