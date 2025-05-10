@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 interface ContentItem {
   id: number;
@@ -204,7 +205,15 @@ const ContentDisplay = ({ userPurpose }: ContentDisplayProps) => {
 // This is a new component for the Vista page
 export const ContentDisplayItem = ({ content }: ContentDisplayItemProps) => {
   return (
-    <Card className="bg-white border-beige-200 overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full">
+    <Card className="bg-white border-beige-200 overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full relative">
+      {content.similarityScore && (
+        <div className="absolute top-2 right-2 z-10">
+          <Badge variant="secondary" className="bg-beige-800 text-white">
+            {content.similarityScore}
+          </Badge>
+        </div>
+      )}
+      
       {content.imageUrl && (
         <div className="w-full h-40 bg-beige-200 overflow-hidden">
           <img 

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,17 +62,12 @@ const Vista = () => {
             id: r.id
           })));
           
-          // Only show search results with similarity above 0.5
-          const filteredResults = searchResults.filter(item => 
-            item.similarity !== undefined && item.similarity >= 0.5
-          );
-          
           // Set search results as the displayed content
-          setContentItems(filteredResults);
+          setContentItems(searchResults);
           setShowingSearchResults(true);
           
           toast.success(
-            `Found ${filteredResults.length} relevant items based on your search`,
+            `Found ${searchResults.length} relevant items based on your search`,
             { duration: 5000 }
           );
         } else {
@@ -116,29 +110,31 @@ const Vista = () => {
   // Handle "Back to Search Results" button click
   const handleBackToResults = () => {
     if (searchResults && searchResults.length > 0) {
-      // Only show search results with similarity above 0.5
-      const filteredResults = searchResults.filter(item => 
-        item.similarity !== undefined && item.similarity >= 0.5
-      );
-      setContentItems(filteredResults);
+      setContentItems(searchResults);
       setShowingSearchResults(true);
     }
   };
 
   // Get sorted content items - make sure the sort is applied directly before rendering
   const getSortedItems = () => {
-    // Make a copy of the contentItems to avoid mutating the state directly
-    return [...contentItems].sort((a, b) => {
-      // If both have similarity scores, sort by similarity (descending)
-      if (a.similarity !== undefined && b.similarity !== undefined) {
-        return b.similarity - a.similarity;
-      }
-      // If only one has similarity score, prioritize that one
-      if (a.similarity !== undefined) return -1;
-      if (b.similarity !== undefined) return 1;
-      // Otherwise, sort alphabetically by title
-      return a.title?.localeCompare(b.title || '') || 0;
-    });
+    // If showing search results, sort by similarity
+    if (showingSearchResults) {
+      // Make a copy of the contentItems to avoid mutating the state directly
+      return [...contentItems].sort((a, b) => {
+        // If both have similarity scores, sort by similarity (descending)
+        if (a.similarity !== undefined && b.similarity !== undefined) {
+          return b.similarity - a.similarity;
+        }
+        // If only one has similarity score, prioritize that one
+        if (a.similarity !== undefined) return -1;
+        if (b.similarity !== undefined) return 1;
+        // Otherwise, sort alphabetically by title
+        return a.title?.localeCompare(b.title || '') || 0;
+      });
+    }
+    
+    // If not showing search results, just return the content items
+    return contentItems;
   };
 
   const sortedItems = getSortedItems();
