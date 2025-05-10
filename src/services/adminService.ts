@@ -41,6 +41,16 @@ export interface VectorSearchParams {
   match_count: number;
 }
 
+// Define the interface for match_content_items function return type
+export interface MatchContentItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  tags: string[];
+  similarity: number;
+}
+
 // Check if a user is an admin
 export async function checkAdminStatus(userId: string): Promise<boolean> {
   try {
@@ -172,9 +182,9 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
       match_count: limit
     };
     
-    // Then perform vector similarity search with properly typed parameters
-    // Fix: Add both type parameters to rpc method - first is the return type, second is input type
-    const { data, error } = await supabase.rpc<ContentItem, VectorSearchParams>(
+    // Use the rpc method correctly without specifying type parameters
+    // Let TypeScript infer the types based on the function name and params
+    const { data, error } = await supabase.rpc(
       'match_content_items',
       searchParams
     );
@@ -184,8 +194,18 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
       return [];
     }
     
-    // Fix: Ensure proper type handling for the returned data
-    return (data as ContentItem[]) || [];
+    // Convert the results to ContentItem[]
+    const results = data as MatchContentItem[];
+    
+    // Map the results to ContentItem format
+    return results.map(item => ({
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      category: item.category,
+      tags: item.tags,
+      similarity: item.similarity
+    }));
   } catch (error) {
     console.error("Exception during semantic search:", error);
     return [];
