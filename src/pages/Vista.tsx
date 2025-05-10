@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +47,7 @@ const Vista = () => {
           description: item.description,
           category: item.category,
           tags: item.tags,
-          embedding: item.embedding, // This can be string or number[]
+          embedding: item.embedding,
           created_at: item.created_at,
           updated_at: item.updated_at
         })) as ContentItem[];
@@ -94,7 +95,7 @@ const Vista = () => {
     };
 
     fetchContentItems();
-  }, [searchResults, searchPurpose, searchQuery]); // Add searchQuery to dependencies to force re-render
+  }, [searchResults, searchPurpose, searchQuery]); // Include searchQuery to force re-render
 
   // Handle "View All" button click
   const handleViewAll = () => {
