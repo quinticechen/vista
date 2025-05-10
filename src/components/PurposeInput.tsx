@@ -64,7 +64,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (purpose.trim()) {
       try {
         setIsSearching(true);
@@ -72,41 +72,33 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
           title: "Searching for relevant content",
           description: "Please wait while we find what you're looking for...",
         });
-        
-        // Perform semantic search with the user's purpose
-        const searchResults = await semanticSearch(purpose.trim(), 10);
-        
+
+        // Perform semantic search with the user's purpose and control parameters
+        const searchResults = await semanticSearch(
+          purpose.trim(),
+          5,       // Example: Request up to 8 results
+          0.9      // Example: Set a the higher the matcher threshold
+        );
+
         // Navigate to Vista page with search results
-        navigate("/vista", { 
-          state: { 
+        navigate("/vista", {
+          state: {
             purpose: purpose.trim(),
-            searchResults 
-          } 
+            searchResults
+          }
         });
-        
+
         // Also call the original onPurposeSubmit for backward compatibility
         onPurposeSubmit(purpose.trim());
-        
+        const textarea = e.target as HTMLTextAreaElement; // Explicitly cast the target
+        textarea.style.height = 'auto';
+        textarea.style.height = `${textarea.scrollHeight}px`;
       } catch (error) {
-        console.error("Error performing semantic search:", error);
-        toast({
-          title: "Search error",
-          description: "There was a problem finding relevant content. Please try again.",
-          variant: "destructive",
-        });
-        
-        // Still navigate but without search results
-        navigate("/vista", { state: { purpose: purpose.trim() } });
-        onPurposeSubmit(purpose.trim());
+        console.error("Exception during search:", error);
+        toast.error("An error occurred during search.");
       } finally {
         setIsSearching(false);
       }
-    } else {
-      toast({
-        title: "Please enter your purpose",
-        description: "Tell us why you're visiting to see relevant content",
-        variant: "destructive",
-      });
     }
   };
 
