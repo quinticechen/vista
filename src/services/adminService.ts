@@ -175,7 +175,7 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
     // Then perform vector similarity search with properly typed parameters
     const { data, error } = await supabase.rpc(
       'match_content_items', 
-      searchParams
+      searchParams as any  // Type assertion needed to satisfy TypeScript
     );
     
     if (error) {

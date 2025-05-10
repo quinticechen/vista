@@ -258,8 +258,10 @@ async function generateVertexAIEmbedding(text: string): Promise<number[]> {
     const credentials = JSON.parse(googleCredentials);
     const projectId = credentials.project_id;
     
-    // Call Vertex AI Embeddings API - Update to use text-embedding-004
-    const response = await fetch(`https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/text-embedding-005:predict`, {
+    // Call Vertex AI Embeddings API - Update to use text-embedding-005
+    const response = await fetch(
+      `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/text-embedding-005:predict`,
+      {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
