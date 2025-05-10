@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,12 +63,17 @@ const Vista = () => {
             id: r.id
           })));
           
+          // Only show search results with similarity above 0.5
+          const filteredResults = searchResults.filter(item => 
+            item.similarity !== undefined && item.similarity >= 0.5
+          );
+          
           // Set search results as the displayed content
-          setContentItems(searchResults);
+          setContentItems(filteredResults);
           setShowingSearchResults(true);
           
           toast.success(
-            `Found ${searchResults.length} relevant items based on your search`,
+            `Found ${filteredResults.length} relevant items based on your search`,
             { duration: 5000 }
           );
         } else {
@@ -110,7 +116,11 @@ const Vista = () => {
   // Handle "Back to Search Results" button click
   const handleBackToResults = () => {
     if (searchResults && searchResults.length > 0) {
-      setContentItems(searchResults);
+      // Only show search results with similarity above 0.5
+      const filteredResults = searchResults.filter(item => 
+        item.similarity !== undefined && item.similarity >= 0.5
+      );
+      setContentItems(filteredResults);
       setShowingSearchResults(true);
     }
   };
