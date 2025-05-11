@@ -14,6 +14,7 @@ const Vista = () => {
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
+  const [hasSearchResults, setHasSearchResults] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   
