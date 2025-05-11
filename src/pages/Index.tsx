@@ -1,23 +1,16 @@
 
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
 import Footer from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
-import WaveTransition from '@/components/WaveTransition';
-import FloatingShapes from '@/components/FloatingShapes';
 
 const Index = () => {
-  const [userPurpose, setUserPurpose] = useState<string | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const heroSectionRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
   
   const handlePurposeSubmit = (purpose: string) => {
-    setUserPurpose(purpose);
-    // Navigate to Vista page with the purpose data
-    navigate("/vista", { state: { purpose } });
+    // This function is still passed to PurposeInput, but we won't use it for navigation anymore
+    console.log("Purpose submitted:", purpose);
   };
   
   const scrollToInput = () => {

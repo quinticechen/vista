@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -92,9 +91,6 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
             searchQuery: Date.now() // Add timestamp to force re-render
           }
         });
-
-        // Also call the original onPurposeSubmit for backward compatibility
-        onPurposeSubmit(purpose.trim());
         
         // Reset form state
         if (e.target) {
