@@ -176,9 +176,9 @@ const Vista = () => {
             <Loader2 className="h-8 w-8 animate-spin text-beige-600" />
             <p className="mt-4 text-lg text-beige-700">Searching for relevant content...</p>
           </div>
-        ) : showingSearchResults && hasSearchResults ? (
-      
-        ) : sortedItems.length > 0 ? (
+        ) : showingSearchResults && hasSearchResults ? ( // 檢查 hasSearchResults
+          sortedItems.length > 0 ? (
+    
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedItems.map((item) => (
               <div key={item.id} className="block group">
