@@ -4,6 +4,7 @@ import { NavLink } from "@/components/ui/nav-link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLink from "./AdminLink";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const Header = () => {
   const [user, setUser] = useState<any>(null);
@@ -31,7 +32,7 @@ const Header = () => {
           </NavLink>
         </div>
         
-        <nav className="flex flex-wrap gap-2">
+        <nav className="flex flex-wrap gap-2 items-center">
           <NavLink to="/">Home</NavLink>
           <NavLink to="/vista">Vista</NavLink>
           {user ? (
@@ -46,6 +47,7 @@ const Header = () => {
               <NavLink to="/auth">Sign In</NavLink>
             </Button>
           )}
+          <LanguageSwitcher />
         </nav>
       </div>
     </header>

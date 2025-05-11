@@ -1,12 +1,17 @@
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
 import Footer from '@/components/Footer';
+import Header from '@/components/Header';
 import { Toaster } from '@/components/ui/toaster';
+import useLanguagePreference from '@/hooks/use-language-preference';
 
 const Index = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
+  
+  // Apply language preference
+  useLanguagePreference();
   
   const handlePurposeSubmit = (purpose: string) => {
     // This function is still passed to PurposeInput, but we won't use it for navigation anymore
@@ -44,6 +49,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-beige-50">
       <Toaster />
+      <Header />
       
       {/* Use a fixed positioned container for the Hero */}
       <div className="fixed inset-0 z-0">
