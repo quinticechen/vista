@@ -13,17 +13,12 @@ type TranslationContextType = {
 
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
 
-export const TranslationProvider = ({ children, apiKey }: { children: ReactNode; apiKey?: string }) => {
+export const TranslationProvider = ({ children }: { children: ReactNode }) => {
   const [currentLanguage, setCurrentLang] = useState(getCurrentLanguage());
   const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
   
   useEffect(() => {
-    // Set API key if provided
-    if (apiKey) {
-      (window as any).GOOGLE_TRANSLATE_API_KEY = apiKey;
-    }
-    
     // Initialize with saved preference
     const savedLang = getCurrentLanguage();
     setCurrentLang(savedLang);
@@ -39,7 +34,7 @@ export const TranslationProvider = ({ children, apiKey }: { children: ReactNode;
     return () => {
       window.removeEventListener('languageChanged', handleLanguageChanged as EventListener);
     };
-  }, [apiKey]);
+  }, []);
   
   const changeLanguage = (lang: string) => {
     if (lang === currentLanguage) return;
@@ -56,7 +51,7 @@ export const TranslationProvider = ({ children, apiKey }: { children: ReactNode;
   
   const translate = async (text: string): Promise<string> => {
     if (currentLanguage === 'en' || !text) return text;
-    return translateText(text, currentLanguage, apiKey);
+    return translateText(text, currentLanguage);
   };
   
   const value = {

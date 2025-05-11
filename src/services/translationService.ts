@@ -3,8 +3,38 @@
  * Translation service using Google Cloud Translation API via REST
  */
 
+import { supabase } from "@/integrations/supabase/client";
+
 // Translation cache to avoid unnecessary API calls
 const translationCache: Record<string, Record<string, string>> = {};
+
+// Store API key once fetched
+let translationApiKey: string | null = null;
+
+/**
+ * Fetch the translation API key from Supabase Edge Function
+ */
+export async function getTranslationApiKey(): Promise<string | null> {
+  // Return cached key if available
+  if (translationApiKey) {
+    return translationApiKey;
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('get-translation-key');
+    
+    if (error) {
+      console.error('Error fetching translation API key:', error);
+      return null;
+    }
+    
+    translationApiKey = data.apiKey;
+    return translationApiKey;
+  } catch (error) {
+    console.error('Exception fetching translation API key:', error);
+    return null;
+  }
+}
 
 /**
  * Translate text using Google Cloud Translation API
@@ -15,7 +45,6 @@ const translationCache: Record<string, Record<string, string>> = {};
 export async function translateText(
   text: string, 
   targetLang: string,
-  apiKey?: string
 ): Promise<string> {
   // If target language is English or not provided, return original text
   if (!targetLang || targetLang === 'en') {
@@ -28,8 +57,8 @@ export async function translateText(
     return translationCache[targetLang][text];
   }
   
-  // Use the API key from window object or parameter
-  const key = apiKey || (window as any).GOOGLE_TRANSLATE_API_KEY;
+  // Get API key from Supabase
+  const key = await getTranslationApiKey();
   
   if (!key) {
     console.error('Translation API key not found');

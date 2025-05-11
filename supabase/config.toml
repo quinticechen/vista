@@ -1,8 +1,5 @@
 
 project_id = "oyvbdbajqsqzafpuahvz"
 
-[functions.generate-embeddings]
-verify_jwt = true
-
-[functions.generate-query-embedding]
+[functions.get-translation-key]
 verify_jwt = true
