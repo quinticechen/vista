@@ -56,45 +56,31 @@ const Vista = () => {
         
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
-          console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
-          
-          // Debug the search results we're getting
-          console.log("Search results:", searchResults);
-    
-          // Set all search results as the displayed content (not just top 3)
+          console.log("searchResults received:", searchResults);
           setContentItems(searchResults);
+          console.log("contentItems after setting:", contentItems); // 檢查 state 更新
           setShowingSearchResults(true);
-    
+          setHasSearchResults(true); // 設定 hasSearchResults 為 true
           toast.success(
             `Found ${searchResults.length} relevant items based on your search`,
             { duration: 5000 }
           );
         } else if (searchPurpose) {
-          // If we had a search but it returned no results, show a message and empty content
           setContentItems([]);
           setShowingSearchResults(true);
-          
           toast.warning(
             `No matches found for "${searchPurpose}". Try a different search.`,
             { duration: 5000 }
           );
         } else {
-          // If no search results, use all content items
           setContentItems(processedData);
           setShowingSearchResults(false);
         }
-      } catch (error) {
-        console.error("Error fetching content:", error);
-        toast.error("Failed to load content items");
-        setContentItems([]);
-        setShowingSearchResults(false);
-      } finally {
         setLoading(false);
-      }
-    };
-
-    fetchContentItems();
-  }, [searchResults, searchPurpose, searchQuery]);
+      };
+    
+      fetchContentItems();
+    }, [searchResults, searchPurpose, searchQuery]);
 
   // Handle "View All" button click
   const handleViewAll = () => {
@@ -190,6 +176,8 @@ const Vista = () => {
             <Loader2 className="h-8 w-8 animate-spin text-beige-600" />
             <p className="mt-4 text-lg text-beige-700">Searching for relevant content...</p>
           </div>
+        ) : showingSearchResults && hasSearchResults ? (
+      
         ) : sortedItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedItems.map((item) => (
