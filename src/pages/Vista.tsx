@@ -46,9 +46,10 @@ const Vista = () => {
           description: item.description,
           category: item.category,
           tags: item.tags,
-          embedding: item.embedding,
+          embedding: item.embedding, // 包含 embedding
           created_at: item.created_at,
-          updated_at: item.updated_at
+          updated_at: item.updated_at,
+          similarity: undefined, // 直接從資料庫獲取的內容沒有相似度，設定為 undefined
         })) as ContentItem[];
         
         setAllContentItems(processedData);
