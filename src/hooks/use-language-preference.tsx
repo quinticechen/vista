@@ -15,8 +15,13 @@ export const useLanguagePreference = () => {
       // If user has previously selected a language
       if (savedLang && savedLang !== 'en') {
         // Wait for Google Translate to initialize
+        const maxAttempts = 20; // Try for 10 seconds (20 * 500ms)
+        let attempts = 0;
+        
         const checkInterval = setInterval(() => {
+          attempts++;
           const selectBox = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+          
           if (selectBox) {
             clearInterval(checkInterval);
             
@@ -24,21 +29,26 @@ export const useLanguagePreference = () => {
             if (selectBox.value !== savedLang) {
               selectBox.value = savedLang;
               selectBox.dispatchEvent(new Event('change'));
+              console.log('Language preference applied:', savedLang);
             }
           }
-        }, 100);
-        
-        // Clear interval after 5 seconds to prevent infinite checking
-        setTimeout(() => clearInterval(checkInterval), 5000);
+          
+          // Give up after max attempts
+          if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            console.warn('Could not find Google Translate widget after multiple attempts');
+          }
+        }, 500);
       }
     };
 
     // Apply language preference when component mounts
-    applyLanguagePreference();
+    // Small delay to ensure Google Translate has initialized
+    setTimeout(applyLanguagePreference, 1000);
     
     // Also reapply when navigating between pages
     const handleRouteChange = () => {
-      setTimeout(applyLanguagePreference, 200);
+      setTimeout(applyLanguagePreference, 1000);
     };
     
     window.addEventListener('popstate', handleRouteChange);

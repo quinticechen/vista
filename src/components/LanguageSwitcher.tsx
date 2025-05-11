@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 type Language = {
   code: string;
@@ -41,25 +42,51 @@ const getCurrentLanguage = (): string => {
       console.error('Error parsing Google Translate cookie:', e);
     }
   }
+  
+  // Check localStorage as fallback
+  const savedLang = localStorage.getItem('preferredLanguage');
+  if (savedLang) return savedLang;
+  
   return 'en'; // Default to English
 };
 
 const LanguageSwitcher = () => {
   const [currentLang, setCurrentLang] = useState<string>('en');
+  const [isWidgetReady, setIsWidgetReady] = useState(false);
+  const { toast } = useToast();
   
   // Initialize and update current language
   useEffect(() => {
-    const updateLanguageState = () => {
-      const lang = getCurrentLanguage();
-      setCurrentLang(lang);
+    // Function to check if Google Translate widget is ready
+    const checkForTranslateWidget = () => {
+      const selectBox = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+      if (selectBox) {
+        setIsWidgetReady(true);
+        const lang = getCurrentLanguage();
+        setCurrentLang(lang);
+        return true;
+      }
+      return false;
     };
-    
-    // Initial check
-    updateLanguageState();
+
+    // Try immediately
+    if (!checkForTranslateWidget()) {
+      // If not ready, set up an interval to check
+      const intervalId = setInterval(() => {
+        if (checkForTranslateWidget()) {
+          clearInterval(intervalId);
+        }
+      }, 500);
+      
+      // Clear interval after 10 seconds to prevent infinite checking
+      setTimeout(() => clearInterval(intervalId), 10000);
+    }
     
     // Set up a mutation observer to detect when Google Translate widget changes the page
     const observer = new MutationObserver(() => {
-      setTimeout(updateLanguageState, 100);
+      setTimeout(() => {
+        setCurrentLang(getCurrentLanguage());
+      }, 100);
     });
     
     observer.observe(document.body, {
@@ -79,14 +106,30 @@ const LanguageSwitcher = () => {
     // Save user preference
     localStorage.setItem('preferredLanguage', langCode);
     
-    // Update Google Translate widget
+    // Try to find the Google Translate select element
     const selectBox = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+    
     if (selectBox) {
       selectBox.value = langCode;
       selectBox.dispatchEvent(new Event('change'));
       setCurrentLang(langCode);
+      
+      // Show success toast
+      toast({
+        title: "Language Changed",
+        description: `Switched to ${languages.find(l => l.code === langCode)?.name || langCode}`,
+        duration: 2000
+      });
     } else {
       console.error('Google Translate widget not found');
+      
+      // Show error toast
+      toast({
+        title: "Language Change Failed",
+        description: "Could not find the translation widget. Please try again later.",
+        variant: "destructive",
+        duration: 3000
+      });
     }
   };
   
