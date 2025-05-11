@@ -85,6 +85,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
         console.log(`Search completed. Found ${searchResults.length} results`);
 
         // Navigate to Vista page with search results
+        console.log("searchResults before navigation:", searchResults);
         navigate("/vista", {
           state: {
             purpose: purpose.trim(),
