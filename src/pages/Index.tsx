@@ -5,13 +5,9 @@ import PurposeInput from '@/components/PurposeInput';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import { Toaster } from '@/components/ui/toaster';
-import useLanguagePreference from '@/hooks/use-language-preference';
 
 const Index = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
-  
-  // Apply language preference
-  useLanguagePreference();
   
   const handlePurposeSubmit = (purpose: string) => {
     // This function is still passed to PurposeInput, but we won't use it for navigation anymore

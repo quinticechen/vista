@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -16,30 +17,16 @@
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
     
-    <!-- Google Translate Script -->
-    <script type="text/javascript">
-      function googleTranslateElementInit() {
-        new google.translate.TranslateElement({
-          pageLanguage: 'en',
-          includedLanguages: 'en,zh-TW,ja,ko,es,de,fr,it,th,vi',
-          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-          autoDisplay: false,
-        }, 'google_translate_element');
-        
-        // Signal that translation is initialized
-        window.googleTranslateInitialized = true;
-        
-        // Dispatch a custom event to notify components
-        window.dispatchEvent(new Event('googleTranslateReady'));
-      }
+    <!-- Google Cloud Translation API Key - Replace with your actual key -->
+    <script>
+      window.GOOGLE_TRANSLATE_API_KEY = 'YOUR_GOOGLE_CLOUD_TRANSLATION_API_KEY'; 
+      // ⚠️ Note: Storing API keys in the frontend is not secure for production.
+      // Consider using environment variables and a backend service for production.
     </script>
-    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- Google Translate Widget Container - Keep visible but position out of view -->
-    <div id="google_translate_element" style="position: absolute; top: -1000px;"></div>
     
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
