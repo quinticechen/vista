@@ -34,6 +34,7 @@ const App = () => (
           <Route path="/vista/:contentId" element={<ContentDetail />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/about" element={<About />} />
+          <Route path="/:urlParam" element={<Index />} />
           
           {/* Admin routes with legacy page */}
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />

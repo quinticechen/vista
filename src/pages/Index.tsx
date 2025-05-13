@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
 import Footer from '@/components/Footer';
@@ -7,11 +8,13 @@ import Header from '@/components/Header';
 import { Toaster } from '@/components/ui/toaster';
 
 const Index = () => {
+  const { urlParam } = useParams();
   const [scrollProgress, setScrollProgress] = useState(0);
   
   const handlePurposeSubmit = (purpose: string) => {
     // This function is still passed to PurposeInput, but we won't use it for navigation anymore
     console.log("Purpose submitted:", purpose);
+    console.log("URL parameter:", urlParam);
   };
   
   const scrollToInput = () => {
@@ -41,6 +44,13 @@ const Index = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+  
+  // Log URL parameter for debugging
+  useEffect(() => {
+    if (urlParam) {
+      console.log(`Rendering page for: ${urlParam}`);
+    }
+  }, [urlParam]);
   
   return (
     <div className="min-h-screen bg-beige-50">

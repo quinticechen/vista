@@ -7,13 +7,46 @@ import { toast } from "@/components/ui/sonner";
 import { languages, getCurrentLanguage, setCurrentLanguage } from "@/services/translationService";
 import { Label } from "@/components/ui/label";
 import { Globe } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const LanguageSettings = () => {
   const [defaultLanguage, setDefaultLanguage] = useState(getCurrentLanguage());
-  const [supportedLanguages, setSupportedLanguages] = useState<string[]>(() => {
-    const saved = localStorage.getItem("supportedLanguages");
-    return saved ? JSON.parse(saved) : ["en"];
-  });
+  const [supportedLanguages, setSupportedLanguages] = useState<string[]>(["en"]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchUserSettings = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('default_language, supported_ai_languages')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (error) throw error;
+          
+          if (profile) {
+            setDefaultLanguage(profile.default_language);
+            setCurrentLanguage(profile.default_language);
+            setSupportedLanguages(profile.supported_ai_languages || ["en"]);
+            
+            // Also update localStorage for the language switcher
+            localStorage.setItem("supportedLanguages", JSON.stringify(profile.supported_ai_languages));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching language settings:', error);
+        toast.error('Failed to load language settings');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUserSettings();
+  }, []);
   
   const handleLanguageToggle = (langCode: string, checked: boolean) => {
     if (checked) {
@@ -40,9 +73,37 @@ const LanguageSettings = () => {
     toast.success(`Default language set to ${languages.find(l => l.code === langCode)?.name}`);
   };
   
-  const saveSettings = () => {
-    localStorage.setItem("supportedLanguages", JSON.stringify(supportedLanguages));
-    toast.success("Language settings saved successfully");
+  const saveSettings = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast.error("You must be logged in to save settings");
+        return;
+      }
+      
+      // Save to Supabase profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          default_language: defaultLanguage,
+          supported_ai_languages: supportedLanguages
+        })
+        .eq('id', session.user.id);
+        
+      if (error) throw error;
+      
+      // Also update localStorage for the language switcher
+      localStorage.setItem("supportedLanguages", JSON.stringify(supportedLanguages));
+      
+      toast.success("Language settings saved successfully");
+    } catch (error) {
+      console.error('Error saving language settings:', error);
+      toast.error('Failed to save language settings');
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const initiateTranslation = () => {
@@ -57,6 +118,14 @@ const LanguageSettings = () => {
       setSupportedLanguages(prev => [...prev, defaultLanguage]);
     }
   }, [defaultLanguage, supportedLanguages]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
