@@ -3,13 +3,13 @@ import { useState, useEffect, ReactNode } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 
 interface TranslatedTextProps {
-  children: string;
+  children: string | ReactNode;
   className?: string;
 }
 
 const TranslatedText = ({ children, className }: TranslatedTextProps) => {
   const { translate, currentLanguage } = useTranslation();
-  const [translatedText, setTranslatedText] = useState(children);
+  const [translatedText, setTranslatedText] = useState<string | ReactNode>(children);
   const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
@@ -18,6 +18,12 @@ const TranslatedText = ({ children, className }: TranslatedTextProps) => {
     const translateText = async () => {
       // Only attempt translation if we're not showing English content
       if (currentLanguage === 'en') {
+        setTranslatedText(children);
+        return;
+      }
+      
+      // Only translate string content, not React elements
+      if (typeof children !== 'string') {
         setTranslatedText(children);
         return;
       }
@@ -51,7 +57,7 @@ const TranslatedText = ({ children, className }: TranslatedTextProps) => {
   return (
     <span className={className}>
       {isLoading ? (
-        <span className="opacity-70">{children}</span>
+        <span className="opacity-70">{typeof children === 'string' ? children : children}</span>
       ) : (
         translatedText
       )}
