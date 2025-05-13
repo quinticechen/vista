@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -144,9 +143,21 @@ const Content = () => {
       if (error) throw error;
       
       toast.success("Content synced successfully!");
+      
+      // Show webhook setup information
+      const webhookUrl = `https://${window.location.hostname}/api/notion-webhook`;
+      toast("Set up Notion webhook for automatic updates", {
+        description: `Use this URL in Notion: ${webhookUrl}`,
+        duration: 8000,
+        action: {
+          label: "Copy URL",
+          onClick: () => navigator.clipboard.writeText(webhookUrl)
+        }
+      });
+      
     } catch (error) {
       console.error("Error syncing Notion content:", error);
-      toast.error("Failed to sync Notion content");
+      toast.error(`Failed to sync Notion content: ${error.message || error}`);
     } finally {
       setIsSyncing(false);
     }

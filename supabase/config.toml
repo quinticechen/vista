@@ -33,3 +33,7 @@ enabled = true
 [functions]
 [functions.sync-notion-database]
 verify_jwt = true
+
+[functions.notion-webhook]
+verify_jwt = false
+
