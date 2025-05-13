@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 
 interface TranslatedTextProps {

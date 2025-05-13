@@ -13,8 +13,10 @@ export type Database = {
         Row: {
           category: string | null
           content: Json | null
+          content_translations: Json | null
           created_at: string | null
           description: string | null
+          description_translations: Json | null
           embedding: string | null
           end_date: string | null
           id: string
@@ -22,13 +24,19 @@ export type Database = {
           start_date: string | null
           tags: string[] | null
           title: string
+          title_translations: Json | null
+          translated_languages: string[] | null
+          translation_status: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           category?: string | null
           content?: Json | null
+          content_translations?: Json | null
           created_at?: string | null
           description?: string | null
+          description_translations?: Json | null
           embedding?: string | null
           end_date?: string | null
           id?: string
@@ -36,13 +44,19 @@ export type Database = {
           start_date?: string | null
           tags?: string[] | null
           title: string
+          title_translations?: Json | null
+          translated_languages?: string[] | null
+          translation_status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           category?: string | null
           content?: Json | null
+          content_translations?: Json | null
           created_at?: string | null
           description?: string | null
+          description_translations?: Json | null
           embedding?: string | null
           end_date?: string | null
           id?: string
@@ -50,7 +64,11 @@ export type Database = {
           start_date?: string | null
           tags?: string[] | null
           title?: string
+          title_translations?: Json | null
+          translated_languages?: string[] | null
+          translation_status?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -163,21 +181,30 @@ export type Database = {
           default_language: string
           id: string
           is_admin: boolean
+          notion_api_key: string | null
+          notion_database_id: string | null
           supported_ai_languages: string[] | null
+          url_param: string | null
         }
         Insert: {
           created_at?: string | null
           default_language?: string
           id: string
           is_admin?: boolean
+          notion_api_key?: string | null
+          notion_database_id?: string | null
           supported_ai_languages?: string[] | null
+          url_param?: string | null
         }
         Update: {
           created_at?: string | null
           default_language?: string
           id?: string
           is_admin?: boolean
+          notion_api_key?: string | null
+          notion_database_id?: string | null
           supported_ai_languages?: string[] | null
+          url_param?: string | null
         }
         Relationships: []
       }

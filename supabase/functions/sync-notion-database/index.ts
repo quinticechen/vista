@@ -1,173 +1,227 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// Follow this setup guide to integrate the Deno language server with your editor:
+// https://deno.land/manual/getting_started/setup_your_environment
+// This enables autocomplete, go to definition, etc.
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.5.0'
+import { Client } from 'https://deno.land/x/notion_sdk/src/mod.ts'
 
-serve(async (req) => {
-  // Handle CORS preflight requests
+// Define the expected request body structure
+interface RequestBody {
+  notionDatabaseId: string;
+  notionApiKey: string;
+  userId: string;
+}
+
+// Define the structure of a Notion database item
+interface NotionDatabaseItem {
+  id: string;
+  properties: Record<string, any>;
+  url: string;
+  created_time: string;
+  last_edited_time: string;
+}
+
+Deno.serve(async (req) => {
+  // This is needed if you're planning to invoke your function from a browser.
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*' } })
   }
   
   try {
-    const { notionDatabaseId, notionApiKey, userId } = await req.json();
+    // Get the JWT token from the request headers
+    const authHeader = req.headers.get('Authorization')
     
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    // Get the API keys from environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
+    
+    // Create a Supabase client with the service role key
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    
+    // Verify the JWT token
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    // Parse the request body
+    let reqBody: RequestBody
+    
+    try {
+      reqBody = await req.json() as RequestBody
+    } catch (error) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    // Extract necessary data from the request body
+    const { notionDatabaseId, notionApiKey, userId } = reqBody
+    
+    // Validate required fields
     if (!notionDatabaseId || !notionApiKey || !userId) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        JSON.stringify({ error: 'Missing required fields' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      )
     }
     
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Fetch the database from Notion
-    const database = await fetchNotionDatabase(notionDatabaseId, notionApiKey);
-    
-    // Process and store each page
-    for (const page of database) {
-      await processNotionPage(page, notionApiKey, supabase, userId);
+    // Verify the user ID matches
+    if (userId !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'User ID mismatch' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      )
     }
     
-    return new Response(
-      JSON.stringify({ success: true, message: `Synced ${database.length} items from Notion` }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (error) {
-    console.error("Error processing request:", error);
+    // Initialize the Notion client with the provided API key
+    const notion = new Client({ auth: notionApiKey })
     
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal Server Error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-});
-
-async function fetchNotionDatabase(databaseId: string, apiKey: string): Promise<any[]> {
-  try {
-    const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        page_size: 100,
-        sorts: [{ property: 'Created time', direction: 'descending' }]
+    // Query the Notion database
+    const response = await notion.databases.query({
+      database_id: notionDatabaseId,
+    })
+    
+    // Process each item in the Notion database
+    const syncResults = await Promise.all(
+      response.results.map(async (page: NotionDatabaseItem) => {
+        try {
+          // Extract metadata
+          const pageId = page.id
+          const pageUrl = page.url
+          const createdTime = page.created_time
+          const lastEditedTime = page.last_edited_time
+          
+          // Extract page properties for mapping to Supabase fields
+          const props = page.properties
+          
+          // Prepare the content item data
+          const contentItem = {
+            title: extractProperty(props, 'Name', 'title') || extractProperty(props, 'Title', 'title') || 'Untitled',
+            description: extractProperty(props, 'Description', 'rich_text'),
+            category: extractProperty(props, 'Category', 'select'),
+            tags: extractProperty(props, 'Tags', 'multi_select'),
+            created_at: createdTime,
+            updated_at: lastEditedTime,
+            start_date: extractProperty(props, 'Start date', 'date'),
+            end_date: extractProperty(props, 'End date', 'date'),
+            notion_url: pageUrl,
+            user_id: userId,
+            // We'll need to fetch page content separately for detailed content
+            content: {} // This will be populated with page content in a production implementation
+          }
+          
+          // Check if this item already exists in Supabase
+          const { data: existingItem, error: fetchError } = await supabase
+            .from('content_items')
+            .select('id')
+            .eq('notion_url', pageUrl)
+            .eq('user_id', userId)
+            .single()
+          
+          let operation
+          
+          if (existingItem) {
+            // Update existing item
+            const { data, error } = await supabase
+              .from('content_items')
+              .update(contentItem)
+              .eq('id', existingItem.id)
+              .select()
+            
+            if (error) throw error
+            operation = 'updated'
+            return { id: existingItem.id, title: contentItem.title, operation }
+          } else {
+            // Insert new item
+            const { data, error } = await supabase
+              .from('content_items')
+              .insert(contentItem)
+              .select()
+            
+            if (error) throw error
+            operation = 'inserted'
+            return { id: data?.[0]?.id, title: contentItem.title, operation }
+          }
+        } catch (error) {
+          console.error("Error syncing page:", page.id, error)
+          return { id: page.id, error: error.message, operation: 'failed' }
+        }
       })
-    });
+    )
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Notion API error: ${errorData.message || response.statusText}`);
-    }
-    
-    const data = await response.json();
-    return data.results;
-  } catch (error) {
-    console.error("Error fetching Notion database:", error);
-    throw error;
-  }
-}
-
-async function processNotionPage(page: any, apiKey: string, supabase: any, userId: string): Promise<void> {
-  try {
-    // Extract page ID and URL
-    const pageId = page.id;
-    const notionUrl = page.url;
-    
-    // Extract properties
-    const properties = page.properties;
-    const title = properties.Name?.title?.[0]?.plain_text || 'Untitled';
-    const description = properties.Description?.rich_text?.[0]?.plain_text || null;
-    const category = properties.Category?.select?.name || null;
-    const tags = properties.Tags?.multi_select?.map((tag: any) => tag.name) || [];
-    const createdTime = properties['Created time']?.created_time || null;
-    const updatedTime = properties['Last edited time']?.last_edited_time || null;
-    const startDate = properties['Start date']?.date?.start || null;
-    const endDate = properties['End date']?.date?.start || null;
-    
-    // Fetch page content blocks
-    const pageContent = await fetchNotionPageContent(pageId, apiKey);
-    
-    // Prepare data for Supabase
-    const contentData = {
-      title,
-      description,
-      category,
-      tags,
-      created_at: createdTime,
-      updated_at: updatedTime,
-      start_date: startDate,
-      end_date: endDate,
-      notion_url: notionUrl,
-      content: pageContent,
-      user_id: userId,
-      translation_status: 'pending',
-      translated_languages: ['en']
-    };
-    
-    // Check if the page already exists in Supabase
-    const { data: existingPage } = await supabase
-      .from('content_items')
-      .select('id')
-      .eq('notion_url', notionUrl)
-      .eq('user_id', userId)
-      .single();
-    
-    if (existingPage) {
-      // Update existing page
-      await supabase
-        .from('content_items')
-        .update(contentData)
-        .eq('id', existingPage.id);
-      
-      console.log(`Updated page ${title} (${existingPage.id})`);
-    } else {
-      // Insert new page
-      const { data, error } = await supabase
-        .from('content_items')
-        .insert(contentData)
-        .select('id')
-        .single();
-      
-      if (error) throw error;
-      
-      console.log(`Created page ${title} (${data.id})`);
-    }
-  } catch (error) {
-    console.error(`Error processing page ${page.id}:`, error);
-    throw error;
-  }
-}
-
-async function fetchNotionPageContent(pageId: string, apiKey: string): Promise<any> {
-  try {
-    const response = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Notion-Version': '2022-06-28'
+    return new Response(
+      JSON.stringify({ 
+        status: 'success', 
+        message: 'Notion content synced successfully', 
+        results: syncResults 
+      }),
+      { 
+        status: 200, 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        } 
       }
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Notion API error: ${errorData.message || response.statusText}`);
-    }
-    
-    const data = await response.json();
-    return data.results;
+    )
   } catch (error) {
-    console.error(`Error fetching page content for ${pageId}:`, error);
-    throw error;
+    console.error("Sync error:", error)
+    
+    return new Response(
+      JSON.stringify({ 
+        status: 'error', 
+        message: error.message || 'An error occurred while syncing with Notion' 
+      }),
+      { 
+        status: 500, 
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        } 
+      }
+    )
+  }
+})
+
+// Helper function to extract properties from Notion page object based on property type
+function extractProperty(props: Record<string, any>, propertyName: string, propertyType: string): any {
+  if (!props || !propertyName) return null
+  
+  // Try to find the property (case-insensitive)
+  const property = Object.entries(props).find(([key]) => 
+    key.toLowerCase() === propertyName.toLowerCase()
+  )
+  
+  if (!property) return null
+  
+  const [_, value] = property
+  
+  switch (propertyType) {
+    case 'title':
+      return value.title?.[0]?.plain_text || null
+    case 'rich_text':
+      return value.rich_text?.[0]?.plain_text || null
+    case 'select':
+      return value.select?.name || null
+    case 'multi_select':
+      return value.multi_select?.map(item => item.name) || []
+    case 'date':
+      return value.date?.start || null
+    default:
+      return null
   }
 }
