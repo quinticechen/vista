@@ -1,5 +1,5 @@
 
-import { FC, ReactNode, useState } from "react";
+import { FC, ReactNode, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { 
   Sidebar, 
@@ -10,7 +10,8 @@ import {
   SidebarMenuItem, 
   SidebarMenuButton, 
   SidebarProvider, 
-  SidebarTrigger 
+  SidebarTrigger,
+  useSidebar
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/ui/nav-link";
 import { Home, Settings, Code, FileText } from "lucide-react";
@@ -21,7 +22,7 @@ interface AdminLayoutProps {
 
 const AdminLayout: FC<AdminLayoutProps> = () => {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-slate-50">
         <AdminSidebar />
         <div className="flex-1">
@@ -35,6 +36,21 @@ const AdminLayout: FC<AdminLayoutProps> = () => {
 };
 
 const AdminSidebar = () => {
+  const { toggleSidebar } = useSidebar();
+  
+  // Add keyboard shortcut to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "b") {
+        event.preventDefault();
+        toggleSidebar();
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [toggleSidebar]);
+  
   return (
     <Sidebar>
       <SidebarHeader className="flex items-center justify-between">
