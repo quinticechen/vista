@@ -4,7 +4,6 @@ import { NavLink } from "@/components/ui/nav-link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLink from "./AdminLink";
-import LanguageSwitcher from "./LanguageSwitcher";
 
 const Header = () => {
   const [user, setUser] = useState<any>(null);
@@ -47,7 +46,6 @@ const Header = () => {
               <NavLink to="/auth">Sign In</NavLink>
             </Button>
           )}
-          <LanguageSwitcher />
         </nav>
       </div>
     </header>

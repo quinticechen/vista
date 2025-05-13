@@ -13,6 +13,13 @@ import NotFound from "./pages/NotFound";
 import AdminGuard from "./components/AdminGuard";
 import About from "./pages/About";
 
+// Admin pages
+import AdminLayout from "./components/AdminLayout";
+import AdminHome from "./pages/admin/Index";
+import LanguageSettings from "./pages/admin/LanguageSettings";
+import Embedding from "./pages/admin/Embedding";
+import Content from "./pages/admin/Content";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -25,9 +32,20 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/vista" element={<Vista />} />
           <Route path="/vista/:contentId" element={<ContentDetail />} />
-          <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/about" element={<About />} />
+          
+          {/* Admin routes with legacy page */}
+          <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
+          
+          {/* New admin routes with layout */}
+          <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
+            <Route path="" element={<AdminHome />} />
+            <Route path="language-setting" element={<LanguageSettings />} />
+            <Route path="embedding" element={<Embedding />} />
+            <Route path="content" element={<Content />} />
+          </Route>
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

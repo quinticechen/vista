@@ -1,5 +1,6 @@
 
 import { ArrowRight } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -46,8 +47,11 @@ const Footer = () => {
           </div>
         </div>
         
-        <div className="pt-6 border-t border-beige-800 text-center text-beige-400 text-sm">
+        <div className="pt-6 border-t border-beige-800 flex flex-col sm:flex-row items-center justify-between text-beige-400 text-sm">
           <p>&copy; {currentYear} Chen Quintice. All rights reserved.</p>
+          <div className="mt-4 sm:mt-0">
+            <LanguageSwitcher />
+          </div>
         </div>
       </div>
     </footer>

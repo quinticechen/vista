@@ -12,6 +12,7 @@ export type Database = {
       content_items: {
         Row: {
           category: string | null
+          content: Json | null
           created_at: string | null
           description: string | null
           embedding: string | null
@@ -25,6 +26,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          content?: Json | null
           created_at?: string | null
           description?: string | null
           embedding?: string | null
@@ -38,6 +40,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          content?: Json | null
           created_at?: string | null
           description?: string | null
           embedding?: string | null
