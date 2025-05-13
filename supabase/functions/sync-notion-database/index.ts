@@ -129,9 +129,15 @@ Deno.serve(async (req) => {
     // Initialize the Notion client with the provided API key
     const notion = new Client({ auth: notionApiKey })
     
+    // Format the database ID by removing any hyphens
+    // Notion API expects IDs without hyphens
+    const formattedDatabaseId = notionDatabaseId.replace(/-/g, '')
+    
+    console.log(`Attempting to query Notion database with ID: ${formattedDatabaseId}`)
+    
     // Query the Notion database
     const response = await notion.databases.query({
-      database_id: notionDatabaseId,
+      database_id: formattedDatabaseId,
     })
     
     // Process each item in the Notion database

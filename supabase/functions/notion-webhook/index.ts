@@ -55,7 +55,10 @@ Deno.serve(async (req) => {
     
     // Get the page ID from the webhook payload
     const pageId = payload.page.id
-    const pageUrl = `https://www.notion.so/${pageId.replace(/-/g, '')}`
+    
+    // Format the page ID for use in the URL (remove hyphens)
+    const formattedPageId = pageId.replace(/-/g, '')
+    const pageUrl = `https://www.notion.so/${formattedPageId}`
     
     // Find the content item in our database that corresponds to this Notion page
     const { data: contentItem, error: findError } = await supabase

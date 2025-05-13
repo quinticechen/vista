@@ -132,9 +132,12 @@ const Content = () => {
         return;
       }
       
+      // Remove hyphens from the database ID to match Notion API format
+      const formattedDatabaseId = notionDatabaseId.replace(/-/g, '');
+      
       const { data, error } = await supabase.functions.invoke('sync-notion-database', {
         body: { 
-          notionDatabaseId,
+          notionDatabaseId: formattedDatabaseId, // We'll format it in the edge function
           notionApiKey,
           userId: session.user.id
         }
@@ -145,7 +148,7 @@ const Content = () => {
       toast.success("Content synced successfully!");
       
       // Show webhook setup information
-      const webhookUrl = `https://${window.location.hostname}/api/notion-webhook`;
+      const webhookUrl = `${window.location.protocol}//${window.location.host}/api/notion-webhook`;
       toast("Set up Notion webhook for automatic updates", {
         description: `Use this URL in Notion: ${webhookUrl}`,
         duration: 8000,
