@@ -153,6 +153,16 @@ Deno.serve(async (req) => {
           // Extract page properties for mapping to Supabase fields
           const props = page.properties
           
+          // Fetch the page blocks (content)
+          console.log(`Fetching blocks for page: ${pageId}`)
+          const { results: blocks } = await notion.blocks.children.list({
+            block_id: pageId,
+            page_size: 100, // Fetch up to 100 blocks
+          })
+          
+          // Process blocks recursively to include children
+          const processedBlocks = await processBlocks(blocks, notion)
+          
           // Prepare the content item data
           const contentItem = {
             title: extractProperty(props, 'Name', 'title') || extractProperty(props, 'Title', 'title') || 'Untitled',
@@ -165,8 +175,7 @@ Deno.serve(async (req) => {
             end_date: extractProperty(props, 'End date', 'date'),
             notion_url: pageUrl,
             user_id: userId,
-            // We'll need to fetch page content separately for detailed content
-            content: {} // This will be populated with page content in a production implementation
+            content: processedBlocks
           }
           
           // Check if this item already exists in Supabase
@@ -268,4 +277,191 @@ function extractProperty(props: Record<string, any>, propertyName: string, prope
     default:
       return null
   }
+}
+
+// Process blocks recursively to capture nested structure
+async function processBlocks(blocks: any[], notionClient: Client): Promise<any[]> {
+  const processedBlocks = []
+  
+  for (const block of blocks) {
+    // Process the current block based on its type
+    const processedBlock = processBlock(block)
+    
+    // Check if block has children
+    if (block.has_children) {
+      try {
+        // Fetch child blocks
+        const { results: childBlocks } = await notionClient.blocks.children.list({
+          block_id: block.id,
+          page_size: 100,
+        })
+        
+        // Process child blocks recursively
+        const processedChildren = await processBlocks(childBlocks, notionClient)
+        
+        // Add children to the processed block
+        processedBlock.children = processedChildren
+      } catch (error) {
+        console.error(`Error fetching children for block ${block.id}:`, error)
+        processedBlock.children = []
+      }
+    }
+    
+    processedBlocks.push(processedBlock)
+  }
+  
+  return processedBlocks
+}
+
+// Process a single block
+function processBlock(block: any): any {
+  // Basic block data
+  const baseBlock = {
+    id: block.id,
+    type: block.type,
+    created_time: block.created_time,
+    last_edited_time: block.last_edited_time,
+  }
+  
+  // Process the block content based on its type
+  switch (block.type) {
+    case 'paragraph':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.paragraph.rich_text),
+        annotations: extractAnnotations(block.paragraph.rich_text),
+      }
+    case 'heading_1':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.heading_1.rich_text),
+        annotations: extractAnnotations(block.heading_1.rich_text),
+      }
+    case 'heading_2':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.heading_2.rich_text),
+        annotations: extractAnnotations(block.heading_2.rich_text),
+      }
+    case 'heading_3':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.heading_3.rich_text),
+        annotations: extractAnnotations(block.heading_3.rich_text),
+      }
+    case 'bulleted_list_item':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.bulleted_list_item.rich_text),
+        annotations: extractAnnotations(block.bulleted_list_item.rich_text),
+      }
+    case 'numbered_list_item':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.numbered_list_item.rich_text),
+        annotations: extractAnnotations(block.numbered_list_item.rich_text),
+      }
+    case 'to_do':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.to_do.rich_text),
+        checked: block.to_do.checked,
+        annotations: extractAnnotations(block.to_do.rich_text),
+      }
+    case 'toggle':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.toggle.rich_text),
+        annotations: extractAnnotations(block.toggle.rich_text),
+      }
+    case 'quote':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.quote.rich_text),
+        annotations: extractAnnotations(block.quote.rich_text),
+      }
+    case 'callout':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.callout.rich_text),
+        icon: block.callout.icon,
+        annotations: extractAnnotations(block.callout.rich_text),
+      }
+    case 'code':
+      return {
+        ...baseBlock,
+        text: extractRichText(block.code.rich_text),
+        language: block.code.language,
+        annotations: extractAnnotations(block.code.rich_text),
+      }
+    case 'image':
+      return {
+        ...baseBlock,
+        url: block.image.type === 'external' ? block.image.external.url : 
+             block.image.type === 'file' ? block.image.file.url : null,
+        caption: block.image.caption ? extractRichText(block.image.caption) : null,
+      }
+    case 'video':
+      return {
+        ...baseBlock,
+        url: block.video.type === 'external' ? block.video.external.url : 
+             block.video.type === 'file' ? block.video.file.url : null,
+        caption: block.video.caption ? extractRichText(block.video.caption) : null,
+      }
+    case 'divider':
+      return {
+        ...baseBlock,
+      }
+    case 'table':
+      return {
+        ...baseBlock,
+        table_width: block.table.table_width,
+        has_row_header: block.table.has_row_header,
+        has_column_header: block.table.has_column_header,
+      }
+    case 'column_list':
+      return {
+        ...baseBlock,
+      }
+    case 'column':
+      return {
+        ...baseBlock,
+      }
+    case 'equation':
+      return {
+        ...baseBlock,
+        expression: block.equation.expression,
+      }
+    default:
+      return {
+        ...baseBlock,
+        unsupported: true,
+      }
+  }
+}
+
+// Helper function to extract text content from rich_text arrays
+function extractRichText(richText: any[]): string {
+  if (!richText || richText.length === 0) return ''
+  return richText.map(rt => rt.plain_text).join('')
+}
+
+// Helper function to extract annotations from rich_text arrays
+function extractAnnotations(richText: any[]): any[] {
+  if (!richText || richText.length === 0) return []
+  
+  return richText.map(rt => {
+    if (!rt.annotations) return null
+    
+    return {
+      bold: rt.annotations.bold,
+      italic: rt.annotations.italic,
+      strikethrough: rt.annotations.strikethrough,
+      underline: rt.annotations.underline,
+      code: rt.annotations.code,
+      color: rt.annotations.color,
+      text: rt.plain_text,
+      href: rt.href, // For links
+    }
+  }).filter(Boolean)
 }
