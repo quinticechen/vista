@@ -195,12 +195,7 @@ const Vista = () => {
             {sortedItems.map((item) => (
               <div key={item.id} className="block group">
                 <ContentDisplayItem 
-                  content={{
-                    ...item,
-                    // If item has a similarity score, show it as a percentage in the UI
-                    similarityScore: item.similarity !== undefined ? 
-                      `${Math.round(item.similarity * 100)}% match` : undefined
-                  }} 
+                  content={item} 
                 />
               </div>
             ))}

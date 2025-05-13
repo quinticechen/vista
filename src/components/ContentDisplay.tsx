@@ -70,9 +70,9 @@ export const ContentDisplayItem: React.FC<ContentDisplayItemProps> = ({ content,
             </span>
           )}
           
-          {content.similarityScore && (
+          {content.similarity !== undefined && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              {content.similarityScore}
+              {Math.round(content.similarity * 100)}% match
             </span>
           )}
         </div>
