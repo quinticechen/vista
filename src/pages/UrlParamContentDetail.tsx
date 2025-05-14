@@ -74,7 +74,7 @@ const UrlParamContentDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-white">
         <Header />
         <main className="container py-8">
           <div className="flex justify-center items-center h-64">
@@ -88,7 +88,7 @@ const UrlParamContentDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-white">
       <Header />
       
       <main className="container py-8 max-w-4xl">
@@ -101,54 +101,54 @@ const UrlParamContentDetail = () => {
           Back to All Content
         </Button>
         
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">{content?.title}</h1>
-          
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {content?.category && (
-              <Badge variant="outline">{content.category}</Badge>
-            )}
-            
-            <div className="flex items-center">
-              <Clock className="mr-1 h-4 w-4" />
-              <span>Created: {formatDate(content?.created_at)}</span>
-            </div>
-            
-            {content?.updated_at && content.updated_at !== content.created_at && (
-              <div className="flex items-center">
-                <Clock className="mr-1 h-4 w-4" />
-                <span>Updated: {formatDate(content?.updated_at)}</span>
-              </div>
-            )}
-            
-            {content?.start_date && (
-              <div className="flex items-center">
-                <Calendar className="mr-1 h-4 w-4" />
-                <span>Starts: {formatDate(content?.start_date)}</span>
-              </div>
-            )}
-            
-            {content?.end_date && (
-              <div className="flex items-center">
-                <Calendar className="mr-1 h-4 w-4" />
-                <span>Ends: {formatDate(content?.end_date)}</span>
-              </div>
-            )}
-          </div>
-          
-          {content?.description && (
-            <p className="text-lg mb-6">{content.description}</p>
+        <h1 className="text-3xl font-bold mb-2">{content?.title}</h1>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
+          {content?.category && (
+            <Badge variant="outline">{content.category}</Badge>
           )}
           
-          {content?.tags && content.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              <Tag className="h-4 w-4 mr-1" />
-              {content.tags.map((tag: string, index: number) => (
-                <Badge key={index} variant="secondary">{tag}</Badge>
-              ))}
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="mr-1 h-4 w-4" />
+            <span>Created: {formatDate(content?.created_at)}</span>
+          </div>
+          
+          {content?.updated_at && content.updated_at !== content.created_at && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Clock className="mr-1 h-4 w-4" />
+              <span>Updated: {formatDate(content?.updated_at)}</span>
+            </div>
+          )}
+          
+          {content?.start_date && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Calendar className="mr-1 h-4 w-4" />
+              <span>Starts: {formatDate(content?.start_date)}</span>
+            </div>
+          )}
+          
+          {content?.end_date && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Calendar className="mr-1 h-4 w-4" />
+              <span>Ends: {formatDate(content?.end_date)}</span>
             </div>
           )}
         </div>
+        
+        {content?.description && (
+          <p className="text-lg mb-6">{content.description}</p>
+        )}
+        
+        {content?.tags && content.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            <span className="flex items-center mr-1">
+              <Tag className="h-4 w-4 mr-1" />
+            </span>
+            {content.tags.map((tag: string, index: number) => (
+              <Badge key={index} variant="secondary">{tag}</Badge>
+            ))}
+          </div>
+        )}
         
         {/* Display cover image if available */}
         {content?.cover_image && (
@@ -166,7 +166,7 @@ const UrlParamContentDetail = () => {
           </div>
         )}
         
-        <Card className="mb-8">
+        <Card className="mb-8 border rounded-md shadow-sm">
           <CardContent className="p-6">
             {content?.content ? (
               <NotionRenderer blocks={content.content} />
