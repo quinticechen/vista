@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
@@ -11,7 +10,7 @@ type NotionAnnotation = {
   strikethrough?: boolean;
   code?: boolean;
   color?: string;
-  text: string;
+  text?: string;
   start?: number;
   end?: number;
   href?: string;
@@ -68,7 +67,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         
         // Add plain text before this annotation if needed
         if ((start || 0) > currentPosition) {
-          segments.push(text.substring(currentPosition, start));
+          segments.push(text.substring(currentPosition, start || 0));
         }
         
         // Add the annotated text
@@ -112,7 +111,10 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     
     // For backward compatibility with old annotation format
     return annotations.map((annotation, index) => {
-      const { bold, italic, underline, strikethrough, code, color, text, href } = annotation;
+      const { bold, italic, underline, strikethrough, code, color, text: annotationText, href } = annotation;
+      
+      // Use annotationText if available, otherwise this is the wrong format
+      if (!annotationText) return null;
       
       const styles = cn(
         bold && "font-bold",
@@ -125,7 +127,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
 
       const content = (
         <span key={index} className={styles}>
-          {text}
+          {annotationText}
         </span>
       );
 
@@ -189,19 +191,19 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       // And continue with regular block rendering
     }
 
-    // Handle media blocks (image, video, embed) in a consistent way
-    if (media_type === "image" || type === "image") {
+    // Handle media blocks (unified media approach)
+    if (media_type === "image" || type === "image" || (type === "media" && block.media_type === "image")) {
       try {
         return (
           <figure key={index} className="my-4">
             <img 
               src={media_url || imageUrl} 
-              alt={text || caption || "Notion image"} 
+              alt={caption || text || "Notion image"} 
               className="max-w-full rounded-md"
             />
-            {(text || caption) && (
+            {(caption || text) && (
               <figcaption className="text-center text-sm text-muted-foreground mt-2">
-                {text || caption}
+                {caption || text}
               </figcaption>
             )}
           </figure>
@@ -217,7 +219,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       }
     }
 
-    if (media_type === "video" || type === "video") {
+    if (media_type === "video" || type === "video" || (type === "media" && block.media_type === "video")) {
       try {
         // Convert YouTube urls to embeds if needed
         let embedUrl = media_url || videoUrl || "";
@@ -250,12 +252,12 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
                 src={embedUrl}
                 className="absolute top-0 left-0 w-full h-full rounded-md"
                 allowFullScreen
-                title={text || caption || "Embedded video"}
+                aria-label={caption || text || "Embedded video"}
               />
             </div>
-            {(text || caption) && (
+            {(caption || text) && (
               <figcaption className="text-center text-sm text-muted-foreground mt-2">
-                {text || caption}
+                {caption || text}
               </figcaption>
             )}
           </figure>
@@ -271,7 +273,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       }
     }
 
-    if (media_type === "embed") {
+    if (media_type === "embed" || type === "embed" || (type === "media" && block.media_type === "embed")) {
       try {
         return (
           <figure key={index} className="my-4">
@@ -280,12 +282,12 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
                 src={media_url}
                 className="absolute top-0 left-0 w-full h-full rounded-md border-0"
                 allowFullScreen
-                title={text || caption || "Embedded content"}
+                aria-label={caption || text || "Embedded content"}
               />
             </div>
-            {(text || caption) && (
+            {(caption || text) && (
               <figcaption className="text-center text-sm text-muted-foreground mt-2">
-                {text || caption}
+                {caption || text}
               </figcaption>
             )}
           </figure>
