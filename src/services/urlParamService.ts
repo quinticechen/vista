@@ -54,10 +54,11 @@ export const getProfileByUrlParam = async (urlParam: string): Promise<UrlParamPr
     
     console.log('Looking up profile for URL parameter:', urlParam);
     
+    // Use lowercase comparison to make URL parameters case insensitive
     const { data, error } = await supabase
       .from('profiles')
       .select('id, url_param, is_admin, default_language, supported_ai_languages')
-      .eq('url_param', urlParam.toLowerCase())
+      .ilike('url_param', urlParam) // Use case insensitive comparison
       .single();
     
     if (error) {

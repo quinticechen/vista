@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import WaveTransition from "./WaveTransition";
 import FloatingShapes from "./FloatingShapes";
 import { semanticSearch } from "@/services/adminService";
@@ -55,6 +55,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress, placeholder }: PurposeI
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { urlParam } = useParams();
 
   const handleOptionClick = (inputContent: string) => {
     setPurpose(inputContent);
@@ -85,14 +86,28 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress, placeholder }: PurposeI
 
         console.log(`Search completed. Found ${searchResults.length} results`);
 
-        // Navigate to Vista page with search results
-        navigate("/vista", {
-          state: {
-            purpose: purpose.trim(),
-            searchResults,
-            searchQuery: Date.now() // Add timestamp to force re-render
-          }
-        });
+        // Check if we are on a URL parameter page, and navigate accordingly
+        if (urlParam) {
+          console.log(`Navigating to /${urlParam}/vista with search results`);
+          // Navigate to the URL parameter's vista page with search results
+          navigate(`/${urlParam}/vista`, {
+            state: {
+              purpose: purpose.trim(),
+              searchResults,
+              searchQuery: Date.now() // Add timestamp to force re-render
+            }
+          });
+        } else {
+          console.log(`Navigating to /vista with search results`);
+          // Navigate to global vista page with search results
+          navigate("/vista", {
+            state: {
+              purpose: purpose.trim(),
+              searchResults,
+              searchQuery: Date.now() // Add timestamp to force re-render
+            }
+          });
+        }
         
         // Reset form state
         if (e.target) {
