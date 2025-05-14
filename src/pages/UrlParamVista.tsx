@@ -221,7 +221,7 @@ const UrlParamVista = () => {
   const sortedItems = getSortedItems();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-beige-100 dark:bg-gray-900">
       <Header />
       
       <main className="container py-8 max-w-6xl">

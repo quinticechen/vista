@@ -82,7 +82,7 @@ const ContentDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-beige-100">
+    <div className="min-h-screen bg-white">
 
       <Header />
       

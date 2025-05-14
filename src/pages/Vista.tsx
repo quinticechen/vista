@@ -190,7 +190,7 @@ const Vista = () => {
   const sortedItems = getSortedItems();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col bg-beige-100 dark:bg-gray-900">
       <Header />
       
       <main className="flex-1 container py-8 max-w-6xl">
