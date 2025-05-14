@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import FloatingShapes from './FloatingShapes';
-import { TranslatedText } from './TranslatedText';
+import TranslatedText from './TranslatedText';
 
 interface HeroProps {
   scrollToInput: () => void;
@@ -23,7 +24,7 @@ const Hero = ({ scrollToInput, scrollProgress, customTitle }: HeroProps) => {
           scrollProgress > 0.5 ? "opacity-0" : "opacity-100"
         )}
       >
-        <FloatingShapes />
+        <FloatingShapes scrollProgress={scrollProgress} position="bottom" />
       </div>
       
       {/* Content container */}

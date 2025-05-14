@@ -1,4 +1,5 @@
 
+
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -111,5 +112,4 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
   );
 };
 
-// Export the ContentItem type
-export { type ContentItem };
+// Export the interface only since we already exported the ContentItem interface above

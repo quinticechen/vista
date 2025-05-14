@@ -35,15 +35,10 @@ const FloatingShapes = ({
         preserveAspectRatio="none"
         className={`w-full h-[260px] ${color}`} // Use the color prop directly as a class
       >
-        {/* d="M-80,60 C180,10 380,110 720,50 C1060,-10 1260,90 1520,30 L1440,120 L-80,120 Z" */}
-        {/* d="M-80,100 C180,-30 380,150 720,90 C1060,-50 1260,130 1520,70 L1440,120 L-80,120 Z" */}
         <path
           d="M-80,80 C180,-20 380,140 720,60 C1060,-40 1260,120 1520,40 L1440,260 L-80,260 Z"
         />
       </svg>
-      {/* <div 
-        className="absolute inset-0 bg-beige-100 z-0"
-      ></div> */}
     </div>
   );
 };

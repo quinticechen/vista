@@ -42,7 +42,6 @@ const AdminLayout = () => {
             className={`flex items-center p-2 rounded-md ${
               collapsed ? "justify-center" : "space-x-3"
             }`}
-            end
           >
             <LucideLayoutGrid size={20} />
             {!collapsed && <span>Dashboard</span>}
