@@ -4,10 +4,11 @@ import { useTranslation } from '@/hooks/use-translation';
 
 interface TranslatedTextProps {
   children: string | ReactNode;
+  keyword?: string; // Add keyword prop as optional
   className?: string;
 }
 
-const TranslatedText = ({ children, className }: TranslatedTextProps) => {
+const TranslatedText = ({ children, keyword, className }: TranslatedTextProps) => {
   const { translate, currentLanguage } = useTranslation();
   const [translatedText, setTranslatedText] = useState<string | ReactNode>(children);
   const [isLoading, setIsLoading] = useState(false);
