@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -11,88 +11,90 @@ import { toast } from "@/components/ui/sonner";
 import { getProfileByUrlParam, getUserContentItems } from "@/services/urlParamService";
 import { semanticSearch } from "@/services/adminService";
 import { ContentItem } from "@/services/adminService";
+import { Loader2 } from "lucide-react";
 
 const UrlParamVista = () => {
   const { urlParam } = useParams();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [items, setItems] = useState<ContentItem[]>([]);
+  const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
+  const [showingSearchResults, setShowingSearchResults] = useState(false);
+  
+  // Check if we have search results from navigation state (from PurposeInput)
+  const searchResults = location.state?.searchResults as ContentItem[] | undefined;
+  const searchPurpose = location.state?.purpose as string | undefined;
+  const searchTimestamp = location.state?.searchQuery;
 
-  // Get initial search term from URL
+  // Get initial search term from URL or navigation state
   useEffect(() => {
-    const searchTerm = searchParams.get("search");
-    if (searchTerm) {
-      setSearchQuery(searchTerm);
-      performSearch(searchTerm);
-    } else {
-      loadAllItems();
-    }
-
-    // Load owner profile
-    if (urlParam) {
-      loadOwnerProfile();
-    }
-  }, [searchParams, urlParam]);
-
-  const loadOwnerProfile = async () => {
-    if (!urlParam) return;
-    
-    try {
-      console.log(`Loading owner profile for URL parameter: ${urlParam}`);
-      const profile = await getProfileByUrlParam(urlParam);
-      
-      if (!profile) {
-        toast.error(`The page for /${urlParam} does not exist.`);
-        navigate('/');
-        return;
-      }
-      
-      setOwnerProfile(profile);
-      
-      // When profile is loaded, fetch all their content items if no search term
-      if (!searchParams.get("search")) {
-        loadAllItems(profile);
-      }
-    } catch (error) {
-      console.error("Error loading profile:", error);
-      toast.error("Error loading profile data");
-    }
-  };
-
-  const loadAllItems = async (profile = ownerProfile) => {
-    setIsLoading(true);
-    try {
-      if (!profile) {
-        const loadedProfile = await getProfileByUrlParam(urlParam || "");
-        if (!loadedProfile) {
-          toast.error("Could not find the user profile");
-          setIsLoading(false);
+    const loadData = async () => {
+      try {
+        // Load owner profile first
+        if (!urlParam) {
+          navigate('/');
           return;
         }
-        setOwnerProfile(loadedProfile);
-        profile = loadedProfile;
-      }
-
-      // Get all content for this user
-      const userId = profile?.id;
-      if (!userId) {
+        
+        console.log(`Loading owner profile for URL parameter: ${urlParam}`);
+        const profile = await getProfileByUrlParam(urlParam);
+        
+        if (!profile) {
+          toast.error(`The page for /${urlParam} does not exist.`);
+          navigate('/');
+          return;
+        }
+        
+        setOwnerProfile(profile);
+        
+        // Load all content items for this user (for "View All" functionality)
+        const userId = profile.id;
+        console.log(`Loading all content items for user ID: ${userId}`);
+        const userContent = await getUserContentItems(userId);
+        setAllContentItems(userContent);
+        
+        // Check if we have search results from PurposeInput
+        if (searchResults && searchResults.length > 0) {
+          console.log(`Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
+          
+          // Filter search results to only include items from this user
+          const userIdsSet = new Set(userContent.map((item: any) => item.id));
+          const filteredResults = searchResults.filter((item: any) => userIdsSet.has(item.id));
+          
+          setItems(filteredResults);
+          setShowingSearchResults(true);
+          
+          if (searchPurpose) {
+            toast.success(`Found ${filteredResults.length} relevant items based on your search`, { duration: 5000 });
+          }
+        } else if (searchPurpose) {
+          // If we had a search but it returned no results
+          setItems([]);
+          setShowingSearchResults(true);
+          toast.warning(`No matches found for "${searchPurpose}". Showing all content instead.`, { duration: 5000 });
+          setItems(userContent);
+        } else if (searchParams.get("search")) {
+          // If we have a search term in URL params
+          performSearch(searchParams.get("search") || "");
+        } else {
+          // Default: show all content
+          setItems(userContent);
+          setShowingSearchResults(false);
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
+        toast.error("Error loading content");
+      } finally {
         setIsLoading(false);
-        return;
       }
-
-      console.log(`Loading all content items for user ID: ${userId}`);
-      const contentItems = await getUserContentItems(userId);
-      setItems(contentItems);
-    } catch (error) {
-      console.error("Error loading items:", error);
-      toast.error("Error loading content items");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+    
+    loadData();
+  }, [urlParam, searchResults, searchPurpose, searchTimestamp, navigate, searchParams]);
 
   const performSearch = async (term: string) => {
     if (!term.trim()) {
@@ -119,30 +121,40 @@ const UrlParamVista = () => {
         return;
       }
 
-      // First get all content for this user
-      const userContent = await getUserContentItems(userId);
+      // First get all content for this user if we don't have it yet
+      if (allContentItems.length === 0) {
+        const userContent = await getUserContentItems(userId);
+        setAllContentItems(userContent);
+      }
       
       // If we have user content, perform a semantic search
-      if (userContent && userContent.length > 0) {
+      if (allContentItems.length > 0) {
         try {
           console.log(`Performing semantic search with term: "${term}"`);
           const searchResults = await semanticSearch(term);
           
           // Filter search results to only include items from this user
-          const userIdsSet = new Set(userContent.map(item => item.id));
+          const userIdsSet = new Set(allContentItems.map(item => item.id));
           const filteredResults = searchResults.filter(item => userIdsSet.has(item.id));
           
           console.log(`Found ${filteredResults.length} matching results from user's content`);
           setItems(filteredResults);
+          setShowingSearchResults(true);
+          
+          if (filteredResults.length === 0) {
+            toast.warning(`No matches found for "${term}". Try different keywords.`, { duration: 5000 });
+          }
         } catch (error) {
           console.error("Semantic search error:", error);
           toast.error("Error performing semantic search");
           
           // Fall back to showing all user content if search fails
-          setItems(userContent);
+          setItems(allContentItems);
+          setShowingSearchResults(false);
         }
       } else {
         setItems([]);
+        setShowingSearchResults(true);
       }
     } catch (error) {
       console.error("Search error:", error);
@@ -152,6 +164,13 @@ const UrlParamVista = () => {
     }
   };
 
+  const loadAllItems = () => {
+    setItems(allContentItems);
+    setShowingSearchResults(false);
+    setSearchQuery("");
+    navigate(`/${urlParam}/vista`, { replace: true });
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     navigate(`/${urlParam}/vista?search=${encodeURIComponent(searchQuery)}`);
@@ -159,22 +178,47 @@ const UrlParamVista = () => {
   };
 
   const handleClearSearch = () => {
-    setSearchQuery("");
-    navigate(`/${urlParam}/vista`);
     loadAllItems();
   };
 
-  const sortedItems = [...items].sort((a, b) => {
-    // First sort by similarity if present (for search results)
-    if (a.similarity !== undefined && b.similarity !== undefined) {
-      return b.similarity - a.similarity;
+  const handleBackToResults = () => {
+    if (searchResults && searchResults.length > 0) {
+      // Filter search results to only include items from this user
+      const userIdsSet = new Set(allContentItems.map(item => item.id));
+      const filteredResults = searchResults.filter(item => userIdsSet.has(item.id));
+      
+      setItems(filteredResults);
+      setShowingSearchResults(true);
     }
-    
-    // Then sort by date
-    const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-    const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-    return dateB.getTime() - dateA.getTime();
-  });
+  };
+
+  // Get sorted content items
+  const getSortedItems = () => {
+    // If showing search results, sort by similarity
+    if (showingSearchResults) {
+      return [...items].sort((a, b) => {
+        if (a.similarity !== undefined && b.similarity !== undefined) {
+          return b.similarity - a.similarity;
+        }
+        if (a.similarity !== undefined) return -1;
+        if (b.similarity !== undefined) return 1;
+        
+        // Fall back to date sorting if similarity isn't available
+        const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+        const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
+    }
+
+    // If not showing search results, sort by date
+    return [...items].sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+      const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+      return dateB.getTime() - dateA.getTime();
+    });
+  };
+
+  const sortedItems = getSortedItems();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -185,11 +229,20 @@ const UrlParamVista = () => {
           <h1 className="text-3xl font-bold mb-2">
             {urlParam ? `${urlParam}'s Content` : "Content Vista"}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {searchParams.get("search") 
-              ? `Search results for "${searchParams.get("search")}"` 
-              : "Browse all content"}
-          </p>
+          
+          {searchPurpose && showingSearchResults ? (
+            <p className="text-gray-600 dark:text-gray-400">
+              Content for: <span className="italic">"{searchPurpose}"</span>
+            </p>
+          ) : searchParams.get("search") ? (
+            <p className="text-gray-600 dark:text-gray-400">
+              Search results for "{searchParams.get("search")}"
+            </p>
+          ) : (
+            <p className="text-gray-600 dark:text-gray-400">
+              Browse all content
+            </p>
+          )}
         </div>
         
         <Card className="mb-8">
@@ -205,14 +258,51 @@ const UrlParamVista = () => {
               <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
                 Search
               </Button>
-              {searchParams.get("search") && (
+              {(showingSearchResults || searchParams.get("search")) && (
                 <Button type="button" variant="outline" onClick={handleClearSearch}>
-                  Clear
+                  View All
                 </Button>
               )}
             </form>
           </CardContent>
         </Card>
+        
+        {/* Search result controls */}
+        <div className="mb-6 flex justify-between items-center">
+          {showingSearchResults && sortedItems.length > 0 ? (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {sortedItems.length} relevant results sorted by relevance
+            </div>
+          ) : showingSearchResults && sortedItems.length === 0 ? (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              No relevant content found for your search
+            </div>
+          ) : (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Showing all content items
+            </div>
+          )}
+          
+          <div>
+            {showingSearchResults ? (
+              <Button 
+                onClick={handleClearSearch} 
+                variant="outline"
+                className="text-sm"
+              >
+                View All Content
+              </Button>
+            ) : searchResults && searchResults.length > 0 ? (
+              <Button 
+                onClick={handleBackToResults} 
+                variant="outline"
+                className="text-sm"
+              >
+                Back to Search Results
+              </Button>
+            ) : null}
+          </div>
+        </div>
         
         {isLoading ? (
           <div className="py-20 text-center">
@@ -235,7 +325,7 @@ const UrlParamVista = () => {
         ) : (
           <div className="py-20 text-center">
             <p className="text-xl text-gray-600 dark:text-gray-400">
-              {searchParams.get("search") 
+              {showingSearchResults
                 ? "No matching content found" 
                 : "No content available"}
             </p>

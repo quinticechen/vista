@@ -10,6 +10,8 @@ import { ArrowLeft, Calendar, Tag, Clock } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { getProfileByUrlParam, getContentItemById } from "@/services/urlParamService";
 import NotionRenderer from "@/components/NotionRenderer";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { cn } from "@/lib/utils";
 
 const UrlParamContentDetail = () => {
   const { urlParam, contentId } = useParams();
@@ -147,6 +149,22 @@ const UrlParamContentDetail = () => {
             </div>
           )}
         </div>
+        
+        {/* Display cover image if available */}
+        {content?.cover_image && (
+          <div className="mb-8">
+            <AspectRatio ratio={16/9} className="overflow-hidden rounded-md border border-gray-200">
+              <img 
+                src={content.cover_image} 
+                alt={content.title} 
+                className={cn(
+                  "object-cover w-full h-full",
+                  "transition-all hover:scale-105 duration-500"
+                )}
+              />
+            </AspectRatio>
+          </div>
+        )}
         
         <Card className="mb-8">
           <CardContent className="p-6">

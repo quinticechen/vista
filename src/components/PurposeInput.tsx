@@ -86,28 +86,18 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress, placeholder }: PurposeI
 
         console.log(`Search completed. Found ${searchResults.length} results`);
 
-        // Check if we are on a URL parameter page, and navigate accordingly
-        if (urlParam) {
-          console.log(`Navigating to /${urlParam}/vista with search results`);
-          // Navigate to the URL parameter's vista page with search results
-          navigate(`/${urlParam}/vista`, {
-            state: {
-              purpose: purpose.trim(),
-              searchResults,
-              searchQuery: Date.now() // Add timestamp to force re-render
-            }
-          });
-        } else {
-          console.log(`Navigating to /vista with search results`);
-          // Navigate to global vista page with search results
-          navigate("/vista", {
-            state: {
-              purpose: purpose.trim(),
-              searchResults,
-              searchQuery: Date.now() // Add timestamp to force re-render
-            }
-          });
-        }
+        // Determine the correct navigation path based on whether we're on a URL parameter page
+        const targetRoute = urlParam ? `/${urlParam}/vista` : "/vista";
+        console.log(`Navigating to ${targetRoute} with search results`);
+        
+        // Navigate to the appropriate vista page with search results
+        navigate(targetRoute, {
+          state: {
+            purpose: purpose.trim(),
+            searchResults,
+            searchQuery: Date.now() // Add timestamp to force re-render
+          }
+        });
         
         // Reset form state
         if (e.target) {

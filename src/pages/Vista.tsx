@@ -1,26 +1,31 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentDisplayItem } from "@/components/ContentDisplay";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { toast } from "@/components/ui/sonner";
 import { ContentItem } from "@/services/adminService";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { semanticSearch } from "@/services/adminService";
 
 const Vista = () => {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   // Check if we have search results from the navigation state
   const searchResults = location.state?.searchResults as ContentItem[] | undefined;
   const searchPurpose = location.state?.purpose as string | undefined;
-  const searchQuery = location.state?.searchQuery; // Used to force re-render
+  const searchTimestamp = location.state?.searchQuery; // Used to force re-render
 
   useEffect(() => {
     console.log("Vista page mounted or search updated");
@@ -46,22 +51,27 @@ const Vista = () => {
           description: item.description,
           category: item.category,
           tags: item.tags,
-          embedding: item.embedding, // 包含 embedding
+          embedding: item.embedding,
           created_at: item.created_at,
           updated_at: item.updated_at,
-          similarity: undefined, // 直接從資料庫獲取的內容沒有相似度，設定為 undefined
+          start_date: item.start_date,
+          end_date: item.end_date,
+          similarity: undefined,
         })) as ContentItem[];
         
         setAllContentItems(processedData);
         
+        // Check for URL search parameter
+        const urlSearchParam = searchParams.get("search");
+        if (urlSearchParam) {
+          setSearchQuery(urlSearchParam);
+          await performSearch(urlSearchParam);
+          return;
+        }
+        
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
-          
-          // Debug the search results we're getting
-          console.log("Search results:", searchResults);
-    
-          // Set all search results as the displayed content (not just top 3)
           setContentItems(searchResults);
           setShowingSearchResults(true);
     
@@ -94,12 +104,51 @@ const Vista = () => {
     };
 
     fetchContentItems();
-  }, [searchResults, searchPurpose, searchQuery]);
+  }, [searchResults, searchPurpose, searchTimestamp, searchParams]);
+
+  // Perform search using semantic search
+  const performSearch = async (term: string) => {
+    if (!term.trim()) {
+      handleViewAll();
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      console.log(`Performing semantic search with term: "${term}"`);
+      const results = await semanticSearch(term.trim());
+      
+      if (results && results.length > 0) {
+        console.log(`Found ${results.length} results for search: "${term}"`);
+        setContentItems(results);
+        setShowingSearchResults(true);
+        toast.success(`Found ${results.length} relevant items`);
+      } else {
+        console.log(`No results found for search: "${term}"`);
+        setContentItems([]);
+        setShowingSearchResults(true);
+        toast.warning(`No matches found for "${term}". Try different keywords.`);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      toast.error("Error performing search");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle search form submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate(`/vista?search=${encodeURIComponent(searchQuery)}`);
+    performSearch(searchQuery);
+  };
 
   // Handle "View All" button click
   const handleViewAll = () => {
     setContentItems(allContentItems);
     setShowingSearchResults(false);
+    setSearchQuery("");
     
     // Clear the search state but keep on same page
     navigate('/vista', { replace: true });
@@ -130,23 +179,60 @@ const Vista = () => {
       return sorted;
     }
 
-    // If not showing search results, just return the content items
-    return contentItems;
+    // If not showing search results, sort by date
+    return [...contentItems].sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+      const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+      return dateB.getTime() - dateA.getTime();
+    });
   };
 
   const sortedItems = getSortedItems();
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header />
-      <main className="flex-1 container py-8">
-        <h1 className="text-3xl font-bold mb-6">
+      
+      <main className="flex-1 container py-8 max-w-6xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Content Vista</h1>
+          
           {searchPurpose && showingSearchResults ? (
-            <>Content for: <span className="text-beige-700 italic">"{searchPurpose}"</span></>
+            <p className="text-gray-600 dark:text-gray-400">
+              Content for: <span className="italic">"{searchPurpose}"</span>
+            </p>
+          ) : searchParams.get("search") ? (
+            <p className="text-gray-600 dark:text-gray-400">
+              Search results for "{searchParams.get("search")}"
+            </p>
           ) : (
-            "Content Vista"
+            <p className="text-gray-600 dark:text-gray-400">
+              Browse all content
+            </p>
           )}
-        </h1>
+        </div>
+        
+        <Card className="mb-8">
+          <CardContent className="p-4">
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Search content..."
+                className="flex-1"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
+                Search
+              </Button>
+              {(showingSearchResults || searchParams.get("search")) && (
+                <Button type="button" variant="outline" onClick={handleViewAll}>
+                  View All
+                </Button>
+              )}
+            </form>
+          </CardContent>
+        </Card>
         
         {/* Search result controls */}
         <div className="mb-6 flex justify-between items-center">
@@ -194,9 +280,7 @@ const Vista = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedItems.map((item) => (
               <div key={item.id} className="block group">
-                <ContentDisplayItem 
-                  content={item} 
-                />
+                <ContentDisplayItem content={item} />
               </div>
             ))}
           </div>
@@ -227,6 +311,7 @@ const Vista = () => {
           </Button>
         </div>
       </main>
+      
       <Footer />
     </div>
   );
