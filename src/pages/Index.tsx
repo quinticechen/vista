@@ -96,7 +96,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-beige-50">
       <Toaster />
-      <Header />
+      {/* <Header /> */}
       
       {/* Use a fixed positioned container for the Hero */}
       <div className="fixed inset-0 z-0">

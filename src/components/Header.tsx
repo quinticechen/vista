@@ -50,9 +50,9 @@ const Header = () => {
           {user ? (
             <>
               <AdminLink />
-              <Button asChild variant="ghost" size="sm">
-                <NavLink to="/auth">Account</NavLink>
-              </Button>
+              {/* <Button asChild variant="ghost" size="sm"> */}
+                {/* <NavLink to="/auth">Account</NavLink> */}
+              {/* </Button> */}
             </>
           ) : (
             <Button asChild variant="ghost" size="sm">

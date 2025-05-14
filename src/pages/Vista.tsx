@@ -191,7 +191,7 @@ const Vista = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-beige-100 dark:bg-gray-900">
-      <Header />
+      {/* <Header /> */}
       
       <main className="flex-1 container py-8 max-w-6xl">
         <div className="mb-8">

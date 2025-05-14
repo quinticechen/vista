@@ -89,7 +89,7 @@ const UrlParamContentDetail = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
+      {/* <Header /> */}
       
       <main className="container py-8 max-w-4xl">
         <Button

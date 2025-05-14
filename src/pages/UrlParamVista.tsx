@@ -222,7 +222,7 @@ const UrlParamVista = () => {
 
   return (
     <div className="min-h-screen bg-beige-100 dark:bg-gray-900">
-      <Header />
+      {/* <Header /> */}
       
       <main className="container py-8 max-w-6xl">
         <div className="mb-8">
