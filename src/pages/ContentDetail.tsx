@@ -82,7 +82,8 @@ const ContentDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-beige-100">
+
       <Header />
       
       <main className="container py-8 max-w-4xl">
