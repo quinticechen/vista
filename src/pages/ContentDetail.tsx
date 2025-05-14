@@ -1,11 +1,14 @@
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Calendar, Tag, Clock } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
+import NotionRenderer from "@/components/NotionRenderer";
 
 const ContentDetail = () => {
   const { contentId } = useParams<{ contentId: string }>();
@@ -69,75 +72,81 @@ const ContentDetail = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
-      <main className="flex-1 container py-8">
+      
+      <main className="container py-8 max-w-4xl">
         <Button
-          variant="outline"
-          onClick={() => navigate("/vista")}
+          variant="ghost"
           className="mb-6"
+          onClick={() => navigate(`/${urlParam}/vista`)}
         >
-          ← Back to Content List
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to All Content
         </Button>
-
-        <div className="space-y-6">
-          <h1 className="text-3xl font-bold">{content.title}</h1>
+        
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">{content?.title}</h1>
           
-          {content.category && (
-            <div className="inline-block bg-muted px-3 py-1 rounded-full text-sm font-medium">
-              {content.category}
+          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {content?.category && (
+              <Badge variant="outline">{content.category}</Badge>
+            )}
+            
+            <div className="flex items-center">
+              <Clock className="mr-1 h-4 w-4" />
+              <span>Created: {formatDate(content?.created_at)}</span>
             </div>
-          )}
-          
-          {content.description && (
-            <p className="text-lg text-muted-foreground">{content.description}</p>
-          )}
-          
-          {content.tags && content.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {content.tags.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="bg-secondary px-2 py-1 rounded-md text-xs"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {content.start_date && (
-              <div>
-                <p className="font-semibold">Start Date</p>
-                <p>{new Date(content.start_date).toLocaleDateString()}</p>
+            
+            {content?.updated_at && content.updated_at !== content.created_at && (
+              <div className="flex items-center">
+                <Clock className="mr-1 h-4 w-4" />
+                <span>Updated: {formatDate(content?.updated_at)}</span>
               </div>
             )}
             
-            {content.end_date && (
-              <div>
-                <p className="font-semibold">End Date</p>
-                <p>{new Date(content.end_date).toLocaleDateString()}</p>
+            {content?.start_date && (
+              <div className="flex items-center">
+                <Calendar className="mr-1 h-4 w-4" />
+                <span>Starts: {formatDate(content?.start_date)}</span>
+              </div>
+            )}
+            
+            {content?.end_date && (
+              <div className="flex items-center">
+                <Calendar className="mr-1 h-4 w-4" />
+                <span>Ends: {formatDate(content?.end_date)}</span>
               </div>
             )}
           </div>
           
-          {content.notion_url && (
-            <div>
-              <p className="font-semibold">Notion Link</p>
-              <a
-                href={content.notion_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                View in Notion
-              </a>
+          {content?.description && (
+            <p className="text-lg mb-6">{content.description}</p>
+          )}
+          
+          {content?.tags && content.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              <Tag className="h-4 w-4 mr-1" />
+              {content.tags.map((tag: string, index: number) => (
+                <Badge key={index} variant="secondary">{tag}</Badge>
+              ))}
             </div>
           )}
         </div>
+        
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            {content?.content ? (
+              <NotionRenderer blocks={content.content} />
+            ) : (
+              <p className="text-gray-500 italic">No content available</p>
+            )}
+          </CardContent>
+        </Card>
       </main>
-      <Footer />
+      
+      <Footer userLanguage={ownerProfile?.default_language} 
+              supportedLanguages={ownerProfile?.supported_ai_languages} />
     </div>
   );
 };
