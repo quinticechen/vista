@@ -41,6 +41,7 @@ const UrlParamVista = () => {
     if (!urlParam) return;
     
     try {
+      console.log(`Loading owner profile for URL parameter: ${urlParam}`);
       const profile = await getProfileByUrlParam(urlParam);
       
       if (!profile) {
@@ -53,7 +54,7 @@ const UrlParamVista = () => {
       
       // When profile is loaded, fetch all their content items if no search term
       if (!searchParams.get("search")) {
-        loadAllItems();
+        loadAllItems(profile);
       }
     } catch (error) {
       console.error("Error loading profile:", error);
@@ -61,26 +62,28 @@ const UrlParamVista = () => {
     }
   };
 
-  const loadAllItems = async () => {
+  const loadAllItems = async (profile = ownerProfile) => {
     setIsLoading(true);
     try {
-      if (!ownerProfile) {
-        const profile = await getProfileByUrlParam(urlParam || "");
-        if (!profile) {
+      if (!profile) {
+        const loadedProfile = await getProfileByUrlParam(urlParam || "");
+        if (!loadedProfile) {
           toast.error("Could not find the user profile");
           setIsLoading(false);
           return;
         }
-        setOwnerProfile(profile);
+        setOwnerProfile(loadedProfile);
+        profile = loadedProfile;
       }
 
       // Get all content for this user
-      const userId = ownerProfile?.id;
+      const userId = profile?.id;
       if (!userId) {
         setIsLoading(false);
         return;
       }
 
+      console.log(`Loading all content items for user ID: ${userId}`);
       const contentItems = await getUserContentItems(userId);
       setItems(contentItems);
     } catch (error) {
@@ -122,12 +125,14 @@ const UrlParamVista = () => {
       // If we have user content, perform a semantic search
       if (userContent && userContent.length > 0) {
         try {
+          console.log(`Performing semantic search with term: "${term}"`);
           const searchResults = await semanticSearch(term);
           
           // Filter search results to only include items from this user
-          const userIds = new Set(userContent.map(item => item.id));
-          const filteredResults = searchResults.filter(item => userIds.has(item.id));
+          const userIdsSet = new Set(userContent.map(item => item.id));
+          const filteredResults = searchResults.filter(item => userIdsSet.has(item.id));
           
+          console.log(`Found ${filteredResults.length} matching results from user's content`);
           setItems(filteredResults);
         } catch (error) {
           console.error("Semantic search error:", error);
@@ -245,7 +250,8 @@ const UrlParamVista = () => {
         )}
       </main>
       
-      <Footer />
+      <Footer userLanguage={ownerProfile?.default_language} 
+              supportedLanguages={ownerProfile?.supported_ai_languages} />
     </div>
   );
 };

@@ -26,6 +26,7 @@ const UrlParamContentDetail = () => {
       }
       
       try {
+        console.log(`Loading content detail for urlParam: ${urlParam}, contentId: ${contentId}`);
         // Load owner profile
         const profile = await getProfileByUrlParam(urlParam);
         if (!profile) {
@@ -51,6 +52,7 @@ const UrlParamContentDetail = () => {
         }
         
         setContent(contentItem);
+        console.log(`Content loaded successfully:`, contentItem);
       } catch (error) {
         console.error("Error loading content:", error);
         toast.error("Error loading content");
@@ -77,7 +79,8 @@ const UrlParamContentDetail = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
           </div>
         </main>
-        <Footer />
+        <Footer userLanguage={ownerProfile?.default_language} 
+                supportedLanguages={ownerProfile?.supported_ai_languages} />
       </div>
     );
   }
@@ -156,7 +159,8 @@ const UrlParamContentDetail = () => {
         </Card>
       </main>
       
-      <Footer />
+      <Footer userLanguage={ownerProfile?.default_language} 
+              supportedLanguages={ownerProfile?.supported_ai_languages} />
     </div>
   );
 };

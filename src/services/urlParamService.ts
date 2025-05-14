@@ -6,6 +6,7 @@ export interface UrlParamProfile {
   url_param: string;
   is_admin: boolean;
   default_language: string;
+  supported_ai_languages?: string[];
 }
 
 // Set URL parameter for a user
@@ -46,19 +47,28 @@ export const setUrlParam = async (userId: string, urlParam: string): Promise<boo
 // Get profile by URL parameter
 export const getProfileByUrlParam = async (urlParam: string): Promise<UrlParamProfile | null> => {
   try {
+    if (!urlParam) {
+      console.error('No URL parameter provided');
+      return null;
+    }
+    
+    console.log('Looking up profile for URL parameter:', urlParam);
+    
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, url_param, is_admin, default_language')
-      .eq('url_param', urlParam)
+      .select('id, url_param, is_admin, default_language, supported_ai_languages')
+      .eq('url_param', urlParam.toLowerCase())
       .single();
     
     if (error) {
-      throw error;
+      console.error('Error fetching profile by URL parameter:', error);
+      return null;
     }
     
+    console.log('Profile found:', data);
     return data as UrlParamProfile;
   } catch (error) {
-    console.error('Error getting profile by URL parameter:', error);
+    console.error('Exception getting profile by URL parameter:', error);
     return null;
   }
 };
@@ -66,6 +76,7 @@ export const getProfileByUrlParam = async (urlParam: string): Promise<UrlParamPr
 // Get content items for a specific user
 export const getUserContentItems = async (userId: string) => {
   try {
+    console.log('Fetching content items for user:', userId);
     const { data, error } = await supabase
       .from('content_items')
       .select('*')
@@ -75,6 +86,7 @@ export const getUserContentItems = async (userId: string) => {
       throw error;
     }
     
+    console.log(`Found ${data?.length || 0} content items`);
     return data;
   } catch (error) {
     console.error('Error getting user content items:', error);

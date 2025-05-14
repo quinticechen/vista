@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -17,6 +18,7 @@ interface PurposeOption {
 interface PurposeInputProps {
   onPurposeSubmit: (purpose: string) => void;
   scrollProgress: number;
+  placeholder?: string;
 }
 
 const purposeOptions: PurposeOption[] = [
@@ -47,7 +49,7 @@ const purposeOptions: PurposeOption[] = [
   }
 ];
 
-const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) => {
+const PurposeInput = ({ onPurposeSubmit, scrollProgress, placeholder }: PurposeInputProps) => {
   const [purpose, setPurpose] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -137,16 +139,12 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
       <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
       
       {/* Floating animated shapes with direct Tailwind class */}
-      <div 
-        className="absolute top-[100px] left-0 w-full "
-      >
+      <div className="absolute top-[100px] left-0 w-full">
         <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" /> 
       </div>
       
       {/* Background overlay with solid opacity */}
-      <div 
-        className="absolute inset-0 bg-beige-100 z-0"
-      ></div>
+      <div className="absolute inset-0 bg-beige-100 z-0"></div>
       
       <div className="max-w-4xl mx-auto w-full z-10 relative">
         <div className="text-center mb-10 animate-fade-up">
@@ -171,7 +169,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress }: PurposeInputProps) =>
             ref={inputRef}
             value={purpose}
             onChange={handleTextareaChange}
-            placeholder="Tell me why you're visiting this website..."
+            placeholder={placeholder || "Tell me why you're visiting this website..."}
             rows={1}
             className="flex-grow bg-white border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800 rounded-md p-2 min-h-[42px] resize-none"
             style={{ overflow: 'hidden' }}

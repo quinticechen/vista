@@ -20,13 +20,18 @@ const Index = () => {
     const fetchProfileData = async () => {
       if (urlParam) {
         try {
+          console.log(`Fetching profile for URL parameter: ${urlParam}`);
           const profile = await getProfileByUrlParam(urlParam);
-          setOwnerProfile(profile);
           
           if (!profile) {
+            console.error(`No profile found for URL parameter: ${urlParam}`);
             toast.error(`The page for /${urlParam} does not exist.`);
             navigate('/');
+            return;
           }
+          
+          console.log(`Profile found for ${urlParam}:`, profile);
+          setOwnerProfile(profile);
         } catch (error) {
           console.error('Error fetching profile:', error);
           toast.error('Could not load page data');
@@ -97,8 +102,9 @@ const Index = () => {
       <div className="fixed inset-0 z-0">
         <Hero 
           scrollToInput={scrollToInput} 
-          scrollProgress={scrollProgress} 
-          customTitle={urlParam ? `Welcome to ${urlParam}'s page` : undefined}
+          scrollProgress={scrollProgress}
+          customTitle={urlParam ? `${urlParam}'s Portfolio` : undefined}
+          customSubtitle={urlParam ? `Welcome to ${urlParam}'s professional page` : undefined}
         />
       </div>
       
@@ -116,7 +122,8 @@ const Index = () => {
       
       {/* Footer with proper z-index to appear after PurposeInput */}
       <div className="relative z-10">
-        <Footer />
+        <Footer userLanguage={ownerProfile?.default_language} 
+                supportedLanguages={ownerProfile?.supported_ai_languages} />
       </div>
     </div>
   );
