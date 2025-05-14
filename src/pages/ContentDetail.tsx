@@ -6,6 +6,12 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Calendar, Tag, Clock } from "lucide-react";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { cn } from "@/lib/utils";
+import NotionRenderer from "@/components/NotionRenderer";
 
 const ContentDetail = () => {
   const { contentId } = useParams<{ contentId: string }>();
@@ -41,12 +47,19 @@ const ContentDetail = () => {
     fetchContentDetail();
   }, [contentId, navigate]);
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString();
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen bg-white">
         <Header />
-        <main className="flex-1 container py-8">
-          <div>Loading content...</div>
+        <main className="container py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+          </div>
         </main>
         <Footer />
       </div>
@@ -55,9 +68,9 @@ const ContentDetail = () => {
 
   if (!content) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen bg-white">
         <Header />
-        <main className="flex-1 container py-8">
+        <main className="flex-1 container py-8 max-w-4xl">
           <div>Content not found</div>
           <Button onClick={() => navigate("/vista")} className="mt-4">
             Back to Content List
@@ -69,74 +82,95 @@ const ContentDetail = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-white">
       <Header />
-      <main className="flex-1 container py-8">
+      
+      <main className="container py-8 max-w-4xl">
         <Button
-          variant="outline"
-          onClick={() => navigate("/vista")}
+          variant="ghost"
           className="mb-6"
+          onClick={() => navigate("/vista")}
         >
-          ← Back to Content List
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to All Content
         </Button>
-
-        <div className="space-y-6">
-          <h1 className="text-3xl font-bold">{content.title}</h1>
-          
+        
+        <h1 className="text-3xl font-bold mb-2">{content.title}</h1>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
           {content.category && (
-            <div className="inline-block bg-muted px-3 py-1 rounded-full text-sm font-medium">
-              {content.category}
-            </div>
+            <Badge variant="outline">{content.category}</Badge>
           )}
           
-          {content.description && (
-            <p className="text-lg text-muted-foreground">{content.description}</p>
-          )}
-          
-          {content.tags && content.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {content.tags.map((tag: string) => (
-                <span
-                  key={tag}
-                  className="bg-secondary px-2 py-1 rounded-md text-xs"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {content.start_date && (
-              <div>
-                <p className="font-semibold">Start Date</p>
-                <p>{new Date(content.start_date).toLocaleDateString()}</p>
-              </div>
-            )}
-            
-            {content.end_date && (
-              <div>
-                <p className="font-semibold">End Date</p>
-                <p>{new Date(content.end_date).toLocaleDateString()}</p>
-              </div>
-            )}
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="mr-1 h-4 w-4" />
+            <span>Created: {formatDate(content?.created_at)}</span>
           </div>
           
-          {content.notion_url && (
-            <div>
-              <p className="font-semibold">Notion Link</p>
-              <a
-                href={content.notion_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                View in Notion
-              </a>
+          {content?.updated_at && content.updated_at !== content.created_at && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Clock className="mr-1 h-4 w-4" />
+              <span>Updated: {formatDate(content?.updated_at)}</span>
+            </div>
+          )}
+          
+          {content.start_date && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Calendar className="mr-1 h-4 w-4" />
+              <span>Starts: {formatDate(content.start_date)}</span>
+            </div>
+          )}
+          
+          {content.end_date && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Calendar className="mr-1 h-4 w-4" />
+              <span>Ends: {formatDate(content.end_date)}</span>
             </div>
           )}
         </div>
+        
+        {content.description && (
+          <p className="text-lg mb-6">{content.description}</p>
+        )}
+        
+        {content.tags && content.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            <span className="flex items-center mr-1">
+              <Tag className="h-4 w-4 mr-1" />
+            </span>
+            {content.tags.map((tag: string, index: number) => (
+              <Badge key={index} variant="secondary">{tag}</Badge>
+            ))}
+          </div>
+        )}
+        
+        {/* Display cover image if available */}
+        {content.cover_image && (
+          <div className="mb-8">
+            <AspectRatio ratio={16/9} className="overflow-hidden rounded-md border border-gray-200">
+              <img 
+                src={content.cover_image} 
+                alt={content.title} 
+                className={cn(
+                  "object-cover w-full h-full",
+                  "transition-all hover:scale-105 duration-500"
+                )}
+              />
+            </AspectRatio>
+          </div>
+        )}
+        
+        <Card className="mb-8 border rounded-md shadow-sm">
+          <CardContent className="p-6">
+            {content.content ? (
+              <div dangerouslySetInnerHTML={{ __html: content.content }} />
+            ) : (
+              <p className="text-gray-500 italic">No content available</p>
+            )}
+          </CardContent>
+        </Card>
       </main>
+      
       <Footer />
     </div>
   );
