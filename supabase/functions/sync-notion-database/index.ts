@@ -160,8 +160,8 @@ Deno.serve(async (req) => {
             page_size: 100, // Fetch up to 100 blocks
           })
           
-          // Process blocks recursively to include children
-          const processedBlocks = await processBlocks(blocks, notion)
+          // Process blocks recursively to include children (with the new simplified format)
+          const processedBlocks = await processBlocksSimplified(blocks, notion)
           
           // Prepare the content item data
           const contentItem = {
@@ -279,13 +279,13 @@ function extractProperty(props: Record<string, any>, propertyName: string, prope
   }
 }
 
-// Process blocks recursively to capture nested structure
-async function processBlocks(blocks: any[], notionClient: Client): Promise<any[]> {
+// Process blocks recursively with simplified format
+async function processBlocksSimplified(blocks: any[], notionClient: Client): Promise<any[]> {
   const processedBlocks = []
   
   for (const block of blocks) {
-    // Process the current block based on its type
-    const processedBlock = processBlock(block)
+    // Process the current block based on its type with simplified format
+    const processedBlock = processBlockSimplified(block)
     
     // Check if block has children
     if (block.has_children) {
@@ -297,7 +297,7 @@ async function processBlocks(blocks: any[], notionClient: Client): Promise<any[]
         })
         
         // Process child blocks recursively
-        const processedChildren = await processBlocks(childBlocks, notionClient)
+        const processedChildren = await processBlocksSimplified(childBlocks, notionClient)
         
         // Add children to the processed block
         processedBlock.children = processedChildren
@@ -313,131 +313,122 @@ async function processBlocks(blocks: any[], notionClient: Client): Promise<any[]
   return processedBlocks
 }
 
-// Process a single block
-function processBlock(block: any): any {
-  // Basic block data
-  const baseBlock = {
-    id: block.id,
-    type: block.type,
-    created_time: block.created_time,
-    last_edited_time: block.last_edited_time,
+// Process a single block with simplified format
+function processBlockSimplified(block: any): any {
+  // Get the block type
+  const blockType = block.type
+  
+  // Base block for the simplified format
+  const baseBlock: any = {
+    type: blockType,
   }
   
-  // Process the block content based on its type
-  switch (block.type) {
+  // Process specific block types
+  switch (blockType) {
     case 'paragraph':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.paragraph.rich_text),
-        annotations: extractAnnotations(block.paragraph.rich_text),
-      }
+      baseBlock.text = extractRichText(block.paragraph.rich_text)
+      baseBlock.annotations = extractAnnotationsSimplified(block.paragraph.rich_text)
+      break
+      
     case 'heading_1':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.heading_1.rich_text),
-        annotations: extractAnnotations(block.heading_1.rich_text),
-      }
+      baseBlock.text = extractRichText(block.heading_1.rich_text)
+      baseBlock.annotations = extractAnnotationsSimplified(block.heading_1.rich_text)
+      break
+      
     case 'heading_2':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.heading_2.rich_text),
-        annotations: extractAnnotations(block.heading_2.rich_text),
-      }
+      baseBlock.text = extractRichText(block.heading_2.rich_text)
+      baseBlock.annotations = extractAnnotationsSimplified(block.heading_2.rich_text)
+      break
+      
     case 'heading_3':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.heading_3.rich_text),
-        annotations: extractAnnotations(block.heading_3.rich_text),
-      }
+      baseBlock.text = extractRichText(block.heading_3.rich_text)
+      baseBlock.annotations = extractAnnotationsSimplified(block.heading_3.rich_text)
+      break
+      
     case 'bulleted_list_item':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.bulleted_list_item.rich_text),
-        annotations: extractAnnotations(block.bulleted_list_item.rich_text),
-      }
+      baseBlock.text = extractRichText(block.bulleted_list_item.rich_text)
+      baseBlock.is_list_item = true
+      baseBlock.list_type = 'bulleted_list'
+      baseBlock.annotations = extractAnnotationsSimplified(block.bulleted_list_item.rich_text)
+      break
+      
     case 'numbered_list_item':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.numbered_list_item.rich_text),
-        annotations: extractAnnotations(block.numbered_list_item.rich_text),
-      }
+      baseBlock.text = extractRichText(block.numbered_list_item.rich_text)
+      baseBlock.is_list_item = true
+      baseBlock.list_type = 'numbered_list'
+      baseBlock.annotations = extractAnnotationsSimplified(block.numbered_list_item.rich_text)
+      break
+      
     case 'to_do':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.to_do.rich_text),
-        checked: block.to_do.checked,
-        annotations: extractAnnotations(block.to_do.rich_text),
-      }
+      baseBlock.text = extractRichText(block.to_do.rich_text)
+      baseBlock.checked = block.to_do.checked
+      baseBlock.annotations = extractAnnotationsSimplified(block.to_do.rich_text)
+      break
+      
     case 'toggle':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.toggle.rich_text),
-        annotations: extractAnnotations(block.toggle.rich_text),
-      }
+      baseBlock.text = extractRichText(block.toggle.rich_text)
+      baseBlock.annotations = extractAnnotationsSimplified(block.toggle.rich_text)
+      break
+      
     case 'quote':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.quote.rich_text),
-        annotations: extractAnnotations(block.quote.rich_text),
-      }
+      baseBlock.text = extractRichText(block.quote.rich_text)
+      baseBlock.annotations = extractAnnotationsSimplified(block.quote.rich_text)
+      break
+      
     case 'callout':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.callout.rich_text),
-        icon: block.callout.icon,
-        annotations: extractAnnotations(block.callout.rich_text),
-      }
+      baseBlock.text = extractRichText(block.callout.rich_text)
+      baseBlock.icon = block.callout.icon
+      baseBlock.annotations = extractAnnotationsSimplified(block.callout.rich_text)
+      break
+      
     case 'code':
-      return {
-        ...baseBlock,
-        text: extractRichText(block.code.rich_text),
-        language: block.code.language,
-        annotations: extractAnnotations(block.code.rich_text),
-      }
+      baseBlock.text = extractRichText(block.code.rich_text)
+      baseBlock.language = block.code.language
+      baseBlock.annotations = extractAnnotationsSimplified(block.code.rich_text)
+      break
+      
     case 'image':
-      return {
-        ...baseBlock,
-        url: block.image.type === 'external' ? block.image.external.url : 
-             block.image.type === 'file' ? block.image.file.url : null,
-        caption: block.image.caption ? extractRichText(block.image.caption) : null,
-      }
+      // Simplify image block
+      baseBlock.media_type = 'image'
+      baseBlock.media_url = block.image.type === 'external' ? block.image.external.url : 
+                           block.image.type === 'file' ? block.image.file.url : null
+      baseBlock.caption = block.image.caption ? extractRichText(block.image.caption) : null
+      break
+      
     case 'video':
-      return {
-        ...baseBlock,
-        url: block.video.type === 'external' ? block.video.external.url : 
-             block.video.type === 'file' ? block.video.file.url : null,
-        caption: block.video.caption ? extractRichText(block.video.caption) : null,
-      }
+      // Simplify video block
+      baseBlock.media_type = 'video'
+      baseBlock.media_url = block.video.type === 'external' ? block.video.external.url : 
+                           block.video.type === 'file' ? block.video.file.url : null
+      baseBlock.caption = block.video.caption ? extractRichText(block.video.caption) : null
+      break
+      
+    case 'embed':
+      // Handle embed blocks
+      baseBlock.media_type = 'embed'
+      baseBlock.media_url = block.embed.url
+      baseBlock.caption = block.embed.caption ? extractRichText(block.embed.caption) : null
+      break
+      
     case 'divider':
-      return {
-        ...baseBlock,
-      }
+      // Divider needs no additional properties
+      break
+      
     case 'table':
-      return {
-        ...baseBlock,
-        table_width: block.table.table_width,
-        has_row_header: block.table.has_row_header,
-        has_column_header: block.table.has_column_header,
-      }
-    case 'column_list':
-      return {
-        ...baseBlock,
-      }
-    case 'column':
-      return {
-        ...baseBlock,
-      }
-    case 'equation':
-      return {
-        ...baseBlock,
-        expression: block.equation.expression,
-      }
+      baseBlock.table_width = block.table.table_width
+      baseBlock.has_row_header = block.table.has_row_header
+      baseBlock.has_column_header = block.table.has_column_header
+      break
+      
     default:
-      return {
-        ...baseBlock,
-        unsupported: true,
+      if (block[blockType]?.rich_text) {
+        baseBlock.text = extractRichText(block[blockType].rich_text)
+        baseBlock.annotations = extractAnnotationsSimplified(block[blockType].rich_text)
       }
+      break
   }
+  
+  return baseBlock
 }
 
 // Helper function to extract text content from rich_text arrays
@@ -446,22 +437,36 @@ function extractRichText(richText: any[]): string {
   return richText.map(rt => rt.plain_text).join('')
 }
 
-// Helper function to extract annotations from rich_text arrays
-function extractAnnotations(richText: any[]): any[] {
+// Helper function to extract simplified annotations from rich_text arrays
+function extractAnnotationsSimplified(richText: any[]): any[] {
   if (!richText || richText.length === 0) return []
   
-  return richText.map(rt => {
-    if (!rt.annotations) return null
+  const annotations = []
+  
+  // Process each rich text segment
+  for (const rt of richText) {
+    if (!rt || !rt.annotations) continue
     
-    return {
-      bold: rt.annotations.bold,
-      italic: rt.annotations.italic,
-      strikethrough: rt.annotations.strikethrough,
-      underline: rt.annotations.underline,
-      code: rt.annotations.code,
-      color: rt.annotations.color,
-      text: rt.plain_text,
-      href: rt.href, // For links
+    const {
+      bold, italic, strikethrough, underline, code, color
+    } = rt.annotations
+    
+    // Only create an annotation if there's formatting applied
+    if (bold || italic || strikethrough || underline || code || (color && color !== 'default') || rt.href) {
+      annotations.push({
+        text: rt.plain_text,
+        start: annotations.length > 0 ? annotations[annotations.length-1].end : 0,
+        end: (annotations.length > 0 ? annotations[annotations.length-1].end : 0) + rt.plain_text.length,
+        bold,
+        italic,
+        strikethrough,
+        underline,
+        code,
+        color: color !== 'default' ? color : undefined,
+        href: rt.href || undefined
+      })
     }
-  }).filter(Boolean)
+  }
+  
+  return annotations
 }
