@@ -11,15 +11,15 @@ type NotionAnnotation = {
   code?: boolean;
   color?: string;
   text: string;
-  start: number;
-  end: number;
+  start?: number;
+  end?: number;
   href?: string;
 };
 
 type NotionBlock = {
   id?: string;
   type: string;
-  text: string;
+  text?: string;
   list_type?: "numbered_list" | "bulleted_list";
   is_list_item?: boolean;
   checked?: boolean;
@@ -30,6 +30,7 @@ type NotionBlock = {
   icon?: any;
   annotations?: NotionAnnotation[];
   children?: NotionBlock[];
+  url?: string; // Added to support the original Notion format
 };
 
 interface NotionRendererProps {
@@ -52,7 +53,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     }
 
     // Sort annotations by start position
-    const sortedAnnotations = [...annotations].sort((a, b) => a.start - b.start);
+    const sortedAnnotations = [...annotations].sort((a, b) => (a.start || 0) - (b.start || 0));
     
     // Create an array of text spans with their formatting
     return sortedAnnotations.map((annotation, index) => {
@@ -84,8 +85,12 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   };
 
   const renderBlock = (block: NotionBlock, index: number) => {
-    const { type, text, list_type, is_list_item, checked, media_url, media_type, caption, language, annotations, children } = block;
+    const { type, text, list_type, is_list_item, checked, media_url, media_type, caption, language, annotations, children, url } = block;
 
+    // Handle both formats: older format uses media_url, newer format might use url
+    const imageUrl = media_url || url;
+    const videoUrl = media_url || url;
+    
     // Process list items separately to group them
     if (is_list_item && list_type) {
       if (currentListType !== list_type) {
@@ -97,7 +102,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         // Add the current item to the new list
         listItems.push(
           <li key={index} className="my-1">
-            {annotations ? renderAnnotatedText(text, annotations) : text}
+            {annotations && text ? renderAnnotatedText(text, annotations) : text}
             {children && children.length > 0 && (
               <div className="pl-6 mt-2">
                 {children.map((child, childIndex) => renderBlock(child, childIndex))}
@@ -110,7 +115,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         // Add to the current list
         listItems.push(
           <li key={index} className="my-1">
-            {annotations ? renderAnnotatedText(text, annotations) : text}
+            {annotations && text ? renderAnnotatedText(text, annotations) : text}
             {children && children.length > 0 && (
               <div className="pl-6 mt-2">
                 {children.map((child, childIndex) => renderBlock(child, childIndex))}
@@ -133,31 +138,31 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       case "heading_1":
         return (
           <h1 key={index} className="text-3xl font-bold mt-8 mb-4">
-            {annotations ? renderAnnotatedText(text, annotations) : text}
+            {annotations && text ? renderAnnotatedText(text, annotations) : text}
           </h1>
         );
       case "heading_2":
         return (
           <h2 key={index} className="text-2xl font-bold mt-6 mb-3">
-            {annotations ? renderAnnotatedText(text, annotations) : text}
+            {annotations && text ? renderAnnotatedText(text, annotations) : text}
           </h2>
         );
       case "heading_3":
         return (
           <h3 key={index} className="text-xl font-bold mt-5 mb-2">
-            {annotations ? renderAnnotatedText(text, annotations) : text}
+            {annotations && text ? renderAnnotatedText(text, annotations) : text}
           </h3>
         );
       case "paragraph":
         return (
           <p key={index} className="my-3">
-            {annotations ? renderAnnotatedText(text, annotations) : text}
+            {annotations && text ? renderAnnotatedText(text, annotations) : text}
           </p>
         );
       case "quote":
         return (
           <blockquote key={index} className="border-l-4 border-muted pl-4 py-1 my-4 italic">
-            {annotations ? renderAnnotatedText(text, annotations) : text}
+            {annotations && text ? renderAnnotatedText(text, annotations) : text}
           </blockquote>
         );
       case "to_do":
@@ -170,7 +175,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
               className="mt-1"
             />
             <span className={cn(checked && "line-through text-muted-foreground")}>
-              {annotations ? renderAnnotatedText(text, annotations) : text}
+              {annotations && text ? renderAnnotatedText(text, annotations) : text}
             </span>
           </div>
         );
@@ -180,7 +185,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         return (
           <div key={index} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
             {block.icon && <div>{block.icon}</div>}
-            <div>{annotations ? renderAnnotatedText(text, annotations) : text}</div>
+            <div>{annotations && text ? renderAnnotatedText(text, annotations) : text}</div>
           </div>
         );
       case "code":
@@ -195,7 +200,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         return (
           <details key={index} className="my-2 border border-muted rounded-md">
             <summary className="p-3 cursor-pointer font-medium hover:bg-muted/50">
-              {annotations ? renderAnnotatedText(text, annotations) : text}
+              {annotations && text ? renderAnnotatedText(text, annotations) : text}
             </summary>
             {children && children.length > 0 && (
               <div className="p-3 pt-0">
@@ -204,12 +209,59 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
             )}
           </details>
         );
+      case "image":
+        return (
+          <figure key={index} className="my-4">
+            <img 
+              src={imageUrl} 
+              alt={text || caption || "Notion image"} 
+              className="max-w-full rounded-md"
+            />
+            {(text || caption) && (
+              <figcaption className="text-center text-sm text-muted-foreground mt-2">
+                {text || caption}
+              </figcaption>
+            )}
+          </figure>
+        );
+      case "video":
+        // Convert YouTube urls to embeds if needed
+        let embedUrl = videoUrl;
+        if (videoUrl && videoUrl.includes('youtube.com/watch') && !videoUrl.includes('embed')) {
+          const videoId = new URL(videoUrl).searchParams.get('v');
+          if (videoId) {
+            embedUrl = `https://www.youtube.com/embed/${videoId}`;
+          }
+        } else if (videoUrl && videoUrl.includes('youtu.be/')) {
+          const videoId = videoUrl.split('/').pop()?.split('?')[0];
+          if (videoId) {
+            embedUrl = `https://www.youtube.com/embed/${videoId}`;
+          }
+        }
+        
+        return (
+          <figure key={index} className="my-4">
+            <div className="relative pb-[56.25%] h-0">
+              <iframe
+                src={embedUrl}
+                className="absolute top-0 left-0 w-full h-full rounded-md"
+                allowFullScreen
+                title={text || caption || "Embedded video"}
+              />
+            </div>
+            {(text || caption) && (
+              <figcaption className="text-center text-sm text-muted-foreground mt-2">
+                {text || caption}
+              </figcaption>
+            )}
+          </figure>
+        );
       case "media":
-        if (media_type === "image" && media_url) {
+        if (media_type === "image" && imageUrl) {
           return (
             <figure key={index} className="my-4">
               <img 
-                src={media_url} 
+                src={imageUrl} 
                 alt={text || caption || "Notion image"} 
                 className="max-w-full rounded-md"
               />
@@ -220,30 +272,26 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
               )}
             </figure>
           );
-        } else if (media_type === "video" && media_url) {
+        } else if ((media_type === "video" || media_type === "embed") && videoUrl) {
+          // Convert YouTube urls to embeds if needed
+          let embedUrl = videoUrl;
+          if (videoUrl && videoUrl.includes('youtube.com/watch') && !videoUrl.includes('embed')) {
+            const videoId = new URL(videoUrl).searchParams.get('v');
+            if (videoId) {
+              embedUrl = `https://www.youtube.com/embed/${videoId}`;
+            }
+          } else if (videoUrl && videoUrl.includes('youtu.be/')) {
+            const videoId = videoUrl.split('/').pop()?.split('?')[0];
+            if (videoId) {
+              embedUrl = `https://www.youtube.com/embed/${videoId}`;
+            }
+          }
+          
           return (
             <figure key={index} className="my-4">
               <div className="relative pb-[56.25%] h-0">
                 <iframe
-                  src={media_url}
-                  className="absolute top-0 left-0 w-full h-full rounded-md"
-                  allowFullScreen
-                  title={text || caption || "Embedded video"}
-                />
-              </div>
-              {(text || caption) && (
-                <figcaption className="text-center text-sm text-muted-foreground mt-2">
-                  {text || caption}
-                </figcaption>
-              )}
-            </figure>
-          );
-        } else if (media_type === "embed" && media_url) {
-          return (
-            <figure key={index} className="my-4">
-              <div className="relative pb-[56.25%] h-0">
-                <iframe
-                  src={media_url}
+                  src={embedUrl}
                   className="absolute top-0 left-0 w-full h-full rounded-md border-0"
                   allowFullScreen
                   title={text || caption || "Embedded content"}
@@ -261,7 +309,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       default:
         return (
           <div key={index} className="my-2">
-            {annotations ? renderAnnotatedText(text, annotations) : text}
+            {annotations && text ? renderAnnotatedText(text, annotations) : text}
           </div>
         );
     }
