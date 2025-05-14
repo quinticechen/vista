@@ -1,20 +1,54 @@
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import { Toaster } from '@/components/ui/toaster';
+import { getProfileByUrlParam } from '@/services/urlParamService';
+import { toast } from '@/components/ui/sonner';
 
 const Index = () => {
   const { urlParam } = useParams();
+  const navigate = useNavigate();
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [ownerProfile, setOwnerProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (urlParam) {
+        try {
+          const profile = await getProfileByUrlParam(urlParam);
+          setOwnerProfile(profile);
+          
+          if (!profile) {
+            toast.error(`The page for /${urlParam} does not exist.`);
+            navigate('/');
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+          toast.error('Could not load page data');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+    
+    fetchProfileData();
+  }, [urlParam, navigate]);
   
   const handlePurposeSubmit = (purpose: string) => {
-    // This function is still passed to PurposeInput, but we won't use it for navigation anymore
-    console.log("Purpose submitted:", purpose);
-    console.log("URL parameter:", urlParam);
+    // When we're on a custom URL parameter page, navigate to that user's vista page
+    if (urlParam && ownerProfile) {
+      navigate(`/${urlParam}/vista?search=${encodeURIComponent(purpose)}`);
+    } else {
+      // Default behavior - navigate to the global vista page
+      navigate(`/vista?search=${encodeURIComponent(purpose)}`);
+    }
   };
   
   const scrollToInput = () => {
@@ -45,12 +79,14 @@ const Index = () => {
     };
   }, []);
   
-  // Log URL parameter for debugging
-  useEffect(() => {
-    if (urlParam) {
-      console.log(`Rendering page for: ${urlParam}`);
-    }
-  }, [urlParam]);
+  // Show loading state while checking URL parameter
+  if (loading && urlParam) {
+    return (
+      <div className="min-h-screen bg-beige-50 flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-beige-50">
@@ -59,7 +95,11 @@ const Index = () => {
       
       {/* Use a fixed positioned container for the Hero */}
       <div className="fixed inset-0 z-0">
-        <Hero scrollToInput={scrollToInput} scrollProgress={scrollProgress} />
+        <Hero 
+          scrollToInput={scrollToInput} 
+          scrollProgress={scrollProgress} 
+          customTitle={urlParam ? `Welcome to ${urlParam}'s page` : undefined}
+        />
       </div>
       
       {/* Add a container for the PurposeInput with proper z-index */}
@@ -69,7 +109,8 @@ const Index = () => {
         
         <PurposeInput 
           onPurposeSubmit={handlePurposeSubmit} 
-          scrollProgress={scrollProgress} 
+          scrollProgress={scrollProgress}
+          placeholder={urlParam ? `Search ${urlParam}'s content...` : undefined}
         />
       </div>
       

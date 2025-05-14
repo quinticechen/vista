@@ -1,50 +1,73 @@
-
-import { ArrowDown } from "lucide-react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import FloatingShapes from './FloatingShapes';
+import { TranslatedText } from './TranslatedText';
 
 interface HeroProps {
-  scrollToInput?: () => void;
-  scrollProgress?: number;
+  scrollToInput: () => void;
+  scrollProgress: number;
+  customTitle?: string; // Add custom title prop
 }
 
-const Hero = ({ scrollToInput, scrollProgress = 0 }: HeroProps) => {
+const Hero = ({ scrollToInput, scrollProgress, customTitle }: HeroProps) => {
   return (
-    <motion.section 
-      className="min-h-screen flex flex-col justify-center items-center px-4 md:px-8 lg:px-16 py-16 bg-beige-50 relative"
-      style={{ 
-        opacity: 1 - scrollProgress * 0.7, // Fade out more slowly
-        transform: `translateY(${scrollProgress * 30}px)` // Reduced movement
-      }}
-    >
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-beige-300 transform -skew-y-6"></div>
+    <div className={cn("relative h-screen w-full overflow-hidden", 
+      scrollProgress > 0.1 && "pointer-events-none"
+    )}>
+      {/* Background gradients */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white to-amber-50/80 dark:from-gray-950 dark:to-gray-900/90"></div>
+      
+      {/* Animated floating shapes */}
+      <div 
+        className={cn("absolute inset-0 transition-opacity duration-1000",
+          scrollProgress > 0.5 ? "opacity-0" : "opacity-100"
+        )}
+      >
+        <FloatingShapes />
       </div>
       
-      <div className="text-center max-w-4xl mx-auto z-10 animate-fade-in">
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-beige-900 mb-4 tracking-tight">
-          Chen Quintice
-        </h1>
-        <h2 className="text-xl md:text-2xl lg:text-3xl font-light text-beige-700 mb-8">
-          AI Product Management Expert & Consultant
-        </h2>
-        <p className="text-base md:text-lg text-beige-600 max-w-2xl mx-auto mb-12">
-          Specialized in AI implementation strategies, team training, and product development 
-          with over 10 years of experience helping businesses integrate cutting-edge technologies.
-        </p>
-      </div>
-      
-      {scrollToInput && (
-        <motion.div 
-          className="absolute bottom-20 left-1/2 transform -translate-x-1/2 cursor-pointer"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
-          onClick={scrollToInput}
-          style={{ opacity: 1 - scrollProgress * 2 }}
+      {/* Content container */}
+      <div className="relative z-10 flex flex-col items-center justify-center h-full px-4 text-center">
+        <h1 
+          className={cn(
+            "text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight transition-all duration-1000 text-gray-900 dark:text-gray-100",
+            scrollProgress > 0 && "transform translate-y-[-100px] scale-90",
+            scrollProgress > 0.3 && "transform translate-y-[-150px] scale-75 opacity-50",
+            scrollProgress > 0.6 && "opacity-0"
+          )}
         >
-          <ArrowDown className="w-6 h-6 text-beige-600" />
-        </motion.div>
-      )}
-    </motion.section>
+          {customTitle ? (
+            <span>{customTitle}</span>
+          ) : (
+            <TranslatedText keyword="hero.title">Tailored Brand Flow</TranslatedText>
+          )}
+        </h1>
+        
+        <p 
+          className={cn(
+            "mt-6 text-lg sm:text-xl md:text-2xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto transition-all duration-1000",
+            scrollProgress > 0 && "transform translate-y-[-100px] scale-90",
+            scrollProgress > 0.3 && "transform translate-y-[-120px] scale-75 opacity-50",
+            scrollProgress > 0.6 && "opacity-0"
+          )}
+        >
+          <TranslatedText keyword="hero.subtitle">
+            Elevate your brand with AI-driven content personalized to your business purpose.
+          </TranslatedText>
+        </p>
+        
+        <button
+          onClick={scrollToInput}
+          className={cn(
+            "mt-12 px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-full font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-opacity-50 transition-all duration-300",
+            scrollProgress > 0 && "transform translate-y-[-50px] scale-95",
+            scrollProgress > 0.3 && "opacity-0 pointer-events-none"
+          )}
+        >
+          <TranslatedText keyword="hero.getStarted">Get Started</TranslatedText>
+        </button>
+      </div>
+    </div>
   );
 };
 

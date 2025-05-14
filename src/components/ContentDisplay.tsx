@@ -1,74 +1,94 @@
 
-import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import NotionRenderer from "@/components/NotionRenderer";
-import { ContentItem } from "@/services/adminService";
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CalendarIcon, ClockIcon, TagIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-interface ContentDisplayProps {
-  content: any; // The content from the database
-  className?: string;
-  showFullContent?: boolean;
+export interface ContentItem {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  created_at?: string;
+  updated_at?: string;
+  start_date?: string;
+  end_date?: string;
+  similarity?: number;
 }
 
-// This is the main ContentDisplay component
-const ContentDisplay: React.FC<ContentDisplayProps> = ({
-  content,
-  className,
-  showFullContent = false,
-}) => {
-  // Check if content is an array (Notion blocks format)
-  const isNotionContent = Array.isArray(content);
+interface ContentDisplayItemProps {
+  content: ContentItem;
+  urlPrefix?: string;
+}
 
-  // Render content based on its format
-  const renderContent = () => {
-    if (!content) {
-      return <p className="text-muted-foreground">No content available</p>;
+export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayItemProps) => {
+  // Format date using local date format
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleDateString();
+  };
+  
+  // Get route to content detail
+  const getDetailRoute = () => {
+    if (urlPrefix) {
+      return `${urlPrefix}/${content.id}`;
     }
-
-    if (isNotionContent) {
-      return <NotionRenderer blocks={content} />;
-    }
-
-    // If it's a string, render it directly
-    if (typeof content === "string") {
-      return <div dangerouslySetInnerHTML={{ __html: content }} />;
-    }
-
-    // If it's an object, stringify it
-    return <pre>{JSON.stringify(content, null, 2)}</pre>;
+    return `/vista/${content.id}`;
   };
 
   return (
-    <Card className={className}>
-      <CardContent className="pt-6">
-        {renderContent()}
-      </CardContent>
-    </Card>
-  );
-};
-
-// Add a new ContentDisplayItem component that was being imported in About.tsx and Vista.tsx
-interface ContentDisplayItemProps {
-  content: ContentItem;
-  className?: string;
-}
-
-export const ContentDisplayItem: React.FC<ContentDisplayItemProps> = ({ content, className }) => {
-  return (
-    <Card className={`h-full transition-all hover:shadow-md ${className}`}>
-      <CardContent className="p-6">
-        <h3 className="text-lg font-semibold mb-2">{content.title}</h3>
-        
-        {content.description && (
-          <p className="text-gray-600 mb-3 line-clamp-3">{content.description}</p>
-        )}
-        
-        <div className="flex flex-wrap gap-2 mt-4">
+    <Card className="h-full flex flex-col hover:shadow-md transition-shadow duration-200">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2 mb-1">
           {content.category && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-beige-100 text-beige-800">
+            <Badge variant="outline" className="text-xs">
               {content.category}
-            </span>
+            </Badge>
           )}
+          
+          {content.start_date && (
+            <div className="flex items-center text-xs text-muted-foreground">
+              <CalendarIcon className="h-3 w-3 mr-1" />
+              <span>{formatDate(content.start_date)}</span>
+            </div>
+          )}
+        </div>
+        
+        <h3 className="text-lg font-medium leading-tight group-hover:text-primary transition-colors duration-200">
+          {content.title}
+        </h3>
+      </CardHeader>
+      
+      <CardContent className="pb-2 flex-1">
+        {content.description && (
+          <p className="text-sm text-muted-foreground line-clamp-3">
+            {content.description}
+          </p>
+        )}
+      </CardContent>
+      
+      <CardFooter className="flex flex-col items-start pt-2 gap-2">
+        <div className="flex flex-wrap gap-1 w-full">
+          {content.tags && content.tags.slice(0, 3).map((tag, index) => (
+            <Badge key={index} variant="secondary" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+          
+          {content.tags && content.tags.length > 3 && (
+            <Badge variant="secondary" className="text-xs">
+              +{content.tags.length - 3}
+            </Badge>
+          )}
+        </div>
+        
+        <div className="flex items-center justify-between w-full mt-2">
+          <div className="flex items-center text-xs text-muted-foreground">
+            <ClockIcon className="h-3 w-3 mr-1" />
+            <span>{formatDate(content.created_at)}</span>
+          </div>
           
           {content.similarity !== undefined && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -76,9 +96,20 @@ export const ContentDisplayItem: React.FC<ContentDisplayItemProps> = ({ content,
             </span>
           )}
         </div>
-      </CardContent>
+        
+        <Button 
+          size="sm" 
+          className="w-full mt-2"
+          asChild
+        >
+          <Link to={getDetailRoute()}>
+            Learn More
+          </Link>
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
 
-export default ContentDisplay;
+// Export the ContentItem type
+export { type ContentItem };

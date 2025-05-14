@@ -1,106 +1,90 @@
 
-import { FC, ReactNode, useEffect } from "react";
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { 
-  Sidebar, 
-  SidebarContent, 
-  SidebarGroup, 
-  SidebarHeader, 
-  SidebarMenu, 
-  SidebarMenuItem, 
-  SidebarMenuButton, 
-  SidebarProvider, 
-  SidebarTrigger,
-  useSidebar
-} from "@/components/ui/sidebar";
 import { NavLink } from "@/components/ui/nav-link";
-import { Home, Settings, Code, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { LucidePanelLeft, LucideLayoutGrid, LucideGlobe, LucideText, LucideDatabase } from "lucide-react";
 
-interface AdminLayoutProps {
-  children?: ReactNode;
-}
-
-const AdminLayout: FC<AdminLayoutProps> = () => {
-  return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full bg-slate-50">
-        <AdminSidebar />
-        <div className="flex-1">
-          <div className="container py-8">
-            <Outlet />
-          </div>
-        </div>
-      </div>
-    </SidebarProvider>
-  );
-};
-
-const AdminSidebar = () => {
-  const { toggleSidebar } = useSidebar();
+const AdminLayout = () => {
+  const [collapsed, setCollapsed] = useState(false);
   
-  // Add keyboard shortcut to toggle sidebar
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "b") {
-        event.preventDefault();
-        toggleSidebar();
-      }
-    };
-    
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSidebar]);
-  
+  const toggleSidebar = () => {
+    setCollapsed(!collapsed);
+  };
+
   return (
-    <Sidebar>
-      <SidebarHeader className="flex items-center justify-between">
-        <div className="flex items-center gap-2 px-2">
-          <h2 className="text-lg font-semibold">Admin Panel</h2>
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <aside 
+        className={`bg-secondary/20 flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out border-r ${
+          collapsed ? "w-16" : "w-64"
+        }`}
+      >
+        {/* Toggle button */}
+        <Button 
+          variant="ghost" 
+          className="m-2 self-end"
+          onClick={toggleSidebar}
+        >
+          <LucidePanelLeft className={`transition-transform ${collapsed ? "rotate-180" : ""}`} />
+        </Button>
+        
+        <div className="p-4">
+          <h2 className={`font-bold text-xl ${collapsed ? "hidden" : "block"}`}>Admin</h2>
         </div>
-        <SidebarTrigger />
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Home">
-                <NavLink to="/admin" className="flex gap-2" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
-                  <Home size={20} />
-                  <span>Home</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Language Settings">
-                <NavLink to="/admin/language-setting" className="flex gap-2" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
-                  <Settings size={20} />
-                  <span>Language Settings</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Embedding">
-                <NavLink to="/admin/embedding" className="flex gap-2" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
-                  <Code size={20} />
-                  <span>Embedding</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Content">
-                <NavLink to="/admin/content" className="flex gap-2" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
-                  <FileText size={20} />
-                  <span>Content</span>
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+        
+        <Separator />
+        
+        <nav className="p-2 flex-1 space-y-1">
+          <NavLink 
+            to="/admin" 
+            className={`flex items-center p-2 rounded-md ${
+              collapsed ? "justify-center" : "space-x-3"
+            }`}
+            end
+          >
+            <LucideLayoutGrid size={20} />
+            {!collapsed && <span>Dashboard</span>}
+          </NavLink>
+          
+          <NavLink 
+            to="/admin/language-setting" 
+            className={`flex items-center p-2 rounded-md ${
+              collapsed ? "justify-center" : "space-x-3"
+            }`}
+          >
+            <LucideGlobe size={20} />
+            {!collapsed && <span>Language Settings</span>}
+          </NavLink>
+          
+          <NavLink 
+            to="/admin/embedding" 
+            className={`flex items-center p-2 rounded-md ${
+              collapsed ? "justify-center" : "space-x-3"
+            }`}
+          >
+            <LucideDatabase size={20} />
+            {!collapsed && <span>Embedding</span>}
+          </NavLink>
+          
+          <NavLink 
+            to="/admin/content" 
+            className={`flex items-center p-2 rounded-md ${
+              collapsed ? "justify-center" : "space-x-3"
+            }`}
+          >
+            <LucideText size={20} />
+            {!collapsed && <span>Content</span>}
+          </NavLink>
+        </nav>
+      </aside>
+      
+      {/* Main content area */}
+      <main className="flex-1 p-6">
+        <Outlet />
+      </main>
+    </div>
   );
 };
 

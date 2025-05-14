@@ -12,6 +12,8 @@ import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import AdminGuard from "./components/AdminGuard";
 import About from "./pages/About";
+import UrlParamVista from "./pages/UrlParamVista";
+import UrlParamContentDetail from "./pages/UrlParamContentDetail";
 
 // Admin pages
 import AdminLayout from "./components/AdminLayout";
@@ -34,7 +36,11 @@ const App = () => (
           <Route path="/vista/:contentId" element={<ContentDetail />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/about" element={<About />} />
+          
+          {/* URL parameter routes */}
           <Route path="/:urlParam" element={<Index />} />
+          <Route path="/:urlParam/vista" element={<UrlParamVista />} />
+          <Route path="/:urlParam/vista/:contentId" element={<UrlParamContentDetail />} />
           
           {/* Admin routes with legacy page */}
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
