@@ -163,7 +163,7 @@ const ContentDetail = () => {
         <Card className="mb-8 border rounded-md shadow-sm">
           <CardContent className="p-6">
             {content.content ? (
-              <div dangerouslySetInnerHTML={{ __html: content.content }} />
+              <NotionRenderer blocks={content.content} />
             ) : (
               <p className="text-gray-500 italic">No content available</p>
             )}

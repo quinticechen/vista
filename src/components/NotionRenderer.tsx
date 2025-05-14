@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 
@@ -83,7 +84,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   };
 
   const renderBlock = (block: NotionBlock, index: number) => {
-    const { type, text, list_type, is_list_item, checked, media_url, media_type, language, annotations, children } = block;
+    const { type, text, list_type, is_list_item, checked, media_url, media_type, caption, language, annotations, children } = block;
 
     // Process list items separately to group them
     if (is_list_item && list_type) {
@@ -209,10 +210,14 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
             <figure key={index} className="my-4">
               <img 
                 src={media_url} 
-                alt={text || "Notion image"} 
+                alt={text || caption || "Notion image"} 
                 className="max-w-full rounded-md"
               />
-              {text && <figcaption className="text-center text-sm text-muted-foreground mt-2">{text}</figcaption>}
+              {(text || caption) && (
+                <figcaption className="text-center text-sm text-muted-foreground mt-2">
+                  {text || caption}
+                </figcaption>
+              )}
             </figure>
           );
         } else if (media_type === "video" && media_url) {
@@ -223,10 +228,32 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
                   src={media_url}
                   className="absolute top-0 left-0 w-full h-full rounded-md"
                   allowFullScreen
-                  title={text || "Embedded video"}
+                  title={text || caption || "Embedded video"}
                 />
               </div>
-              {text && <figcaption className="text-center text-sm text-muted-foreground mt-2">{text}</figcaption>}
+              {(text || caption) && (
+                <figcaption className="text-center text-sm text-muted-foreground mt-2">
+                  {text || caption}
+                </figcaption>
+              )}
+            </figure>
+          );
+        } else if (media_type === "embed" && media_url) {
+          return (
+            <figure key={index} className="my-4">
+              <div className="relative pb-[56.25%] h-0">
+                <iframe
+                  src={media_url}
+                  className="absolute top-0 left-0 w-full h-full rounded-md border-0"
+                  allowFullScreen
+                  title={text || caption || "Embedded content"}
+                />
+              </div>
+              {(text || caption) && (
+                <figcaption className="text-center text-sm text-muted-foreground mt-2">
+                  {text || caption}
+                </figcaption>
+              )}
             </figure>
           );
         }
