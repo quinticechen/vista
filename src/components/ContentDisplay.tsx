@@ -19,6 +19,7 @@ export interface ContentItem {
   start_date?: string;
   end_date?: string;
   similarity?: number;
+  content?: any[];
 }
 
 interface ContentDisplayItemProps {
@@ -47,39 +48,56 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
   useEffect(() => {
     const fetchFirstMedia = async () => {
       try {
-        // Try to get an image first
+        if (content.content && content.content.length > 0) {
+          for (const block of content.content) {
+            if (block.type === 'image' && block.url) {
+              setMediaUrl(block.url);
+              return;
+            } else if (block.type === 'video' && block.url) {
+                const youtubeInfo = await youtube.get_metadata(urls=[block.url]);
+                if(youtubeInfo && youtubeInfo.length > 0){
+                    setMediaUrl(youtubeInfo[0].url);
+                }
+              return;
+            }
+          }
+        }
+
+        // If there's no image or video in content, try to use image_contents and video_contents column's data
         let { data: imageData } = await supabase
           .from('image_contents')
           .select('image_url')
           .eq('content_id', content.id)
           .limit(1)
           .single();
-        
+
         if (imageData?.image_url) {
           setMediaUrl(imageData.image_url);
           return;
         }
-        
-        // If no image, try to get a video thumbnail
+
         let { data: videoData } = await supabase
           .from('video_contents')
           .select('thumbnail_url, video_url')
           .eq('content_id', content.id)
           .limit(1)
           .single();
-          
+
         if (videoData?.thumbnail_url) {
           setMediaUrl(videoData.thumbnail_url);
         } else if (videoData?.video_url) {
-          setMediaUrl(videoData.video_url);
+          const youtubeInfo = await youtube.get_metadata(urls=[videoData.video_url]);
+                if(youtubeInfo && youtubeInfo.length > 0){
+                    setMediaUrl(youtubeInfo[0].url);
+                }
         }
       } catch (error) {
         console.error("Error fetching media:", error);
       }
     };
-    
+
     fetchFirstMedia();
-  }, [content.id]);
+  }, [content.id, content.content]);
 
   return (
     <Card className="h-full flex flex-col hover:shadow-md transition-shadow duration-200">
