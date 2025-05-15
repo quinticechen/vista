@@ -1,10 +1,12 @@
 
-
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, ClockIcon, TagIcon } from "lucide-react";
+import { CalendarIcon, ClockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ImageAspectRatio } from "./ImageAspectRatio";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 export interface ContentItem {
   id: string;
@@ -25,6 +27,8 @@ interface ContentDisplayItemProps {
 }
 
 export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayItemProps) => {
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  
   // Format date using local date format
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
@@ -39,20 +43,59 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
     return `/vista/${content.id}`;
   };
 
+  // Fetch the first media for this content item
+  useEffect(() => {
+    const fetchFirstMedia = async () => {
+      try {
+        // Try to get an image first
+        let { data: imageData } = await supabase
+          .from('image_contents')
+          .select('image_url')
+          .eq('content_id', content.id)
+          .limit(1)
+          .single();
+        
+        if (imageData?.image_url) {
+          setMediaUrl(imageData.image_url);
+          return;
+        }
+        
+        // If no image, try to get a video thumbnail
+        let { data: videoData } = await supabase
+          .from('video_contents')
+          .select('thumbnail_url, video_url')
+          .eq('content_id', content.id)
+          .limit(1)
+          .single();
+          
+        if (videoData?.thumbnail_url) {
+          setMediaUrl(videoData.thumbnail_url);
+        } else if (videoData?.video_url) {
+          setMediaUrl(videoData.video_url);
+        }
+      } catch (error) {
+        console.error("Error fetching media:", error);
+      }
+    };
+    
+    fetchFirstMedia();
+  }, [content.id]);
+
   return (
     <Card className="h-full flex flex-col hover:shadow-md transition-shadow duration-200">
       <CardHeader className="pb-2">
-        <div className="flex items-center gap-2 mb-1">
-          {content.category && (
-            <Badge variant="outline" className="text-xs">
-              {content.category}
-            </Badge>
-          )}
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <Badge variant="outline" className="text-xs">
+            {content.category || "Type"}
+          </Badge>
           
-          {content.start_date && (
+          {(content.start_date || content.end_date) && (
             <div className="flex items-center text-xs text-muted-foreground">
               <CalendarIcon className="h-3 w-3 mr-1" />
-              <span>{formatDate(content.start_date)}</span>
+              <span>
+                {formatDate(content.start_date)} 
+                {content.end_date && content.start_date !== content.end_date && ` - ${formatDate(content.end_date)}`}
+              </span>
             </div>
           )}
         </div>
@@ -62,7 +105,14 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
         </h3>
       </CardHeader>
       
-      <CardContent className="pb-2 flex-1">
+      <CardContent className="pb-2 space-y-4 flex-1">
+        {mediaUrl && (
+          <ImageAspectRatio 
+            src={mediaUrl}
+            alt={content.title}
+          />
+        )}
+        
         {content.description && (
           <p className="text-sm text-muted-foreground line-clamp-3">
             {content.description}
@@ -111,5 +161,3 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
     </Card>
   );
 };
-
-// Export the interface only since we already exported the ContentItem interface above
