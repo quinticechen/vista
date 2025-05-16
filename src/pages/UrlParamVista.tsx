@@ -313,11 +313,12 @@ const UrlParamVista = () => {
           </div>
         ) : sortedItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedItems.map((item) => (
+            {sortedItems.map((item, index) => (
               <div key={item.id} className="block group">
-                <ContentDisplayItem 
-                  content={item} 
+                <ContentDisplayItem
+                  content={item}
                   urlPrefix={`/${urlParam}/vista`}
+                  index={index} // Pass the index as a prop
                 />
               </div>
             ))}
