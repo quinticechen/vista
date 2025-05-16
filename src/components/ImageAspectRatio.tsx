@@ -17,21 +17,25 @@ export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioP
     
     const img = new Image();
     img.onload = () => {
+      console.log(`Image loaded: ${src}, dimensions: ${img.width}x${img.height}`);
       setOrientation(img.height > img.width ? "portrait" : "landscape");
       setIsLoading(false);
     };
     img.onerror = () => {
+      console.error(`Failed to load image: ${src}`);
       setIsLoading(false);
     };
     img.src = src;
   }, [src]);
 
+  const ratio = orientation === "portrait" ? 8/9 : 16/9;
+  
   return (
     <div className={`overflow-hidden rounded-md bg-muted ${className}`}>
       {isLoading ? (
         <div className="w-full h-full animate-pulse bg-muted/50" />
       ) : (
-        <AspectRatio ratio={orientation === "portrait" ? 8/9 : 16/9}>
+        <AspectRatio ratio={ratio}>
           <img
             src={src}
             alt={alt}

@@ -30,7 +30,7 @@ interface ContentDisplayItemProps {
 export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayItemProps) => {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
-  const [aspectRatio, setAspectRatio] = useState(null);
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   
   // Format date using local date format
   const formatDate = (dateString?: string) => {
@@ -50,55 +50,85 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
   useEffect(() => {
     const fetchFirstMedia = async () => {
       try {
+        console.log("Fetching media for content:", content.id);
         setMediaUrl(null);
         setMediaType(null);
         setAspectRatio(null);
         
         if (content.content && content.content.length > 0) {
+          console.log("Content blocks:", content.content.length);
           for (const block of content.content) {
             if (block.type === 'image' && block.url) {
+              console.log("Found image in content:", block.url);
               setMediaUrl(block.url);
               setMediaType('image');
               return;
             } else if (block.type === 'video' && block.url) {
+              console.log("Found video in content:", block.url);
               setMediaUrl(block.url);
+              setMediaType('video');
+              setAspectRatio(16 / 9);
+              return;
+            } else if (block.type === 'media' && block.media_type === 'image' && block.media_url) {
+              console.log("Found media image in content:", block.media_url);
+              setMediaUrl(block.media_url);
+              setMediaType('image');
+              return;
+            } else if (block.type === 'media' && block.media_type === 'video' && block.media_url) {
+              console.log("Found media video in content:", block.media_url);
+              setMediaUrl(block.media_url);
               setMediaType('video');
               setAspectRatio(16 / 9);
               return;
             }
           }
+          console.log("No media found in content blocks");
+        } else {
+          console.log("No content blocks available");
         }
 
         // Fallback to fetching from separate tables (adjust if needed)
         if (!mediaUrl) {
-          let { data: imageData } = await supabase
+          console.log("Trying to fetch from image_contents table");
+          let { data: imageData, error: imageError } = await supabase
             .from('image_contents')
             .select('image_url')
             .eq('content_id', content.id)
             .limit(1)
             .single();
 
+          if (imageError) {
+            console.log("Error fetching image:", imageError);
+          }
+
           if (imageData?.image_url) {
+            console.log("Found image in image_contents:", imageData.image_url);
             setMediaUrl(imageData.image_url);
             setMediaType('image');
             return;
           }
 
-          let { data: videoData } = await supabase
+          console.log("Trying to fetch from video_contents table");
+          let { data: videoData, error: videoError } = await supabase
             .from('video_contents')
             .select('thumbnail_url, video_url')
             .eq('content_id', content.id)
             .limit(1)
             .single();
 
+          if (videoError) {
+            console.log("Error fetching video:", videoError);
+          }
+
           if (videoData?.thumbnail_url) {
+            console.log("Found thumbnail in video_contents:", videoData.thumbnail_url);
             setMediaUrl(videoData.thumbnail_url);
-            setMediaType('video');
-            setAspectRatio(16 / 9); // 假設影片縮圖是 16:9
+            setMediaType('image');
           } else if (videoData?.video_url) {
+            console.log("Found video in video_contents:", videoData.video_url);
             setMediaUrl(videoData.video_url);
             setMediaType('video');
-            setAspectRatio(16 / 9); // 假設影片是 16:9
+            setAspectRatio(16 / 9);
           }
         }
       } catch (error) {
@@ -112,7 +142,6 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
   return (
     <Card className="h-full flex flex-col hover:shadow-md transition-shadow duration-200">
       <CardHeader className="pb-2">
-        {/* 卡片的標題頭部，包含類別和日期 */}
         <div className="flex items-center justify-between gap-2 mb-1">
           <Badge variant="outline" className="text-xs">
             {content.category || "Type"}
@@ -135,29 +164,28 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
       </CardHeader>
 
       <CardContent className="pb-2 space-y-4 flex-1">
-        {/* 條件式渲染圖片 */}
+        {/* Media content display section */}
         {mediaUrl && mediaType === 'image' && (
-          <div style={{ height: '340px', overflow: 'hidden' }}>
-            <img
-              src={mediaUrl}
-              alt={content.title}
-              style={{
-                objectFit: 'cover',
-                width: '100%',
-                height: '100%',
-              }}
+          <div className="h-[240px] overflow-hidden rounded">
+            <ImageAspectRatio 
+              src={mediaUrl} 
+              alt={content.title} 
+              className="w-full h-full"
             />
           </div>
         )}
 
-        {/* 條件式渲染影片 */}
         {mediaUrl && mediaType === 'video' && (
-          <div style={{ height: '340px', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <video src={mediaUrl} controls style={{ maxHeight: '100%', maxWidth: '100%' }} />
+          <div className="h-[240px] overflow-hidden rounded flex items-center justify-center bg-gray-100">
+            <video 
+              src={mediaUrl} 
+              controls 
+              className="max-h-full max-w-full" 
+            />
           </div>
         )}
 
-        {/* 顯示內容描述 */}
+        {/* Description display */}
         {content.description && (
           <p className="text-sm text-muted-foreground line-clamp-3">
             {content.description}
@@ -166,7 +194,6 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
       </CardContent>
 
       <CardFooter className="flex flex-col items-start pt-2 gap-2">
-        {/* 卡片的底部，包含標籤和創建時間 */}
         <div className="flex flex-wrap gap-1 w-full">
           {content.tags && content.tags.slice(0, 3).map((tag, index) => (
             <Badge key={index} variant="secondary" className="text-xs">
@@ -194,7 +221,6 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
           )}
         </div>
 
-        {/* "Learn More" 按鈕，使用 Link 元件導航 */}
         <Button
           size="sm"
           className="w-full mt-2"
@@ -207,3 +233,4 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
       </CardFooter>
     </Card>
   );
+};
