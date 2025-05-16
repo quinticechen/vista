@@ -30,7 +30,6 @@ interface ContentDisplayItemProps {
 export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayItemProps) => {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
-  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
   
   // Format date using local date format
   const formatDate = (dateString?: string) => {
@@ -53,32 +52,45 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
         console.log("Fetching media for content:", content.id);
         setMediaUrl(null);
         setMediaType(null);
-        setAspectRatio(null);
         
+        // First try to extract media from content blocks
         if (content.content && content.content.length > 0) {
           console.log("Content blocks:", content.content.length);
+          
           for (const block of content.content) {
-            if (block.type === 'image' && block.url) {
-              console.log("Found image in content:", block.url);
-              setMediaUrl(block.url);
+            // Check for image in content blocks
+            if (block.type === 'image' && block.media_url) {
+              console.log("Found image in content:", block.media_url);
+              setMediaUrl(block.media_url);
               setMediaType('image');
               return;
-            } else if (block.type === 'video' && block.url) {
-              console.log("Found video in content:", block.url);
-              setMediaUrl(block.url);
+            } 
+            // Check for video in content blocks
+            else if (block.type === 'video' && block.media_url) {
+              console.log("Found video in content:", block.media_url);
+              setMediaUrl(block.media_url);
               setMediaType('video');
-              setAspectRatio(16 / 9);
               return;
-            } else if (block.type === 'media' && block.media_type === 'image' && block.media_url) {
+            }
+            // Check for media type image
+            else if (block.type === 'media' && block.media_type === 'image' && block.media_url) {
               console.log("Found media image in content:", block.media_url);
               setMediaUrl(block.media_url);
               setMediaType('image');
               return;
-            } else if (block.type === 'media' && block.media_type === 'video' && block.media_url) {
+            }
+            // Check for media type video
+            else if (block.type === 'media' && block.media_type === 'video' && block.media_url) {
               console.log("Found media video in content:", block.media_url);
               setMediaUrl(block.media_url);
               setMediaType('video');
-              setAspectRatio(16 / 9);
+              return;
+            }
+            // Check for url property (backward compatibility)
+            else if ((block.type === 'image' || block.type === 'video') && block.url) {
+              console.log(`Found ${block.type} with url in content:`, block.url);
+              setMediaUrl(block.url);
+              setMediaType(block.type === 'image' ? 'image' : 'video');
               return;
             }
           }
@@ -87,49 +99,57 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
           console.log("No content blocks available");
         }
 
-        // Fallback to fetching from separate tables (adjust if needed)
-        if (!mediaUrl) {
+        // Fallback: Try to fetch from image_contents table
+        try {
           console.log("Trying to fetch from image_contents table");
-          let { data: imageData, error: imageError } = await supabase
+          const { data: imageData, error: imageError } = await supabase
             .from('image_contents')
             .select('image_url')
             .eq('content_id', content.id)
-            .limit(1)
-            .single();
+            .limit(1);
 
           if (imageError) {
             console.log("Error fetching image:", imageError);
           }
 
-          if (imageData?.image_url) {
-            console.log("Found image in image_contents:", imageData.image_url);
-            setMediaUrl(imageData.image_url);
+          if (imageData && imageData.length > 0 && imageData[0].image_url) {
+            console.log("Found image in image_contents:", imageData[0].image_url);
+            setMediaUrl(imageData[0].image_url);
             setMediaType('image');
             return;
           }
+        } catch (imageError) {
+          console.error("Error in image fetch:", imageError);
+        }
 
+        // Fallback: Try to fetch from video_contents table
+        try {
           console.log("Trying to fetch from video_contents table");
-          let { data: videoData, error: videoError } = await supabase
+          const { data: videoData, error: videoError } = await supabase
             .from('video_contents')
             .select('thumbnail_url, video_url')
             .eq('content_id', content.id)
-            .limit(1)
-            .single();
+            .limit(1);
 
           if (videoError) {
             console.log("Error fetching video:", videoError);
           }
 
-          if (videoData?.thumbnail_url) {
-            console.log("Found thumbnail in video_contents:", videoData.thumbnail_url);
-            setMediaUrl(videoData.thumbnail_url);
-            setMediaType('image');
-          } else if (videoData?.video_url) {
-            console.log("Found video in video_contents:", videoData.video_url);
-            setMediaUrl(videoData.video_url);
-            setMediaType('video');
-            setAspectRatio(16 / 9);
+          if (videoData && videoData.length > 0) {
+            if (videoData[0].thumbnail_url) {
+              console.log("Found thumbnail in video_contents:", videoData[0].thumbnail_url);
+              setMediaUrl(videoData[0].thumbnail_url);
+              setMediaType('image');
+              return;
+            } else if (videoData[0].video_url) {
+              console.log("Found video in video_contents:", videoData[0].video_url);
+              setMediaUrl(videoData[0].video_url);
+              setMediaType('video');
+              return;
+            }
           }
+        } catch (videoError) {
+          console.error("Error in video fetch:", videoError);
         }
       } catch (error) {
         console.error("Error fetching media:", error);
@@ -166,7 +186,7 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
       <CardContent className="pb-2 space-y-4 flex-1">
         {/* Media content display section */}
         {mediaUrl && mediaType === 'image' && (
-          <div className="h-[240px] overflow-hidden rounded">
+          <div className="h-[180px] overflow-hidden rounded">
             <ImageAspectRatio 
               src={mediaUrl} 
               alt={content.title} 
@@ -176,12 +196,29 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
         )}
 
         {mediaUrl && mediaType === 'video' && (
-          <div className="h-[240px] overflow-hidden rounded flex items-center justify-center bg-gray-100">
-            <video 
-              src={mediaUrl} 
-              controls 
-              className="max-h-full max-w-full" 
-            />
+          <div className="h-[180px] overflow-hidden rounded flex items-center justify-center bg-gray-100">
+            {/* YouTube thumbnail fallback */}
+            {mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be') ? (
+              <div className="w-full h-full relative">
+                <ImageAspectRatio 
+                  src={getYouTubeThumbnail(mediaUrl)}
+                  alt={`${content.title} video thumbnail`}
+                  className="w-full h-full"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
+                    <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-t-transparent border-b-transparent border-l-white ml-1"></div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <video 
+                src={mediaUrl} 
+                controls={false}
+                muted
+                className="max-h-full max-w-full object-cover" 
+              />
+            )}
           </div>
         )}
 
@@ -234,3 +271,26 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
     </Card>
   );
 };
+
+// Helper function to get YouTube thumbnail from URL
+function getYouTubeThumbnail(url: string): string {
+  try {
+    let videoId = '';
+    
+    if (url.includes('youtube.com/watch')) {
+      videoId = new URL(url).searchParams.get('v') || '';
+    } else if (url.includes('youtu.be/')) {
+      videoId = new URL(url).pathname.split('/').pop()?.split('?')[0] || '';
+    } else if (url.includes('youtube.com/embed/')) {
+      videoId = url.split('/').pop()?.split('?')[0] || '';
+    }
+    
+    if (videoId) {
+      return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    }
+  } catch (e) {
+    console.error("Error parsing YouTube URL:", e);
+  }
+  
+  return url;
+}

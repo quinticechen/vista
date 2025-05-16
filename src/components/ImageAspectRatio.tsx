@@ -11,9 +11,17 @@ interface ImageAspectRatioProps {
 export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioProps) => {
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("landscape");
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    if (!src) return;
+    if (!src) {
+      setIsLoading(false);
+      setHasError(true);
+      return;
+    }
+    
+    setIsLoading(true);
+    setHasError(false);
     
     const img = new Image();
     img.onload = () => {
@@ -24,16 +32,21 @@ export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioP
     img.onerror = () => {
       console.error(`Failed to load image: ${src}`);
       setIsLoading(false);
+      setHasError(true);
     };
     img.src = src;
   }, [src]);
 
-  const ratio = orientation === "portrait" ? 8/9 : 16/9;
+  const ratio = orientation === "portrait" ? 4/5 : 16/9;
   
   return (
-    <div className={`overflow-hidden rounded-md bg-muted ${className}`}>
+    <div className={`overflow-hidden rounded-md ${className}`}>
       {isLoading ? (
-        <div className="w-full h-full animate-pulse bg-muted/50" />
+        <div className="w-full h-full animate-pulse bg-muted" />
+      ) : hasError ? (
+        <div className="w-full h-full flex items-center justify-center bg-muted/30 text-muted-foreground text-sm">
+          Image not available
+        </div>
       ) : (
         <AspectRatio ratio={ratio}>
           <img
