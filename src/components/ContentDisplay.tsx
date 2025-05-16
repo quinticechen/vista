@@ -113,7 +113,8 @@ export const ContentDisplayItem = ({
         <CardContent className="pb-2 flex-grow">
           {/* Description display */}
           {content.description && (
-            <p className="text-sm text-muted-foreground line-clamp-4">
+            <p className="text-sm text-muted-foreground">
+{/*             <p className="text-sm text-muted-foreground line-clamp-4"> */}
               {content.description}
             </p>
           )}
@@ -127,11 +128,11 @@ export const ContentDisplayItem = ({
               </Badge>
             ))}
 
-            {content.tags && content.tags?.length > 3 && (
+{/*             {content.tags && content.tags?.length > 3 && (
               <Badge variant="secondary" className="text-xs">
                 +{content.tags.length - 3}
               </Badge>
-            )}
+            )} */}
           </div>
 
           <div className="flex items-center justify-between w-full mt-2">
@@ -146,7 +147,7 @@ export const ContentDisplayItem = ({
               </span>
             )}
             
-            {showStatus && (
+{/*             {showStatus && (
               <div className="ml-auto">
                 {content.notion_page_status === "removed" && (
                   <Badge variant="destructive" className="text-xs">
@@ -159,7 +160,7 @@ export const ContentDisplayItem = ({
                   </Badge>
                 )}
               </div>
-            )}
+            )} */}
           </div>
 
           <Button
