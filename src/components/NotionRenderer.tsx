@@ -200,6 +200,12 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
               src={media_url || imageUrl} 
               alt={caption || text || "Notion image"} 
               className="max-w-full rounded-md"
+              onError={(e) => {
+                console.error(`Failed to load image: ${media_url || imageUrl}`);
+                e.currentTarget.onerror = null; // Prevent infinite loops
+                e.currentTarget.classList.add("opacity-50");
+                // We don't set a fallback src here as our ImageAspectRatio already handles that
+              }}
             />
             {(caption || text) && (
               <figcaption className="text-center text-sm text-muted-foreground mt-2">

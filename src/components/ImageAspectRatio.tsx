@@ -14,8 +14,15 @@ export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioP
   const [hasError, setHasError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Check if URL is an Amazon S3 URL with security tokens that might expire
-  const isS3Url = src && (src.includes('s3.amazonaws.com') || src.includes('X-Amz-'));
+  // Check if URL is an expiring URL (like S3 with security tokens)
+  // Note: Our backed-up images in Supabase storage won't have these tokens
+  const isExpiringUrl = src && (
+    (src.includes('s3.amazonaws.com') && src.includes('X-Amz-')) || 
+    (src.includes('file.notion.so') && src.includes('secure='))
+  );
+  
+  // Check if it's our permanent Supabase storage URL
+  const isSupabaseStorageUrl = src && src.includes('supabase.co/storage/v1/object/public/notion-images');
 
   useEffect(() => {
     if (!src) {
@@ -40,9 +47,9 @@ export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioP
       setIsLoading(false);
       setHasError(true);
       
-      // If it's an S3 URL that failed and we haven't tried too many times, we might retry
-      if (isS3Url && retryCount < 1) {
-        console.log(`Retrying S3 image load: ${src}`);
+      // Only retry for expiring URLs, not for our Supabase storage URLs
+      if (isExpiringUrl && !isSupabaseStorageUrl && retryCount < 1) {
+        console.log(`Retrying expiring image load: ${src}`);
         setRetryCount(prev => prev + 1);
         // Force a re-render which will trigger this effect again
         setTimeout(() => {
@@ -58,7 +65,7 @@ export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioP
       img.onload = null;
       img.onerror = null;
     };
-  }, [src, retryCount, isS3Url]);
+  }, [src, retryCount, isExpiringUrl, isSupabaseStorageUrl]);
 
   // Determine aspect ratio based on orientation
   const ratio = orientation === "portrait" ? 4/5 : 16/9;
@@ -86,8 +93,8 @@ export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioP
             />
           </svg>
           <p>Image not available</p>
-          {isS3Url && (
-            <p className="text-xs mt-1 text-muted-foreground/70">S3 link may have expired</p>
+          {isExpiringUrl && (
+            <p className="text-xs mt-1 text-muted-foreground/70">Link may have expired</p>
           )}
         </div>
       ) : (

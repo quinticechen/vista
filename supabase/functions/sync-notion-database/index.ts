@@ -1,4 +1,3 @@
-
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -140,6 +139,20 @@ Deno.serve(async (req) => {
       database_id: formattedDatabaseId,
     })
     
+    // Check if notion-images bucket exists, create it if not
+    const { data: existingBuckets } = await supabase.storage.listBuckets()
+    const notionImagesBucket = 'notion-images'
+    const bucketExists = existingBuckets?.some(bucket => bucket.name === notionImagesBucket)
+    
+    if (!bucketExists) {
+      // Create a public bucket for storing Notion images
+      await supabase.storage.createBucket(notionImagesBucket, {
+        public: true, // Make it public so images are accessible
+        fileSizeLimit: 10485760, // 10MB limit
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+      })
+    }
+    
     // Process each item in the Notion database
     const syncResults = await Promise.all(
       response.results.map(async (page: NotionDatabaseItem) => {
@@ -161,7 +174,14 @@ Deno.serve(async (req) => {
           })
           
           // Process blocks recursively to include children (with the new simplified format)
-          const processedBlocks = await processBlocksSimplified(blocks, notion)
+          // Also backup and replace image URLs
+          const processedBlocks = await processBlocksSimplifiedWithImageBackup(
+            blocks, 
+            notion, 
+            supabase, 
+            notionImagesBucket, 
+            userId
+          )
           
           // Prepare the content item data
           const contentItem = {
@@ -279,13 +299,144 @@ function extractProperty(props: Record<string, any>, propertyName: string, prope
   }
 }
 
-// Process blocks recursively with simplified format
-async function processBlocksSimplified(blocks: any[], notionClient: Client): Promise<any[]> {
+// Function to check if a URL is a Notion asset URL that might expire
+function isExpiringAssetUrl(url: string): boolean {
+  if (!url) return false
+  
+  // Check for signatures of expiring URLs
+  return (
+    url.includes('s3.') && 
+    (url.includes('amazonaws.com') || url.includes('X-Amz-')) ||
+    (url.includes('file.notion.so') && url.includes('secure='))
+  )
+}
+
+// Generate a filename for storage from an image URL
+function generateImageFilename(imageUrl: string, pageId: string): string {
+  // Extract original filename if available
+  let filename = '';
+  try {
+    const urlObj = new URL(imageUrl);
+    const pathname = urlObj.pathname;
+    const pathParts = pathname.split('/');
+    const originalFilename = pathParts[pathParts.length - 1];
+    
+    // Clean up any query parameters
+    const filenameParts = originalFilename.split('?');
+    filename = filenameParts[0];
+    
+    // If we couldn't extract a meaningful filename, generate one
+    if (!filename || filename.length < 5) {
+      throw new Error('Invalid filename');
+    }
+  } catch (error) {
+    // Generate a filename with page ID and timestamp
+    const timestamp = Date.now();
+    const extension = imageUrl.match(/\.(jpe?g|png|gif|webp)/i) 
+      ? imageUrl.match(/\.(jpe?g|png|gif|webp)/i)![0]
+      : '.jpg';
+    
+    filename = `notion-${pageId.substring(0, 8)}-${timestamp}${extension}`;
+  }
+  
+  return filename;
+}
+
+// Download an image from a URL and upload it to Supabase Storage
+async function backupImageToStorage(
+  imageUrl: string,
+  supabase: any,
+  bucketName: string,
+  userId: string,
+  pageId: string
+): Promise<string | null> {
+  try {
+    // Skip if not an expiring asset URL
+    if (!isExpiringAssetUrl(imageUrl)) {
+      return imageUrl;
+    }
+    
+    // Generate a unique filename for storage
+    const filename = generateImageFilename(imageUrl, pageId);
+    const filePath = `${userId}/${pageId}/${filename}`;
+    
+    // Check if file already exists in storage
+    const { data: existingFile } = await supabase.storage
+      .from(bucketName)
+      .list(`${userId}/${pageId}`, {
+        search: filename
+      });
+    
+    if (existingFile && existingFile.length > 0) {
+      // File exists, return the public URL
+      const { data: publicUrl } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+      
+      return publicUrl.publicUrl;
+    }
+    
+    // Download the image from the URL
+    console.log(`Downloading image from: ${imageUrl}`);
+    const imageResponse = await fetch(imageUrl);
+    
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to download image: ${imageResponse.status}`);
+    }
+    
+    // Get the image binary data
+    const imageBlob = await imageResponse.blob();
+    
+    // Upload the image to Supabase Storage
+    console.log(`Uploading image to: ${bucketName}/${filePath}`);
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, imageBlob, {
+        contentType: imageBlob.type,
+        upsert: true
+      });
+    
+    if (uploadError) {
+      throw uploadError;
+    }
+    
+    // Get the public URL for the uploaded image
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(filePath);
+    
+    console.log(`Image backed up successfully: ${publicUrlData.publicUrl}`);
+    return publicUrlData.publicUrl;
+  } catch (error) {
+    console.error("Error backing up image:", error);
+    // If backup fails, return the original URL
+    return imageUrl;
+  }
+}
+
+// Process blocks recursively with image backup
+async function processBlocksSimplifiedWithImageBackup(
+  blocks: any[],
+  notionClient: Client,
+  supabase: any,
+  bucketName: string,
+  userId: string,
+  pageId?: string
+): Promise<any[]> {
   const processedBlocks = []
   
   for (const block of blocks) {
+    // Use block ID as pageId if not provided
+    const currentPageId = pageId || block.id;
+    
     // Process the current block based on its type with simplified format
-    const processedBlock = processBlockSimplified(block)
+    const processedBlock = await processBlockWithImageBackup(
+      block, 
+      supabase, 
+      bucketName, 
+      userId, 
+      currentPageId
+    );
     
     // Check if block has children
     if (block.has_children) {
@@ -297,7 +448,14 @@ async function processBlocksSimplified(blocks: any[], notionClient: Client): Pro
         })
         
         // Process child blocks recursively
-        const processedChildren = await processBlocksSimplified(childBlocks, notionClient)
+        const processedChildren = await processBlocksSimplifiedWithImageBackup(
+          childBlocks, 
+          notionClient, 
+          supabase, 
+          bucketName, 
+          userId, 
+          currentPageId
+        );
         
         // Add children to the processed block
         processedBlock.children = processedChildren
@@ -313,8 +471,14 @@ async function processBlocksSimplified(blocks: any[], notionClient: Client): Pro
   return processedBlocks
 }
 
-// Process a single block with simplified format
-function processBlockSimplified(block: any): any {
+// Process a single block with image backup
+async function processBlockWithImageBackup(
+  block: any,
+  supabase: any,
+  bucketName: string,
+  userId: string,
+  pageId: string
+): Promise<any> {
   // Get the block type
   const blockType = block.type
   
@@ -388,19 +552,47 @@ function processBlockSimplified(block: any): any {
       break
       
     case 'image':
-      // Simplify image block
+      // Backup image if it's a Notion expiring URL
       baseBlock.media_type = 'image'
-      baseBlock.media_url = block.image.type === 'external' ? block.image.external.url : 
-                           block.image.type === 'file' ? block.image.file.url : null
+      
+      // Get original URL
+      const imageUrl = block.image.type === 'external' ? 
+        block.image.external.url : 
+        block.image.type === 'file' ? block.image.file.url : null
+      
+      // Backup the image if it's an expiring URL
+      if (imageUrl) {
+        baseBlock.media_url = await backupImageToStorage(
+          imageUrl, 
+          supabase, 
+          bucketName, 
+          userId, 
+          pageId
+        )
+      } else {
+        baseBlock.media_url = null
+      }
+      
       baseBlock.caption = block.image.caption ? extractRichText(block.image.caption) : null
       break
       
     case 'video':
-      // Simplify video block
+      // For videos, we don't download them but we try to backup thumbnails if needed
       baseBlock.media_type = 'video'
-      baseBlock.media_url = block.video.type === 'external' ? block.video.external.url : 
-                           block.video.type === 'file' ? block.video.file.url : null
+      
+      // We keep the original video URL as-is
+      baseBlock.media_url = block.video.type === 'external' ? 
+        block.video.external.url : 
+        block.video.type === 'file' ? block.video.file.url : null
+        
       baseBlock.caption = block.video.caption ? extractRichText(block.video.caption) : null
+      
+      // If this is a YouTube video, we don't need to back it up
+      if (baseBlock.media_url && 
+        !baseBlock.media_url.includes('youtube.com') && 
+        !baseBlock.media_url.includes('youtu.be')) {
+        console.log('Non-YouTube video found in Notion block - keeping original URL')
+      }
       break
       
     case 'embed':
