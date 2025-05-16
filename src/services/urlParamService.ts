@@ -91,9 +91,11 @@ export const getUserContentItems = async (userId: string): Promise<ContentItem[]
     // Process content before returning
     const processedItems = data?.map(item => {
       // Handle JSON content properly
-      const processedItem: ContentItem = {
+      const processedItem = {
         ...item,
-      };
+        // Ensure notion_page_status is properly typed
+        notion_page_status: item.notion_page_status as ContentItem['notion_page_status']
+      } as ContentItem;
       
       // If content is a string, try to parse it as JSON
       if (typeof processedItem.content === 'string') {
@@ -130,9 +132,11 @@ export const getContentItemById = async (contentId: string): Promise<ContentItem
     }
     
     // Process content before returning
-    const processedItem: ContentItem = {
+    const processedItem = {
       ...data,
-    };
+      // Ensure notion_page_status is properly typed
+      notion_page_status: data.notion_page_status as ContentItem['notion_page_status']
+    } as ContentItem;
     
     // If content is a string, try to parse it as JSON
     if (typeof processedItem.content === 'string') {

@@ -14,7 +14,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { cn } from "@/lib/utils";
 
 const UrlParamContentDetail = () => {
-  const { urlParam, contentId } = useParams();
+  const { urlParam, contentId } = useParams<{ urlParam: string, contentId: string }>();
   const navigate = useNavigate();
   const [content, setContent] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

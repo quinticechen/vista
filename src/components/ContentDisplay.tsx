@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/hooks/use-i18n";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
-import { ArrowRight, Calendar, Clock } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { ContentItem } from "@/services/adminService";
@@ -113,8 +113,7 @@ export const ContentDisplayItem = ({
         <CardContent className="pb-2 flex-grow">
           {/* Description display */}
           {content.description && (
-            <p className="text-sm text-muted-foreground">
-{/*             <p className="text-sm text-muted-foreground line-clamp-4"> */}
+            <p className="text-sm text-muted-foreground line-clamp-4">
               {content.description}
             </p>
           )}
@@ -128,11 +127,11 @@ export const ContentDisplayItem = ({
               </Badge>
             ))}
 
-{/*             {content.tags && content.tags?.length > 3 && (
+            {content.tags && content.tags.length > 3 && (
               <Badge variant="secondary" className="text-xs">
                 +{content.tags.length - 3}
               </Badge>
-            )} */}
+            )}
           </div>
 
           <div className="flex items-center justify-between w-full mt-2">
@@ -147,7 +146,7 @@ export const ContentDisplayItem = ({
               </span>
             )}
             
-{/*             {showStatus && (
+            {showStatus && (
               <div className="ml-auto">
                 {content.notion_page_status === "removed" && (
                   <Badge variant="destructive" className="text-xs">
@@ -160,7 +159,7 @@ export const ContentDisplayItem = ({
                   </Badge>
                 )}
               </div>
-            )} */}
+            )}
           </div>
 
           <Button
@@ -183,6 +182,9 @@ export const ContentDisplayItem = ({
               src={mediaUrl}
               alt={mediaBlock.caption || content.title}
               className="object-cover w-full h-full"
+              style={{
+                aspectRatio: mediaBlock?.orientation === 'portrait' ? '8/9' : '16/9'
+              }}
             />
           ) : mediaBlock?.media_type === 'video' ? (
             <video 
@@ -190,6 +192,10 @@ export const ContentDisplayItem = ({
               controls 
               className="object-cover w-full h-full"
               playsInline
+              preload="metadata"
+              style={{
+                aspectRatio: '16/9'
+              }}
             >
               Your browser does not support the video tag.
             </video>

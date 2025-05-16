@@ -24,22 +24,29 @@ export interface EmbeddingJob {
 // Define the content item type with embedding
 export interface ContentItem {
   id: string;
-  title?: string;
-  description?: string;
+  user_id: string;
+  title: string;
+  description: string;
+  content: Json | any[];
   category?: string;
   tags?: string[];
-  content?: Json | any[]; // Updated to accept both Json and any[]
-  embedding?: any;
-  created_at?: string;
+  cover_image?: string;
+  created_at: string;
   updated_at?: string;
   start_date?: string;
   end_date?: string;
-  similarity?: number;
-  notion_page_status?: 'active' | 'removed';
+  notion_id?: string;
   notion_page_id?: string;
-  notion_created_time?: string;
-  notion_last_edited_time?: string;
-  user_id?: string; // Added user_id to match database schema
+  notion_page_url?: string;
+  notion_parent_id?: string;
+  notion_page_created_time?: string;
+  notion_page_last_edited_time?: string;
+  notion_page_status?: 'active' | 'removed' | string;
+  embedding?: string;
+  content_translations?: Json;
+  description_translations?: Json;
+  title_translations?: Json;
+  similarity?: number;
 }
 
 // Define interface for vector search parameters
