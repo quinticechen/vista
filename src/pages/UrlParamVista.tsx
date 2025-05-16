@@ -319,14 +319,15 @@ const UrlParamVista = () => {
                 className={`block group ${
                   item.mediaUrl
                     ? index % 2 === 0
-                      ? "media-right" // Media on the right
-                      : "media-left"  // Media on the left
-                    : "no-media"      // No media
+                      ? "flex flex-row h-[400px]" // Media on the right
+                      : "flex flex-row-reverse h-[400px]" // Media on the left
+                    : "flex flex-col" // No media, default flex column
                 }`}
               >
                 <ContentDisplayItem
                   content={item}
                   urlPrefix={`/${urlParam}/vista`}
+                  index={index} // 仍然需要傳遞 index
                 />
               </div>
             ))}
