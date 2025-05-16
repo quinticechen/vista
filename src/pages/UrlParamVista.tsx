@@ -55,21 +55,16 @@ const UrlParamVista = () => {
         const userId = profile.id;
         console.log(`Loading all content items for user ID: ${userId}`);
         const userContent = await getUserContentItems(userId);
+        console.log('Content loaded:', userContent);
         
-        // Convert the database content to match ContentItem interface
-        const processedContent: ContentItem[] = (userContent || []).map((item: any) => ({
-          ...item,
-          // Keep other properties as is
-        }));
-        
-        setAllContentItems(processedContent);
+        setAllContentItems(userContent);
         
         // Check if we have search results from PurposeInput
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
           
           // Filter search results to only include items from this user
-          const userIdsSet = new Set(processedContent.map((item: ContentItem) => item.id));
+          const userIdsSet = new Set(userContent.map((item: ContentItem) => item.id));
           const filteredResults = searchResults.filter((item: ContentItem) => userIdsSet.has(item.id));
           
           setItems(filteredResults);
@@ -83,13 +78,13 @@ const UrlParamVista = () => {
           setItems([]);
           setShowingSearchResults(true);
           toast.warning(`No matches found for "${searchPurpose}". Showing all content instead.`, { duration: 5000 });
-          setItems(processedContent);
+          setItems(userContent);
         } else if (searchParams.get("search")) {
           // If we have a search term in URL params
           performSearch(searchParams.get("search") || "");
         } else {
           // Default: show only active content
-          const activeContent = processedContent.filter(item => 
+          const activeContent = userContent.filter(item => 
             item.notion_page_status !== 'removed' || item.notion_page_status === null || item.notion_page_status === undefined
           );
           setItems(activeContent);
@@ -262,7 +257,7 @@ const UrlParamVista = () => {
 
   return (
     <div className="min-h-screen bg-beige-100 dark:bg-gray-900">
-      {/* <Header /> */}
+      <Header />
       
       <main className="container py-8 max-w-6xl">
         <div className="mb-8">
@@ -367,7 +362,7 @@ const UrlParamVista = () => {
               <div key={item.id} className="group">
                 <ContentDisplayItem
                   content={item}
-                  urlPrefix={`/${urlParam}/vista`}
+                  urlPrefix={`/${urlParam}`}
                   index={index}
                   showStatus={true}
                 />

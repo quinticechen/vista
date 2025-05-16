@@ -2,8 +2,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/hooks/use-i18n";
-import { Card } from "@/components/ui/card";
-import { ArrowRight } from "lucide-react";
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
+import { ArrowRight, Calendar, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { ContentItem } from "@/services/adminService";
 import { Badge } from "@/components/ui/badge";
@@ -68,126 +69,132 @@ export const ContentDisplayItem = ({
 }: ContentDisplayItemProps) => {
   const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
-
-  const hasMedia = hasMediaInContent(content.content);
   
-  const shouldAlternate = index !== undefined && index % 2 === 1;
-
-  const renderMedia = () => {
-    if (!content.content) return null;
-
-    const mediaBlock = findMediaBlock(content.content);
-
-    if (!mediaBlock) return null;
-
-    if (mediaBlock.media_type === 'image') {
-      return (
-        <img
-          src={mediaBlock.media_url}
-          alt={mediaBlock.caption || content.title}
-          className="object-cover w-full h-full"
-        />
-      );
-    }
-
-    if (mediaBlock.media_type === 'video') {
-      return (
-        <video src={mediaBlock.media_url} controls className="object-cover w-full h-full">
-          Your browser does not support the video tag.
-        </video>
-      );
-    }
-
-    return null;
-  };
-
-  const renderTags = () => {
-    if (!content.tags || content.tags.length === 0) return null;
-
-    return (
-      <div className="flex flex-wrap gap-2">
-        {content.tags.map((tag, index) => (
-          <Badge key={index} variant="secondary">
-            {tag}
-          </Badge>
-        ))}
-      </div>
-    );
+  const mediaBlock = findMediaBlock(content.content);
+  const mediaUrl = mediaBlock?.media_url;
+  const isMediaRight = index % 2 === 0;
+  
+  // Function to get the correct detail route
+  const getDetailRoute = () => {
+    return `${urlPrefix}/content/${content.id}`;
   };
 
   return (
     <Card
-      key={content.id}
-      className={`overflow-hidden transition-shadow hover:shadow-lg ${
-        isRTL ? "rtl" : "ltr"
-      }`}
-    >
-      <div className="flex flex-col lg:flex-row">
-        {/* Media section (conditionally rendered) */}
-        {hasMedia && (
-          <div
-            className={`relative w-full lg:w-2/5 h-auto lg:h-[400px] flex-shrink-0 ${
-              shouldAlternate ? "order-last" : ""
-            }`}
-          >
-            {renderMedia()}
-          </div>
-        )}
-
-        {/* Content section */}
-        <div className={`w-full ${hasMedia ? "lg:w-3/5" : "lg:w-full"} p-4 lg:p-6 flex flex-col justify-between`}>
-          <div>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {content.category && (
-                <Badge variant="outline" className="text-xs">
-                  {content.category}
-                </Badge>
-              )}
-              {showStatus && content.notion_page_status === "removed" && (
-                <Badge variant="destructive" className="text-xs">
-                  Removed from Notion
-                </Badge>
-              )}
-              {showStatus && content.notion_page_status === "active" && (
-                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                  Active in Notion
-                </Badge>
-              )}
-            </div>
-
-            <h2 className="text-xl md:text-2xl font-bold mb-2 group-hover:text-amber-600 transition-colors">
-              <Link
-                to={`${urlPrefix}/content/${content.id}`}
-                className="hover:underline"
-              >
-                {content.title}
-              </Link>
-            </h2>
-
-            {content.description && (
-              <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-3">
-                {content.description}
-              </p>
+      className={`group h-[400px] overflow-hidden flex ${mediaUrl ? 'w-full' : 'w-full'} flex-row hover:shadow-md transition-shadow duration-200`}
+    > 
+      {/* Text Content Section - Always present */}
+      <div className={`${mediaUrl ? 'w-1/2' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'}`}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            {content.category && (
+              <Badge variant="outline" className="text-xs">
+                {content.category}
+              </Badge>
             )}
 
-            {renderTags()}
+            {(content.start_date || content.end_date) && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Calendar className="h-3 w-3 mr-1" />
+                <span>
+                  {formatDate(content.start_date)}
+                  {content.end_date && content.start_date !== content.end_date && 
+                    ` - ${formatDate(content.end_date)}`}
+                </span>
+              </div>
+            )}
           </div>
 
-          <div className="mt-auto pt-4 flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              {formatDate(content.created_at)}
+          <h3 className="text-lg font-medium leading-tight group-hover:text-primary transition-colors duration-200">
+            {content.title}
+          </h3>
+        </CardHeader>
+        
+        <CardContent className="pb-2 flex-grow">
+          {/* Description display */}
+          {content.description && (
+            <p className="text-sm text-muted-foreground line-clamp-4">
+              {content.description}
+            </p>
+          )}
+        </CardContent>
+
+        <CardFooter className="flex flex-col items-start pt-2 gap-2 mt-auto">
+          <div className="flex flex-wrap gap-1 w-full">
+            {content.tags && content.tags.slice(0, 3).map((tag, i) => (
+              <Badge key={i} variant="secondary" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+
+            {content.tags && content.tags?.length > 3 && (
+              <Badge variant="secondary" className="text-xs">
+                +{content.tags.length - 3}
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between w-full mt-2">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Clock className="h-3 w-3 mr-1" />
+              <span>{formatDate(content.created_at)}</span>
             </div>
 
-            <Link
-              to={`${urlPrefix}/content/${content.id}`}
-              className="text-amber-600 hover:text-amber-800 font-medium hover:underline flex items-center"
-            >
-              {t("common.readMore")}
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
+            {content.similarity !== undefined && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                {Math.round(content.similarity * 100)}% match
+              </span>
+            )}
+            
+            {showStatus && (
+              <div className="ml-auto">
+                {content.notion_page_status === "removed" && (
+                  <Badge variant="destructive" className="text-xs">
+                    Removed
+                  </Badge>
+                )}
+                {content.notion_page_status === "active" && (
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    Active
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
-        </div>
+
+          <Button
+            size="sm"
+            className="w-full mt-2"
+            asChild
+          >
+            <Link to={getDetailRoute()}>
+              Learn More
+            </Link>
+          </Button>
+        </CardFooter>
       </div>
+
+      {/* Media Section - Only show if we have media */}
+      {mediaUrl && (
+        <div className={`w-1/2 relative ${isMediaRight ? 'order-last' : 'order-first'}`}>
+          {mediaBlock?.media_type === 'image' ? (
+            <img
+              src={mediaUrl}
+              alt={mediaBlock.caption || content.title}
+              className="object-cover w-full h-full"
+            />
+          ) : mediaBlock?.media_type === 'video' ? (
+            <video 
+              src={mediaUrl} 
+              controls 
+              className="object-cover w-full h-full"
+              playsInline
+            >
+              Your browser does not support the video tag.
+            </video>
+          ) : null}
+        </div>
+      )}
     </Card>
   );
 };

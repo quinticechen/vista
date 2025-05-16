@@ -23,6 +23,7 @@ const UrlParamContentDetail = () => {
   useEffect(() => {
     const loadData = async () => {
       if (!urlParam || !contentId) {
+        console.error("Missing URL parameters:", { urlParam, contentId });
         navigate('/');
         return;
       }
@@ -89,7 +90,7 @@ const UrlParamContentDetail = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* <Header /> */}
+      <Header />
       
       <main className="container py-8 max-w-4xl">
         <Button

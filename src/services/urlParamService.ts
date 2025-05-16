@@ -76,7 +76,7 @@ export const getProfileByUrlParam = async (urlParam: string): Promise<UrlParamPr
 };
 
 // Get content items for a specific user
-export const getUserContentItems = async (userId: string): Promise<any[]> => {
+export const getUserContentItems = async (userId: string): Promise<ContentItem[]> => {
   try {
     console.log('Fetching content items for user:', userId);
     const { data, error } = await supabase
@@ -88,8 +88,28 @@ export const getUserContentItems = async (userId: string): Promise<any[]> => {
       throw error;
     }
     
-    console.log(`Found ${data?.length || 0} content items`);
-    return data || [];
+    // Process content before returning
+    const processedItems = data?.map(item => {
+      // Handle JSON content properly
+      const processedItem: ContentItem = {
+        ...item,
+      };
+      
+      // If content is a string, try to parse it as JSON
+      if (typeof processedItem.content === 'string') {
+        try {
+          processedItem.content = JSON.parse(processedItem.content as string);
+        } catch (e) {
+          // If parsing fails, leave as is
+          console.log('Could not parse content JSON for item:', item.id);
+        }
+      }
+      
+      return processedItem;
+    }) || [];
+    
+    console.log(`Found ${processedItems.length} content items`);
+    return processedItems;
   } catch (error) {
     console.error('Error getting user content items:', error);
     return [];
@@ -109,7 +129,22 @@ export const getContentItemById = async (contentId: string): Promise<ContentItem
       throw error;
     }
     
-    return data as ContentItem;
+    // Process content before returning
+    const processedItem: ContentItem = {
+      ...data,
+    };
+    
+    // If content is a string, try to parse it as JSON
+    if (typeof processedItem.content === 'string') {
+      try {
+        processedItem.content = JSON.parse(processedItem.content as string);
+      } catch (e) {
+        // If parsing fails, leave as is
+        console.log('Could not parse content JSON for item:', data.id);
+      }
+    }
+    
+    return processedItem;
   } catch (error) {
     console.error('Error getting content item by ID:', error);
     return null;
