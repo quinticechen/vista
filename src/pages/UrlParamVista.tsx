@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -184,7 +183,9 @@ const UrlParamVista = () => {
 
   const loadActiveItems = () => {
     const activeContent = allContentItems.filter(item => 
-      item.notion_page_status !== 'removed' || item.notion_page_status === null || item.notion_page_status === undefined
+      item.notion_page_status !== 'removed' || 
+      item.notion_page_status === null || 
+      item.notion_page_status === undefined
     );
     setItems(activeContent);
     setShowingSearchResults(false);

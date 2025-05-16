@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { toast } from "@/components/ui/sonner";
 import { ContentItem } from "@/services/adminService";
-import { Loader2, Search } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -278,9 +278,12 @@ const Vista = () => {
           </div>
         ) : sortedItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedItems.map((item) => (
+            {sortedItems.map((item, index) => (
               <div key={item.id} className="block group">
-                <ContentDisplayItem content={item} />
+                <ContentDisplayItem 
+                  content={item} 
+                  index={index}
+                />
               </div>
             ))}
           </div>

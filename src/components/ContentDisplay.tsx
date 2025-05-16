@@ -1,6 +1,7 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { useI18n } from "@/hooks/use-i18n";
 import { Card } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
@@ -20,16 +21,19 @@ export const ContentDisplayItem = ({
   index = 0,
   showStatus = false 
 }: ContentDisplayItemProps) => {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
 
-  const hasMedia = content.content && content.content.some((block: any) => block.media_type === 'image' || block.media_type === 'video');
+  const hasMedia = content.content && Array.isArray(content.content) && 
+    content.content.some((block: any) => block?.media_type === 'image' || block?.media_type === 'video');
+  
   const shouldAlternate = index !== undefined && index % 2 === 1;
 
   const renderMedia = () => {
-    if (!content.content) return null;
+    if (!content.content || !Array.isArray(content.content)) return null;
 
-    const mediaBlock = content.content.find((block: any) => block.media_type === 'image' || block.media_type === 'video');
+    const mediaBlock = content.content.find((block: any) => 
+      block?.media_type === 'image' || block?.media_type === 'video');
 
     if (!mediaBlock) return null;
 

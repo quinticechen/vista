@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Define the profile type to match our database
@@ -24,14 +23,21 @@ export interface EmbeddingJob {
 // Define the content item type with embedding
 export interface ContentItem {
   id: string;
-  title: string;
+  title?: string;
   description?: string;
   category?: string;
   tags?: string[];
-  embedding?: number[] | string; // Update to accept both number[] and string
+  content?: any[];
+  embedding?: any;
   created_at?: string;
   updated_at?: string;
+  start_date?: string;
+  end_date?: string;
   similarity?: number;
+  notion_page_status?: 'active' | 'removed';
+  notion_page_id?: string;
+  notion_created_time?: string;
+  notion_last_edited_time?: string;
 }
 
 // Define interface for vector search parameters
