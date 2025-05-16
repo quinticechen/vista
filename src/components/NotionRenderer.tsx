@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast"
 
 // Define the types for our new simplified Notion blocks format
 type NotionAnnotation = {
