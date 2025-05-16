@@ -312,22 +312,22 @@ const UrlParamVista = () => {
             </p>
           </div>
         ) : sortedItems.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col gap-6">
             {sortedItems.map((item, index) => (
               <div
                 key={item.id}
-                className={`block group ${
+                className={`group ${
                   item.mediaUrl
                     ? index % 2 === 0
                       ? "flex flex-row h-[400px]" // Media on the right
                       : "flex flex-row-reverse h-[400px]" // Media on the left
-                    : "flex flex-col" // No media, default flex column
+                    : "flex flex-col" // No media
                 }`}
               >
                 <ContentDisplayItem
                   content={item}
                   urlPrefix={`/${urlParam}/vista`}
-                  index={index} // 仍然需要傳遞 index
+                  index={index}
                 />
               </div>
             ))}
