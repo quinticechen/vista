@@ -153,25 +153,47 @@ Deno.serve(async (req) => {
       })
     }
     
+    // First, get all content items for this user with Notion page IDs to track existing pages
+    const { data: existingContentItems } = await supabase
+      .from('content_items')
+      .select('id, notion_page_id, notion_url')
+      .eq('user_id', userId)
+      .not('notion_page_id', 'is', null);
+    
+    // Create a map of existing notion page IDs to content item IDs
+    const existingPageMap = new Map<string, string>();
+    if (existingContentItems) {
+      existingContentItems.forEach(item => {
+        if (item.notion_page_id) {
+          existingPageMap.set(item.notion_page_id, item.id);
+        }
+      });
+    }
+    
+    // Keep track of page IDs that we process from the Notion database
+    const processedPageIds = new Set<string>();
+    
     // Process each item in the Notion database
     const syncResults = await Promise.all(
       response.results.map(async (page: NotionDatabaseItem) => {
         try {
           // Extract metadata
-          const pageId = page.id
-          const pageUrl = page.url
-          const createdTime = page.created_time
-          const lastEditedTime = page.last_edited_time
+          const pageId = page.id;
+          processedPageIds.add(pageId);
+          
+          const pageUrl = page.url;
+          const createdTime = page.created_time;
+          const lastEditedTime = page.last_edited_time;
           
           // Extract page properties for mapping to Supabase fields
-          const props = page.properties
+          const props = page.properties;
           
           // Fetch the page blocks (content)
-          console.log(`Fetching blocks for page: ${pageId}`)
+          console.log(`Fetching blocks for page: ${pageId}`);
           const { results: blocks } = await notion.blocks.children.list({
             block_id: pageId,
             page_size: 100, // Fetch up to 100 blocks
-          })
+          });
           
           // Process blocks recursively to include children (with the new simplified format)
           // Also backup and replace image URLs
@@ -180,8 +202,9 @@ Deno.serve(async (req) => {
             notion, 
             supabase, 
             notionImagesBucket, 
-            userId
-          )
+            userId,
+            pageId
+          );
           
           // Prepare the content item data
           const contentItem = {
@@ -195,53 +218,83 @@ Deno.serve(async (req) => {
             end_date: extractProperty(props, 'End date', 'date'),
             notion_url: pageUrl,
             user_id: userId,
-            content: processedBlocks
-          }
+            content: processedBlocks,
+            notion_page_id: pageId,
+            notion_created_time: createdTime,
+            notion_last_edited_time: lastEditedTime,
+            notion_page_status: 'active'
+          };
           
-          // Check if this item already exists in Supabase
-          const { data: existingItem, error: fetchError } = await supabase
-            .from('content_items')
-            .select('id')
-            .eq('notion_url', pageUrl)
-            .eq('user_id', userId)
-            .single()
+          // Check if this item exists in our map of existing Notion pages
+          const existingItemId = existingPageMap.get(pageId);
+          let operation;
           
-          let operation
-          
-          if (existingItem) {
+          if (existingItemId) {
             // Update existing item
             const { data, error } = await supabase
               .from('content_items')
               .update(contentItem)
-              .eq('id', existingItem.id)
-              .select()
+              .eq('id', existingItemId)
+              .select();
             
-            if (error) throw error
-            operation = 'updated'
-            return { id: existingItem.id, title: contentItem.title, operation }
+            if (error) throw error;
+            operation = 'updated';
+            return { id: existingItemId, title: contentItem.title, operation };
           } else {
             // Insert new item
             const { data, error } = await supabase
               .from('content_items')
               .insert(contentItem)
-              .select()
+              .select();
             
-            if (error) throw error
-            operation = 'inserted'
-            return { id: data?.[0]?.id, title: contentItem.title, operation }
+            if (error) throw error;
+            operation = 'inserted';
+            return { id: data?.[0]?.id, title: contentItem.title, operation };
           }
         } catch (error) {
-          console.error("Error syncing page:", page.id, error)
-          return { id: page.id, error: error.message, operation: 'failed' }
+          console.error("Error syncing page:", page.id, error);
+          return { id: page.id, error: error.message, operation: 'failed' };
         }
       })
-    )
+    );
+    
+    // Find and mark as removed any pages that exist in Supabase but no longer exist in Notion
+    const removedPages = [];
+    if (existingContentItems) {
+      for (const item of existingContentItems) {
+        if (item.notion_page_id && !processedPageIds.has(item.notion_page_id)) {
+          // This page exists in Supabase but was not found in the Notion database
+          try {
+            const { data, error } = await supabase
+              .from('content_items')
+              .update({ notion_page_status: 'removed' })
+              .eq('id', item.id)
+              .select();
+              
+            if (error) throw error;
+            removedPages.push({
+              id: item.id,
+              title: data?.[0]?.title || 'Unknown',
+              operation: 'marked as removed'
+            });
+          } catch (error) {
+            console.error("Error marking page as removed:", item.id, error);
+            removedPages.push({
+              id: item.id,
+              error: error.message,
+              operation: 'failed to mark as removed'
+            });
+          }
+        }
+      }
+    }
     
     return new Response(
       JSON.stringify({ 
         status: 'success', 
         message: 'Notion content synced successfully', 
-        results: syncResults 
+        results: syncResults,
+        removedPages: removedPages 
       }),
       { 
         status: 200, 
@@ -250,9 +303,9 @@ Deno.serve(async (req) => {
           ...corsHeaders
         } 
       }
-    )
+    );
   } catch (error) {
-    console.error("Sync error:", error)
+    console.error("Sync error:", error);
     
     return new Response(
       JSON.stringify({ 
@@ -266,7 +319,7 @@ Deno.serve(async (req) => {
           ...corsHeaders
         } 
       }
-    )
+    );
   }
 })
 

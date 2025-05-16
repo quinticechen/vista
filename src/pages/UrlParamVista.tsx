@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -10,7 +11,7 @@ import { toast } from "@/components/ui/sonner";
 import { getProfileByUrlParam, getUserContentItems } from "@/services/urlParamService";
 import { semanticSearch } from "@/services/adminService";
 import { ContentItem } from "@/services/adminService";
-import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const UrlParamVista = () => {
   const { urlParam } = useParams();
@@ -23,6 +24,7 @@ const UrlParamVista = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
+  const [showRemovedItems, setShowRemovedItems] = useState(false);
   
   // Check if we have search results from navigation state (from PurposeInput)
   const searchResults = location.state?.searchResults as ContentItem[] | undefined;
@@ -80,8 +82,11 @@ const UrlParamVista = () => {
           // If we have a search term in URL params
           performSearch(searchParams.get("search") || "");
         } else {
-          // Default: show all content
-          setItems(userContent);
+          // Default: show only active content
+          const activeContent = userContent.filter(item => 
+            item.notion_page_status !== 'removed' || item.notion_page_status === null || item.notion_page_status === undefined
+          );
+          setItems(activeContent);
           setShowingSearchResults(false);
         }
       } catch (error) {
@@ -134,7 +139,15 @@ const UrlParamVista = () => {
           
           // Filter search results to only include items from this user
           const userIdsSet = new Set(allContentItems.map(item => item.id));
-          const filteredResults = searchResults.filter(item => userIdsSet.has(item.id));
+          
+          // Filter out removed items unless specifically showing them
+          const filteredResults = searchResults.filter(item => {
+            const isUserItem = userIdsSet.has(item.id);
+            const isActive = !showRemovedItems ? 
+              item.notion_page_status !== 'removed' || item.notion_page_status === null || item.notion_page_status === undefined
+              : true;
+            return isUserItem && isActive;
+          });
           
           console.log(`Found ${filteredResults.length} matching results from user's content`);
           setItems(filteredResults);
@@ -148,8 +161,7 @@ const UrlParamVista = () => {
           toast.error("Error performing semantic search");
           
           // Fall back to showing all user content if search fails
-          setItems(allContentItems);
-          setShowingSearchResults(false);
+          loadActiveItems();
         }
       } else {
         setItems([]);
@@ -170,6 +182,27 @@ const UrlParamVista = () => {
     navigate(`/${urlParam}/vista`, { replace: true });
   };
 
+  const loadActiveItems = () => {
+    const activeContent = allContentItems.filter(item => 
+      item.notion_page_status !== 'removed' || item.notion_page_status === null || item.notion_page_status === undefined
+    );
+    setItems(activeContent);
+    setShowingSearchResults(false);
+    setShowRemovedItems(false);
+  };
+
+  const toggleRemovedItems = () => {
+    setShowRemovedItems(!showRemovedItems);
+    
+    if (!showRemovedItems) {
+      // Show all items including removed
+      setItems(allContentItems);
+    } else {
+      // Show only active items
+      loadActiveItems();
+    }
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     navigate(`/${urlParam}/vista?search=${encodeURIComponent(searchQuery)}`);
@@ -177,7 +210,7 @@ const UrlParamVista = () => {
   };
 
   const handleClearSearch = () => {
-    loadAllItems();
+    loadActiveItems();
   };
 
   const handleBackToResults = () => {
@@ -259,7 +292,7 @@ const UrlParamVista = () => {
               </Button>
               {(showingSearchResults || searchParams.get("search")) && (
                 <Button type="button" variant="outline" onClick={handleClearSearch}>
-                  View All
+                  View Active
                 </Button>
               )}
             </form>
@@ -268,25 +301,34 @@ const UrlParamVista = () => {
         
         {/* Search result controls */}
         <div className="mb-6 flex justify-between items-center">
-          {showingSearchResults && sortedItems.length > 0 ? (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {sortedItems.length} relevant results sorted by relevance
-            </div>
-          ) : showingSearchResults && sortedItems.length === 0 ? (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              No relevant content found for your search
-            </div>
-          ) : (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing all content items
-            </div>
-          )}
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {showingSearchResults && sortedItems.length > 0 ? (
+              <span>Showing {sortedItems.length} relevant results sorted by relevance</span>
+            ) : showingSearchResults && sortedItems.length === 0 ? (
+              <span>No relevant content found for your search</span>
+            ) : (
+              <span>
+                Showing {sortedItems.length} content items 
+                {!showRemovedItems && " (active only)"}
+              </span>
+            )}
+          </div>
           
-          <div>
+          <div className="flex gap-2">
+            <Button
+              onClick={toggleRemovedItems}
+              variant="outline"
+              size="sm"
+              className="text-sm"
+            >
+              {showRemovedItems ? "Hide Removed" : "Show Removed"}
+            </Button>
+            
             {showingSearchResults ? (
               <Button 
                 onClick={handleClearSearch} 
                 variant="outline"
+                size="sm"
                 className="text-sm"
               >
                 View All Content
@@ -295,6 +337,7 @@ const UrlParamVista = () => {
               <Button 
                 onClick={handleBackToResults} 
                 variant="outline"
+                size="sm"
                 className="text-sm"
               >
                 Back to Search Results
@@ -318,6 +361,7 @@ const UrlParamVista = () => {
                   content={item}
                   urlPrefix={`/${urlParam}/vista`}
                   index={index}
+                  showStatus={true}
                 />
               </div>
             ))}

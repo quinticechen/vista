@@ -20,6 +20,10 @@ export type Database = {
           embedding: string | null
           end_date: string | null
           id: string
+          notion_created_time: string | null
+          notion_last_edited_time: string | null
+          notion_page_id: string | null
+          notion_page_status: string | null
           notion_url: string | null
           start_date: string | null
           tags: string[] | null
@@ -40,6 +44,10 @@ export type Database = {
           embedding?: string | null
           end_date?: string | null
           id?: string
+          notion_created_time?: string | null
+          notion_last_edited_time?: string | null
+          notion_page_id?: string | null
+          notion_page_status?: string | null
           notion_url?: string | null
           start_date?: string | null
           tags?: string[] | null
@@ -60,6 +68,10 @@ export type Database = {
           embedding?: string | null
           end_date?: string | null
           id?: string
+          notion_created_time?: string | null
+          notion_last_edited_time?: string | null
+          notion_page_id?: string | null
+          notion_page_status?: string | null
           notion_url?: string | null
           start_date?: string | null
           tags?: string[] | null
