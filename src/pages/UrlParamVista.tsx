@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -314,16 +313,7 @@ const UrlParamVista = () => {
         ) : sortedItems.length > 0 ? (
           <div className="flex flex-col gap-6">
             {sortedItems.map((item, index) => (
-              <div
-                key={item.id}
-                className={`group ${
-                  item.mediaUrl
-                    ? index % 2 === 0
-                      ? "flex flex-row h-[400px]" // Media on the right
-                      : "flex flex-row-reverse h-[400px]" // Media on the left
-                    : "flex flex-col" // No media
-                }`}
-              >
+              <div key={item.id} className="group">
                 <ContentDisplayItem
                   content={item}
                   urlPrefix={`/${urlParam}/vista`}
