@@ -25,7 +25,9 @@ export interface ContentItem {
 interface ContentDisplayItemProps {
   content: ContentItem;
   urlPrefix?: string;
+  index?: number; // Add index prop
 }
+
 
 export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayItemProps) => {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
@@ -160,7 +162,9 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
   }, [content.id, content.content]);
 
   return (
-    <Card className="h-full flex flex-col hover:shadow-md transition-shadow duration-200">
+    <Card
+      className={`h-full flex ${mediaUrl ? 'w-1/2' : 'w-full'} flex-col hover:shadow-md transition-shadow duration-200`}
+    > 
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2 mb-1">
           <Badge variant="outline" className="text-xs">
@@ -182,28 +186,30 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
           {content.title}
         </h3>
       </CardHeader>
-
-      <CardContent className="pb-2 space-y-4 flex-1">
+      
+      <CardContent
+        className={`pb-2 space-y-4 flex-1 ${mediaUrl ? 'w-1/2' : 'w-full'}`}
+      >
         {/* Media content display section */}
         {mediaUrl && mediaType === 'image' && (
-          <div className="h-[180px] overflow-hidden rounded">
-            <ImageAspectRatio 
-              src={mediaUrl} 
-              alt={content.title} 
-              className="w-full h-full"
+          <div className="h-full overflow-hidden rounded flex-shrink-0">
+            <ImageAspectRatio
+              src={mediaUrl}
+              alt={content.title}
+              className="w-full h-full object-contain" // 使用 object-contain 或 object-cover
             />
           </div>
         )}
 
         {mediaUrl && mediaType === 'video' && (
-          <div className="h-[180px] overflow-hidden rounded flex items-center justify-center bg-gray-100">
+          <div className="h-full overflow-hidden rounded flex items-center justify-center bg-gray-100 flex-shrink-0">
             {/* YouTube thumbnail fallback */}
             {mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be') ? (
               <div className="w-full h-full relative">
-                <ImageAspectRatio 
+                <ImageAspectRatio
                   src={getYouTubeThumbnail(mediaUrl)}
                   alt={`${content.title} video thumbnail`}
-                  className="w-full h-full"
+                  className="w-full h-full object-contain"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center">
@@ -212,11 +218,11 @@ export const ContentDisplayItem = ({ content, urlPrefix = "" }: ContentDisplayIt
                 </div>
               </div>
             ) : (
-              <video 
-                src={mediaUrl} 
+              <video
+                src={mediaUrl}
                 controls={false}
                 muted
-                className="max-h-full max-w-full object-cover" 
+                className="max-h-full max-w-full object-contain"
               />
             )}
           </div>
