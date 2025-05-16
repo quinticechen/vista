@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ContentItem } from "@/services/adminService";
 import { Badge } from "@/components/ui/badge";
+import { Json } from "@/integrations/supabase/types";
 
 export interface ContentDisplayItemProps {
   content: ContentItem;
@@ -14,6 +15,50 @@ export interface ContentDisplayItemProps {
   index?: number;
   showStatus?: boolean;
 }
+
+// Helper function to check if content has media
+const hasMediaInContent = (content: Json | any[] | undefined): boolean => {
+  if (!content) return false;
+  if (Array.isArray(content)) {
+    return content.some((block: any) => 
+      block?.media_type === 'image' || block?.media_type === 'video');
+  }
+  // Handle Json case - try to parse if it's a string
+  if (typeof content === 'string') {
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        return parsed.some((block: any) => 
+          block?.media_type === 'image' || block?.media_type === 'video');
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+  return false;
+};
+
+// Helper function to find media block
+const findMediaBlock = (content: Json | any[] | undefined): any => {
+  if (!content) return null;
+  if (Array.isArray(content)) {
+    return content.find((block: any) => 
+      block?.media_type === 'image' || block?.media_type === 'video');
+  }
+  // Handle Json case - try to parse if it's a string
+  if (typeof content === 'string') {
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        return parsed.find((block: any) => 
+          block?.media_type === 'image' || block?.media_type === 'video');
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+};
 
 export const ContentDisplayItem = ({ 
   content, 
@@ -24,16 +69,14 @@ export const ContentDisplayItem = ({
   const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
 
-  const hasMedia = content.content && Array.isArray(content.content) && 
-    content.content.some((block: any) => block?.media_type === 'image' || block?.media_type === 'video');
+  const hasMedia = hasMediaInContent(content.content);
   
   const shouldAlternate = index !== undefined && index % 2 === 1;
 
   const renderMedia = () => {
-    if (!content.content || !Array.isArray(content.content)) return null;
+    if (!content.content) return null;
 
-    const mediaBlock = content.content.find((block: any) => 
-      block?.media_type === 'image' || block?.media_type === 'video');
+    const mediaBlock = findMediaBlock(content.content);
 
     if (!mediaBlock) return null;
 

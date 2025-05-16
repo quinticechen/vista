@@ -55,15 +55,22 @@ const UrlParamVista = () => {
         const userId = profile.id;
         console.log(`Loading all content items for user ID: ${userId}`);
         const userContent = await getUserContentItems(userId);
-        setAllContentItems(userContent);
+        
+        // Convert the database content to match ContentItem interface
+        const processedContent: ContentItem[] = (userContent || []).map((item: any) => ({
+          ...item,
+          // Keep other properties as is
+        }));
+        
+        setAllContentItems(processedContent);
         
         // Check if we have search results from PurposeInput
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
           
           // Filter search results to only include items from this user
-          const userIdsSet = new Set(userContent.map((item: any) => item.id));
-          const filteredResults = searchResults.filter((item: any) => userIdsSet.has(item.id));
+          const userIdsSet = new Set(processedContent.map((item: ContentItem) => item.id));
+          const filteredResults = searchResults.filter((item: ContentItem) => userIdsSet.has(item.id));
           
           setItems(filteredResults);
           setShowingSearchResults(true);
@@ -76,13 +83,13 @@ const UrlParamVista = () => {
           setItems([]);
           setShowingSearchResults(true);
           toast.warning(`No matches found for "${searchPurpose}". Showing all content instead.`, { duration: 5000 });
-          setItems(userContent);
+          setItems(processedContent);
         } else if (searchParams.get("search")) {
           // If we have a search term in URL params
           performSearch(searchParams.get("search") || "");
         } else {
           // Default: show only active content
-          const activeContent = userContent.filter(item => 
+          const activeContent = processedContent.filter(item => 
             item.notion_page_status !== 'removed' || item.notion_page_status === null || item.notion_page_status === undefined
           );
           setItems(activeContent);

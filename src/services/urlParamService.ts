@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { ContentItem } from "@/services/adminService";
 
 export interface UrlParamProfile {
   id: string;
@@ -75,7 +76,7 @@ export const getProfileByUrlParam = async (urlParam: string): Promise<UrlParamPr
 };
 
 // Get content items for a specific user
-export const getUserContentItems = async (userId: string) => {
+export const getUserContentItems = async (userId: string): Promise<any[]> => {
   try {
     console.log('Fetching content items for user:', userId);
     const { data, error } = await supabase
@@ -88,7 +89,7 @@ export const getUserContentItems = async (userId: string) => {
     }
     
     console.log(`Found ${data?.length || 0} content items`);
-    return data;
+    return data || [];
   } catch (error) {
     console.error('Error getting user content items:', error);
     return [];
@@ -96,7 +97,7 @@ export const getUserContentItems = async (userId: string) => {
 };
 
 // Get a specific content item by ID
-export const getContentItemById = async (contentId: string) => {
+export const getContentItemById = async (contentId: string): Promise<ContentItem | null> => {
   try {
     const { data, error } = await supabase
       .from('content_items')
@@ -108,7 +109,7 @@ export const getContentItemById = async (contentId: string) => {
       throw error;
     }
     
-    return data;
+    return data as ContentItem;
   } catch (error) {
     console.error('Error getting content item by ID:', error);
     return null;

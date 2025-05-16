@@ -5,12 +5,11 @@ import { ContentDisplayItem } from "@/components/ContentDisplay";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { toast } from "@/components/ui/sonner";
-import { ContentItem } from "@/services/adminService";
+import { ContentItem, semanticSearch } from "@/services/adminService";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { semanticSearch } from "@/services/adminService";
 
 const Vista = () => {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -46,17 +45,8 @@ const Vista = () => {
         
         // Process the data to match ContentItem interface
         const processedData = (data || []).map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          description: item.description,
-          category: item.category,
-          tags: item.tags,
-          embedding: item.embedding,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          start_date: item.start_date,
-          end_date: item.end_date,
-          similarity: undefined,
+          ...item,
+          // Properties will be kept as is with updated ContentItem interface
         })) as ContentItem[];
         
         setAllContentItems(processedData);

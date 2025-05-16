@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 // Define the profile type to match our database
 export interface Profile {
@@ -27,7 +28,7 @@ export interface ContentItem {
   description?: string;
   category?: string;
   tags?: string[];
-  content?: any[];
+  content?: Json | any[]; // Updated to accept both Json and any[]
   embedding?: any;
   created_at?: string;
   updated_at?: string;
@@ -38,6 +39,7 @@ export interface ContentItem {
   notion_page_id?: string;
   notion_created_time?: string;
   notion_last_edited_time?: string;
+  user_id?: string; // Added user_id to match database schema
 }
 
 // Define interface for vector search parameters
