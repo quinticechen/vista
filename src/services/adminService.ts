@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 
@@ -50,7 +51,6 @@ export interface ContentItem {
 }
 
 // Define interface for vector search parameters
-// Update: changed query_embedding type from number[] to string to match what the DB expects
 export interface VectorSearchParams {
   query_embedding: string;
   match_threshold: number;
@@ -250,15 +250,18 @@ export async function semanticSearch(
       console.log("No matching results found. Consider lowering the match threshold.");
     }
     
-    // Map the results to ContentItem format
+    // Map the results to ContentItem format - adding the missing required properties
     return results.map(item => ({
       id: item.id,
-      title: item.title,
-      description: item.description,
-      category: item.category,
-      tags: item.tags,
-      similarity: item.similarity
-    }));
+      user_id: '', // Adding required field with default empty string
+      title: item.title || '',
+      description: item.description || '',
+      content: [], // Adding required field with default empty array
+      category: item.category || '',
+      tags: item.tags || [],
+      similarity: item.similarity,
+      created_at: new Date().toISOString(), // Adding required field with current date as string
+    } as ContentItem));
   } catch (error) {
     console.error("Exception during semantic search:", error);
     return [];
