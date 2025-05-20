@@ -55,6 +55,12 @@ const UrlParamContentDetail = () => {
         }
         
         console.log("Content loaded successfully:", contentItem);
+        
+        // Preprocessing for nested list structures
+        if (contentItem.content && Array.isArray(contentItem.content)) {
+          // No preprocessing needed, the NotionRenderer will handle it
+        }
+        
         setContent(contentItem);
       } catch (error) {
         console.error("Error loading content:", error);
