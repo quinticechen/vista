@@ -32,6 +32,7 @@ type NotionBlock = {
   annotations?: NotionAnnotation[];
   children?: NotionBlock[];
   url?: string; // For backward compatibility
+  _counter?: number; // Add this to support the numbered list counter
 };
 
 interface NotionRendererProps {
@@ -171,7 +172,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     if (block.type === "paragraph" && block.text && depth > 0) {
       return (
         <div key={`paragraph-${index}`} className="pl-0 my-1 text-muted-foreground">
-          {annotations ? renderAnnotatedText(block.text, block.annotations) : block.text}
+          {block.annotations ? renderAnnotatedText(block.text, block.annotations) : block.text}
         </div>
       );
     }
@@ -288,7 +289,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
       // We handle list items at a higher level
       if (text) {
-        return annotations ? renderAnnotatedText(text, annotations) : text;
+        return block.annotations ? renderAnnotatedText(text, block.annotations) : text;
       }
       return null;
     }
@@ -426,19 +427,19 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       case "heading_1":
         return (
           <h1 key={`h1-${listPath}-${index}`} className="text-3xl font-bold mt-8 mb-4">
-            {annotations && text ? renderAnnotatedText(text, annotations) : text}
+            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
           </h1>
         );
       case "heading_2":
         return (
           <h2 key={`h2-${listPath}-${index}`} className="text-2xl font-bold mt-6 mb-3">
-            {annotations && text ? renderAnnotatedText(text, annotations) : text}
+            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
           </h2>
         );
       case "heading_3":
         return (
           <h3 key={`h3-${listPath}-${index}`} className="text-xl font-bold mt-5 mb-2">
-            {annotations && text ? renderAnnotatedText(text, annotations) : text}
+            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
           </h3>
         );
       case "paragraph":
@@ -450,13 +451,13 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
             "my-3", 
             isNestedParagraph && "pl-4 text-gray-700"
           )}>
-            {annotations && text ? renderAnnotatedText(text, annotations) : text}
+            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
           </p>
         );
       case "quote":
         return (
           <blockquote key={`quote-${listPath}-${index}`} className="border-l-4 border-muted pl-4 py-1 my-4 italic">
-            {annotations && text ? renderAnnotatedText(text, annotations) : text}
+            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
           </blockquote>
         );
       case "to_do":
@@ -469,7 +470,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
               className="mt-1"
             />
             <span className={cn(checked && "line-through text-muted-foreground")}>
-              {annotations && text ? renderAnnotatedText(text, annotations) : text}
+              {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
             </span>
           </div>
         );
@@ -479,7 +480,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         return (
           <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
             {block.icon && <div>{block.icon}</div>}
-            <div>{annotations && text ? renderAnnotatedText(text, annotations) : text}</div>
+            <div>{block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}</div>
           </div>
         );
       case "code":
@@ -494,7 +495,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         return (
           <details key={`toggle-${listPath}-${index}`} className="my-2 border border-muted rounded-md">
             <summary className="p-3 cursor-pointer font-medium hover:bg-muted/50">
-              {annotations && text ? renderAnnotatedText(text, annotations) : text}
+              {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
             </summary>
           </details>
         );
@@ -505,7 +506,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         if (text) {
           return (
             <div key={`default-${listPath}-${index}`} className="my-2">
-              {annotations && text ? renderAnnotatedText(text, annotations) : text}
+              {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
             </div>
           );
         }
@@ -545,7 +546,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         Object.values(numberedListGroups).forEach(group => {
           // Add a counter attribute to each item that will be used for rendering
           group.forEach((item, index) => {
-            item._counter = index + 1;
+            // Make sure to use TypeScript assertion since we added _counter to the type
+            (item as NotionBlock & { _counter: number })._counter = index + 1;
           });
         });
       }
