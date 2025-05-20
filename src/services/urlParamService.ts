@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ContentItem } from "@/services/adminService";
 
@@ -19,6 +20,41 @@ export async function getProfileByUrlParam(urlParam: string) {
   } catch (error) {
     console.error('Exception fetching profile by URL parameter:', error);
     return null;
+  }
+}
+
+export async function setUrlParam(userId: string, urlParam: string) {
+  try {
+    console.log(`Setting URL parameter for user ID: ${userId} to: ${urlParam}`);
+    
+    // Check if the URL param is already in use
+    const { data: existingProfile, error: checkError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('url_param', urlParam)
+      .neq('id', userId)
+      .single();
+    
+    if (existingProfile) {
+      throw new Error('This URL parameter is already in use by another user');
+    }
+    
+    // Update the user's profile with the new URL param
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ url_param: urlParam })
+      .eq('id', userId);
+      
+    if (error) {
+      console.error('Error setting URL parameter:', error);
+      throw new Error(error.message || 'Failed to set URL parameter');
+    }
+    
+    console.log('URL parameter set successfully');
+    return data;
+  } catch (error: any) {
+    console.error('Exception setting URL parameter:', error);
+    throw error;
   }
 }
 
