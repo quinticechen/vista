@@ -1,65 +1,13 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ContentItem } from "@/services/adminService";
 
-export interface UrlParamProfile {
-  id: string;
-  url_param: string;
-  is_admin: boolean;
-  default_language: string;
-  supported_ai_languages?: string[];
-}
-
-// Set URL parameter for a user
-export const setUrlParam = async (userId: string, urlParam: string): Promise<boolean> => {
+export async function getProfileByUrlParam(urlParam: string) {
   try {
-    // First check if the URL param is already taken
-    const { data: existingParam, error: checkError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('url_param', urlParam)
-      .not('id', 'eq', userId);
-    
-    if (checkError) {
-      throw checkError;
-    }
-    
-    if (existingParam && existingParam.length > 0) {
-      throw new Error('This URL parameter is already taken by another user');
-    }
-    
-    // Update the user's profile with the new URL param
-    const { error } = await supabase
-      .from('profiles')
-      .update({ url_param: urlParam })
-      .eq('id', userId);
-    
-    if (error) {
-      throw error;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error setting URL parameter:', error);
-    throw error;
-  }
-};
-
-// Get profile by URL parameter
-export const getProfileByUrlParam = async (urlParam: string): Promise<UrlParamProfile | null> => {
-  try {
-    if (!urlParam) {
-      console.error('No URL parameter provided');
-      return null;
-    }
-    
-    console.log('Looking up profile for URL parameter:', urlParam);
-    
-    // Use lowercase comparison to make URL parameters case insensitive
+    console.log(`Looking up profile for URL parameter: ${urlParam}`);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, url_param, is_admin, default_language, supported_ai_languages')
-      .ilike('url_param', urlParam) // Use case insensitive comparison
+      .select('*')
+      .eq('url_param', urlParam)
       .single();
     
     if (error) {
@@ -67,60 +15,16 @@ export const getProfileByUrlParam = async (urlParam: string): Promise<UrlParamPr
       return null;
     }
     
-    console.log('Profile found:', data);
-    return data as UrlParamProfile;
+    return data;
   } catch (error) {
-    console.error('Exception getting profile by URL parameter:', error);
+    console.error('Exception fetching profile by URL parameter:', error);
     return null;
   }
-};
+}
 
-// Get content items for a specific user
-export const getUserContentItems = async (userId: string): Promise<ContentItem[]> => {
+export async function getContentItemById(contentId: string) {
   try {
-    console.log('Fetching content items for user:', userId);
-    const { data, error } = await supabase
-      .from('content_items')
-      .select('*')
-      .eq('user_id', userId);
-    
-    if (error) {
-      throw error;
-    }
-    
-    // Process content before returning
-    const processedItems = data?.map(item => {
-      // Handle JSON content properly
-      const processedItem = {
-        ...item,
-        // Ensure notion_page_status is properly typed
-        notion_page_status: item.notion_page_status as ContentItem['notion_page_status']
-      } as ContentItem;
-      
-      // If content is a string, try to parse it as JSON
-      if (typeof processedItem.content === 'string') {
-        try {
-          processedItem.content = JSON.parse(processedItem.content as string);
-        } catch (e) {
-          // If parsing fails, leave as is
-          console.log('Could not parse content JSON for item:', item.id);
-        }
-      }
-      
-      return processedItem;
-    }) || [];
-    
-    console.log(`Found ${processedItems.length} content items`);
-    return processedItems;
-  } catch (error) {
-    console.error('Error getting user content items:', error);
-    return [];
-  }
-};
-
-// Get a specific content item by ID
-export const getContentItemById = async (contentId: string): Promise<ContentItem | null> => {
-  try {
+    console.log(`Fetching content item with ID: ${contentId}`);
     const { data, error } = await supabase
       .from('content_items')
       .select('*')
@@ -128,29 +32,91 @@ export const getContentItemById = async (contentId: string): Promise<ContentItem
       .single();
     
     if (error) {
-      throw error;
+      console.error('Error fetching content item by ID:', error);
+      return null;
     }
     
-    // Process content before returning
-    const processedItem = {
-      ...data,
-      // Ensure notion_page_status is properly typed
-      notion_page_status: data.notion_page_status as ContentItem['notion_page_status']
-    } as ContentItem;
-    
-    // If content is a string, try to parse it as JSON
-    if (typeof processedItem.content === 'string') {
+    // Parse the content if it's a JSON string
+    if (data && data.content && typeof data.content === 'string') {
       try {
-        processedItem.content = JSON.parse(processedItem.content as string);
+        data.content = JSON.parse(data.content);
+        console.log('Successfully parsed content JSON');
       } catch (e) {
-        // If parsing fails, leave as is
-        console.log('Could not parse content JSON for item:', data.id);
+        console.error('Error parsing content JSON:', e);
+        // Keep the original content as is if it can't be parsed
       }
     }
     
-    return processedItem;
+    return data;
   } catch (error) {
-    console.error('Error getting content item by ID:', error);
+    console.error('Exception fetching content item by ID:', error);
     return null;
   }
-};
+}
+
+export async function getUserContentItems(userId: string): Promise<ContentItem[]> {
+  try {
+    console.log(`Fetching content items for user ID: ${userId}`);
+    const { data, error } = await supabase
+      .from('content_items')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching user content items:', error);
+      return [];
+    }
+    
+    // Process the data to match ContentItem interface
+    const processedData = (data || []).map((item: any) => {
+      // Parse content if it's a string
+      if (item.content && typeof item.content === 'string') {
+        try {
+          item.content = JSON.parse(item.content);
+        } catch (e) {
+          console.error(`Error parsing content JSON for item ${item.id}:`, e);
+          // Keep as is if parsing fails
+        }
+      }
+      
+      return item as ContentItem;
+    });
+    
+    console.log(`Retrieved ${processedData.length} content items for user`);
+    return processedData;
+  } catch (error) {
+    console.error('Exception fetching user content items:', error);
+    return [];
+  }
+}
+
+export async function searchUserContent(userId: string, query: string): Promise<ContentItem[]> {
+  try {
+    console.log(`Searching user content for user ID: ${userId} with query: "${query}"`);
+    
+    // First get all content for this user
+    const userContent = await getUserContentItems(userId);
+    
+    if (!query.trim() || userContent.length === 0) {
+      return userContent;
+    }
+    
+    // Simple search implementation - can be enhanced later
+    const lowerQuery = query.toLowerCase();
+    const results = userContent.filter(item => {
+      const titleMatch = item.title?.toLowerCase().includes(lowerQuery);
+      const descMatch = item.description?.toLowerCase().includes(lowerQuery);
+      const categoryMatch = item.category?.toLowerCase().includes(lowerQuery);
+      const tagMatch = item.tags?.some(tag => tag.toLowerCase().includes(lowerQuery));
+      
+      return titleMatch || descMatch || categoryMatch || tagMatch;
+    });
+    
+    console.log(`Found ${results.length} matching items for search query`);
+    return results;
+  } catch (error) {
+    console.error('Exception searching user content:', error);
+    return [];
+  }
+}

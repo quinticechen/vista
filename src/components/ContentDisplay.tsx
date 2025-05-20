@@ -73,10 +73,15 @@ export const ContentDisplayItem = ({
   const mediaBlock = findMediaBlock(content.content);
   const mediaUrl = mediaBlock?.media_url;
   const isMediaRight = index % 2 === 0;
+  const isPortrait = mediaBlock?.orientation === 'portrait';
   
   // Function to get the correct detail route
   const getDetailRoute = () => {
-    return `${urlPrefix}/content/${content.id}`;
+    // Make sure to add the urlPrefix properly
+    if (urlPrefix) {
+      return `${urlPrefix}/content/${content.id}`;
+    }
+    return `/content/${content.id}`;
   };
 
   return (
@@ -183,7 +188,7 @@ export const ContentDisplayItem = ({
               alt={mediaBlock.caption || content.title}
               className="object-cover w-full h-full"
               style={{
-                aspectRatio: mediaBlock?.orientation === 'portrait' ? '8/9' : '16/9'
+                aspectRatio: isPortrait ? '8/9' : '16/9'
               }}
             />
           ) : mediaBlock?.media_type === 'video' ? (
