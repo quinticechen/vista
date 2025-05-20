@@ -77,11 +77,11 @@ export const ContentDisplayItem = ({
   
   // Function to get the correct detail route
   const getDetailRoute = () => {
-    // Make sure to add the urlPrefix properly
+    // Fix the URL structure - should point to vista/:contentId not content/:contentId
     if (urlPrefix) {
-      return `${urlPrefix}/content/${content.id}`;
+      return `${urlPrefix}/vista/${content.id}`;
     }
-    return `/content/${content.id}`;
+    return `/vista/${content.id}`;
   };
 
   return (
