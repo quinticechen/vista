@@ -141,54 +141,114 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     });
   };
 
-  const renderBlock = (block: NotionBlock, index: number) => {
-    const { type, text, list_type, is_list_item, checked, media_url, media_type, caption, language, annotations, children } = block;
+  // Improved function to render nested lists recursively
+  const renderNestedContent = (block: NotionBlock, index: number, depth: number = 0): React.ReactNode => {
+    const { children } = block;
+    
+    // First render the current block
+    const blockContent = renderBlockContent(block, index, depth);
+    
+    // If there are no children, just return the block content
+    if (!children || children.length === 0) {
+      return blockContent;
+    }
+    
+    // Process children based on their types
+    const childrenElements: React.ReactNode[] = [];
+    let currentChildListType: string | null = null;
+    let childListItems: React.ReactNode[] = [];
+    
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      
+      // Check if this is a list item
+      if (child.is_list_item || child.type === "bulleted_list_item" || child.type === "numbered_list_item") {
+        const listType = child.list_type || (child.type === "bulleted_list_item" ? "bulleted_list" : "numbered_list");
+        
+        // If starting a new list or changing list type
+        if (currentChildListType !== listType) {
+          // Render any existing list before starting a new one
+          if (childListItems.length > 0) {
+            childrenElements.push(renderListGroup(currentChildListType, childListItems, depth + 1));
+            childListItems = [];
+          }
+          
+          currentChildListType = listType;
+        }
+        
+        // Add the item to the current list
+        childListItems.push(
+          <li key={i} className="my-1">
+            {child.text && (child.annotations ? renderAnnotatedText(child.text, child.annotations) : child.text)}
+            {child.children && child.children.length > 0 && renderNestedContent({ type: "div", children: child.children }, i, depth + 1)}
+          </li>
+        );
+      } else {
+        // If we hit a non-list item and have existing list items, render the list first
+        if (childListItems.length > 0) {
+          childrenElements.push(renderListGroup(currentChildListType, childListItems, depth + 1));
+          childListItems = [];
+          currentChildListType = null;
+        }
+        
+        // Render the non-list child
+        childrenElements.push(renderNestedContent(child, i, depth + 1));
+      }
+    }
+    
+    // Render any remaining list items
+    if (childListItems.length > 0) {
+      childrenElements.push(renderListGroup(currentChildListType, childListItems, depth + 1));
+    }
+    
+    // For list items, we want to include children within the li, otherwise we render as siblings
+    if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
+      return (
+        <li key={index} className="my-1">
+          {blockContent}
+          {childrenElements.length > 0 && <div className="pl-4 mt-1">{childrenElements}</div>}
+        </li>
+      );
+    } else {
+      return (
+        <React.Fragment key={index}>
+          {blockContent}
+          {childrenElements.length > 0 && <div className={depth > 0 ? "pl-4 mt-1" : ""}>{childrenElements}</div>}
+        </React.Fragment>
+      );
+    }
+  };
 
+  // Helper to render list groups
+  const renderListGroup = (listType: string | null, items: React.ReactNode[], depth: number = 0): React.ReactNode => {
+    if (!listType || items.length === 0) return null;
+    
+    const className = `pl-${4 + depth} my-2`;
+    
+    if (listType === "numbered_list") {
+      return <ol key={`numbered-list-${depth}`} className={`list-decimal ${className}`}>{items}</ol>;
+    } else if (listType === "bulleted_list") {
+      return <ul key={`bulleted-list-${depth}`} className={`list-disc ${className}`}>{items}</ul>;
+    }
+    
+    return null;
+  };
+
+  // Render just the content of a single block, without handling children
+  const renderBlockContent = (block: NotionBlock, index: number, depth: number = 0): React.ReactNode => {
+    const { type, text, annotations, checked, media_url, media_type, caption, language } = block;
+    
     // Handle both formats: older format uses media_url, newer format might use url
     const imageUrl = media_url || block.url;
     const videoUrl = media_url || block.url;
     
     // Process list items separately to group them
-    if (is_list_item && list_type) {
-      if (currentListType !== list_type) {
-        // Render the previous list if we're starting a new one
-        const prevList = renderList();
-        currentListType = list_type;
-        listItems = [];
-        
-        // Add the current item to the new list
-        listItems.push(
-          <li key={index} className="my-1">
-            {annotations && text ? renderAnnotatedText(text, annotations) : text}
-            {children && children.length > 0 && (
-              <div className="pl-6 mt-2">
-                {children.map((child, childIndex) => renderBlock(child, childIndex))}
-              </div>
-            )}
-          </li>
-        );
-        return prevList;
-      } else {
-        // Add to the current list
-        listItems.push(
-          <li key={index} className="my-1">
-            {annotations && text ? renderAnnotatedText(text, annotations) : text}
-            {children && children.length > 0 && (
-              <div className="pl-6 mt-2">
-                {children.map((child, childIndex) => renderBlock(child, childIndex))}
-              </div>
-            )}
-          </li>
-        );
-        return null;
+    if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
+      // We handle list items at a higher level
+      if (text) {
+        return annotations ? renderAnnotatedText(text, annotations) : text;
       }
-    } else if (currentListType) {
-      // We're no longer in a list, render the previous list
-      const prevList = renderList();
-      currentListType = null;
-      listItems = [];
-      
-      // And continue with regular block rendering
+      return null;
     }
 
     // Handle media blocks (unified media approach)
@@ -204,7 +264,6 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
                 console.error(`Failed to load image: ${media_url || imageUrl}`);
                 e.currentTarget.onerror = null; // Prevent infinite loops
                 e.currentTarget.classList.add("opacity-50");
-                // We don't set a fallback src here as our ImageAspectRatio already handles that
               }}
             />
             {(caption || text) && (
@@ -378,66 +437,76 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
             <summary className="p-3 cursor-pointer font-medium hover:bg-muted/50">
               {annotations && text ? renderAnnotatedText(text, annotations) : text}
             </summary>
-            {children && children.length > 0 && (
-              <div className="p-3 pt-0">
-                {children.map((child, childIndex) => renderBlock(child, childIndex))}
-              </div>
-            )}
           </details>
         );
-      case "bulleted_list_item":
-      case "numbered_list_item":
-        // Handle legacy format directly
-        return (
-          <div key={index} className="ml-6 my-2">
-            {type === "bulleted_list_item" ? "• " : `${index + 1}. `}
-            {annotations && text ? renderAnnotatedText(text, annotations) : text}
-            {children && children.length > 0 && (
-              <div className="pl-6 mt-2">
-                {children.map((child, childIndex) => renderBlock(child, childIndex))}
-              </div>
-            )}
-          </div>
-        );
+      case "div":
+        // Special container type for nesting
+        return null;
       default:
-        return (
-          <div key={index} className="my-2">
-            {annotations && text ? renderAnnotatedText(text, annotations) : text}
-            {children && children.length > 0 && (
-              <div className="pl-6 mt-2">
-                {children.map((child, childIndex) => renderBlock(child, childIndex))}
-              </div>
-            )}
-          </div>
-        );
+        if (text) {
+          return (
+            <div key={index} className="my-2">
+              {annotations && text ? renderAnnotatedText(text, annotations) : text}
+            </div>
+          );
+        }
+        return null;
     }
   };
 
-  // Render the current list
-  const renderList = () => {
-    if (!currentListType || listItems.length === 0) return null;
+  // Render all blocks at the top level
+  const renderContent = () => {
+    // Group list items first
+    const renderedContent: React.ReactNode[] = [];
+    let currentListType: string | null = null;
+    let listItems: React.ReactNode[] = [];
     
-    if (currentListType === "numbered_list") {
-      return <ol className="list-decimal pl-6 my-4">{listItems}</ol>;
-    } else if (currentListType === "bulleted_list") {
-      return <ul className="list-disc pl-6 my-4">{listItems}</ul>;
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+      
+      // Check if this is a list item
+      if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
+        const listType = block.list_type || (block.type === "bulleted_list_item" ? "bulleted_list" : "numbered_list");
+        
+        // If starting a new list or changing list type
+        if (currentListType !== listType) {
+          // Render any existing list before starting a new one
+          if (listItems.length > 0) {
+            renderedContent.push(renderListGroup(currentListType, listItems));
+            listItems = [];
+          }
+          
+          currentListType = listType;
+        }
+        
+        // Render the list item with its content and children
+        listItems.push(renderNestedContent(block, i));
+      } else {
+        // If we hit a non-list item and have existing list items, render the list first
+        if (listItems.length > 0) {
+          renderedContent.push(renderListGroup(currentListType, listItems));
+          listItems = [];
+          currentListType = null;
+        }
+        
+        // Render the non-list block with its content and children
+        renderedContent.push(renderNestedContent(block, i));
+      }
     }
-    return null;
+    
+    // Render any remaining list items
+    if (listItems.length > 0) {
+      renderedContent.push(renderListGroup(currentListType, listItems));
+    }
+    
+    return renderedContent;
   };
 
   // Error handling wrapper for the entire renderer
   try {
-    // Render all blocks
-    const content = blocks.map((block, index) => renderBlock(block, index));
-    
-    // Make sure to include any remaining list
-    if (currentListType) {
-      content.push(renderList());
-    }
-
     return (
       <div className={cn("notion-content", className)}>
-        {content}
+        {renderContent()}
       </div>
     );
   } catch (error) {
