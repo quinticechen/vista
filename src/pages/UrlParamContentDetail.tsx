@@ -10,8 +10,110 @@ import { ArrowLeft, Calendar, Tag, Clock } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { getProfileByUrlParam, getContentItemById } from "@/services/urlParamService";
 import NotionRenderer from "@/components/NotionRenderer";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { cn } from "@/lib/utils";
+import { ImageAspectRatio } from "@/components/ImageAspectRatio";
+import { cn, formatDate } from "@/lib/utils";
+
+// Helper function to render bulleted list items
+const renderBulletedList = (items: any[]) => {
+  if (!items || items.length === 0) return null;
+  
+  return (
+    <ul className="list-disc pl-6 my-4 space-y-2">
+      {items.map((item, index) => (
+        <li key={index} className="text-base">
+          {item.text}
+          {item.children && (
+            <>
+              {item.children.map((child: any, childIndex: number) => {
+                if (child.type === 'paragraph') {
+                  return <p key={childIndex} className="mt-1 text-sm text-muted-foreground">{child.text}</p>;
+                } else if (child.type === 'bulleted_list_item') {
+                  return renderBulletedList([child]);
+                } else if (child.type === 'numbered_list_item') {
+                  return renderNumberedList([child]);
+                }
+                return null;
+              })}
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+// Helper function to render numbered list items
+const renderNumberedList = (items: any[]) => {
+  if (!items || items.length === 0) return null;
+  
+  return (
+    <ol className="list-decimal pl-6 my-4 space-y-2">
+      {items.map((item, index) => (
+        <li key={index} className="text-base">
+          {item.text}
+          {item.children && (
+            <>
+              {item.children.map((child: any, childIndex: number) => {
+                if (child.type === 'paragraph') {
+                  return <p key={childIndex} className="mt-1 text-sm text-muted-foreground">{child.text}</p>;
+                } else if (child.type === 'bulleted_list_item') {
+                  return renderBulletedList([child]);
+                } else if (child.type === 'numbered_list_item') {
+                  return renderNumberedList([child]);
+                }
+                return null;
+              })}
+            </>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+};
+
+// Helper function to process structured content
+const renderStructuredContent = (content: any[] | null) => {
+  if (!content || !Array.isArray(content) || content.length === 0) {
+    return <p className="text-gray-500 italic">No content available</p>;
+  }
+  
+  let bulletedListItems: any[] = [];
+  let numberedListItems: any[] = [];
+  
+  return (
+    <div className="prose max-w-none">
+      {content.map((block, index) => {
+        // Handle lists specially to group them
+        if (block.type === 'bulleted_list_item') {
+          bulletedListItems.push(block);
+          
+          // If this is the last item or the next item is not a bulleted list, render the list
+          if (index === content.length - 1 || content[index + 1].type !== 'bulleted_list_item') {
+            const listToRender = [...bulletedListItems];
+            bulletedListItems = [];
+            return renderBulletedList(listToRender);
+          }
+          return null;
+        }
+        
+        if (block.type === 'numbered_list_item') {
+          numberedListItems.push(block);
+          
+          // If this is the last item or the next item is not a numbered list, render the list
+          if (index === content.length - 1 || content[index + 1].type !== 'numbered_list_item') {
+            const listToRender = [...numberedListItems];
+            numberedListItems = [];
+            return renderNumberedList(listToRender);
+          }
+          return null;
+        }
+        
+        // For other blocks, let NotionRenderer handle them
+        return <NotionRenderer key={index} blocks={[block]} />;
+      })}
+    </div>
+  );
+};
 
 const UrlParamContentDetail = () => {
   const { urlParam, contentId } = useParams<{ urlParam: string, contentId: string }>();
@@ -54,8 +156,8 @@ const UrlParamContentDetail = () => {
           return;
         }
         
+        console.log("Content loaded successfully:", contentItem);
         setContent(contentItem);
-        console.log(`Content loaded successfully:`, contentItem);
       } catch (error) {
         console.error("Error loading content:", error);
         toast.error("Error loading content");
@@ -67,11 +169,6 @@ const UrlParamContentDetail = () => {
     
     loadData();
   }, [urlParam, contentId, navigate]);
-  
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
 
   if (isLoading) {
     return (
@@ -154,23 +251,20 @@ const UrlParamContentDetail = () => {
         {/* Display cover image if available */}
         {content?.cover_image && (
           <div className="mb-8">
-            <AspectRatio ratio={16/9} className="overflow-hidden rounded-md border border-gray-200">
-              <img 
-                src={content.cover_image} 
-                alt={content.title} 
-                className={cn(
-                  "object-cover w-full h-full",
-                  "transition-all hover:scale-105 duration-500"
-                )}
-              />
-            </AspectRatio>
+            <ImageAspectRatio 
+              src={content.cover_image} 
+              alt={content.title} 
+              className="w-full"
+            />
           </div>
         )}
         
         <Card className="mb-8 border rounded-md shadow-sm">
           <CardContent className="p-6">
             {content?.content ? (
-              <NotionRenderer blocks={content.content} />
+              Array.isArray(content.content) ? 
+                renderStructuredContent(content.content) : 
+                <NotionRenderer blocks={content.content} />
             ) : (
               <p className="text-gray-500 italic">No content available</p>
             )}

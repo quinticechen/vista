@@ -15,17 +15,19 @@ export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioP
   const [retryCount, setRetryCount] = useState(0);
 
   // Check if URL is an expiring URL (like S3 with security tokens)
-  // Note: Our backed-up images in Supabase storage won't have these tokens
   const isExpiringUrl = src && (
     (src.includes('s3.amazonaws.com') && src.includes('X-Amz-')) || 
     (src.includes('file.notion.so') && src.includes('secure='))
   );
   
+  // Check if it's a .heic file which browsers cannot display
+  const isHeicFile = src && src.toLowerCase().endsWith('.heic');
+  
   // Check if it's our permanent Supabase storage URL
   const isSupabaseStorageUrl = src && src.includes('supabase.co/storage/v1/object/public/notion-images');
 
   useEffect(() => {
-    if (!src) {
+    if (!src || isHeicFile) {
       setIsLoading(false);
       setHasError(true);
       return;
@@ -65,10 +67,10 @@ export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioP
       img.onload = null;
       img.onerror = null;
     };
-  }, [src, retryCount, isExpiringUrl, isSupabaseStorageUrl]);
+  }, [src, retryCount, isExpiringUrl, isSupabaseStorageUrl, isHeicFile]);
 
   // Determine aspect ratio based on orientation
-  const ratio = orientation === "portrait" ? 4/5 : 16/9;
+  const ratio = orientation === "portrait" ? 8/9 : 16/9;
   
   return (
     <div className={`overflow-hidden rounded-md ${className}`}>
@@ -93,7 +95,10 @@ export const ImageAspectRatio = ({ src, alt, className = "" }: ImageAspectRatioP
             />
           </svg>
           <p>Image not available</p>
-          {isExpiringUrl && (
+          {isHeicFile && (
+            <p className="text-xs mt-1 text-muted-foreground/70">HEIC format not supported</p>
+          )}
+          {isExpiringUrl && !isHeicFile && (
             <p className="text-xs mt-1 text-muted-foreground/70">Link may have expired</p>
           )}
         </div>

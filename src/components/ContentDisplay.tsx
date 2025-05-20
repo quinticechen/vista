@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/utils";
 import { ContentItem } from "@/services/adminService";
 import { Badge } from "@/components/ui/badge";
 import { Json } from "@/integrations/supabase/types";
+import { ImageAspectRatio } from "@/components/ImageAspectRatio";
 
 export interface ContentDisplayItemProps {
   content: ContentItem;
@@ -183,27 +184,26 @@ export const ContentDisplayItem = ({
       {mediaUrl && (
         <div className={`w-1/2 relative ${isMediaRight ? 'order-last' : 'order-first'}`}>
           {mediaBlock?.media_type === 'image' ? (
-            <img
+            <ImageAspectRatio
               src={mediaUrl}
               alt={mediaBlock.caption || content.title}
-              className="object-cover w-full h-full"
-              style={{
-                aspectRatio: isPortrait ? '8/9' : '16/9'
-              }}
+              className="h-full"
             />
           ) : mediaBlock?.media_type === 'video' ? (
-            <video 
-              src={mediaUrl} 
-              controls 
-              className="object-cover w-full h-full"
-              playsInline
-              preload="metadata"
-              style={{
-                aspectRatio: '16/9'
-              }}
-            >
-              Your browser does not support the video tag.
-            </video>
+            <div className="w-full h-full">
+              <video 
+                src={mediaUrl} 
+                controls 
+                className="object-cover w-full h-full"
+                playsInline
+                preload="metadata"
+                style={{
+                  aspectRatio: '16/9'
+                }}
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
           ) : null}
         </div>
       )}
