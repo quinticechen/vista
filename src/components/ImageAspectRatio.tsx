@@ -25,7 +25,7 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
     
     switch (size) {
       case "portrait":
-        return 8/9; // Portrait ratio for media display
+        return 3/4; // Portrait ratio for media display
       case "square":
         return 1;
       case "landscape":
@@ -39,8 +39,9 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
     
     // Check if the image is a HEIC file
     const imgSrc = src?.toString().toLowerCase() || '';
-    if (imgSrc.endsWith('.heic')) {
+    if (imgSrc.endsWith('.heic') || imgSrc.includes('heic')) {
       setIsHeic(true);
+      console.warn("HEIC image format detected:", imgSrc);
     }
     
     // Call the original onError handler if provided
@@ -78,7 +79,7 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
             {isHeic ? "HEIC format not supported by browser" : "Failed to load image"}
           </span>
           {isHeic && (
-            <span className="text-xs mt-1">This image format requires conversion to be displayed</span>
+            <span className="text-xs mt-1 text-center">This image format requires conversion to be displayed</span>
           )}
         </div>
       ) : (

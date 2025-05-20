@@ -56,9 +56,10 @@ const UrlParamContentDetail = () => {
         
         console.log("Content loaded successfully:", contentItem);
         
-        // Preprocessing for nested list structures
+        // Preprocessing for nested list structures (if needed)
         if (contentItem.content && Array.isArray(contentItem.content)) {
-          // No preprocessing needed, the NotionRenderer will handle it
+          // Ensure we've correctly structured any nested lists
+          console.log("Content has array structure, ready for rendering");
         }
         
         setContent(contentItem);
@@ -166,9 +167,9 @@ const UrlParamContentDetail = () => {
         <Card className="mb-8 border rounded-md shadow-sm">
           <CardContent className="p-6">
             {content?.content ? (
-              Array.isArray(content.content) ? 
-                <NotionRenderer blocks={content.content} /> : 
+              <div className="prose prose-sm sm:prose max-w-none">
                 <NotionRenderer blocks={content.content} />
+              </div>
             ) : (
               <p className="text-gray-500 italic">No content available</p>
             )}

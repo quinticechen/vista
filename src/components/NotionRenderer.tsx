@@ -1,7 +1,7 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/hooks/use-toast";
 
 // Define the types for our new simplified Notion blocks format
 type NotionAnnotation = {
@@ -32,7 +32,10 @@ type NotionBlock = {
   annotations?: NotionAnnotation[];
   children?: NotionBlock[];
   url?: string; // For backward compatibility
-  _counter?: number; // Add this to support the numbered list counter
+  _counter?: number; // Added for numbered list counter support
+  table_width?: number;
+  has_row_header?: boolean;
+  has_column_header?: boolean;
 };
 
 interface NotionRendererProps {
@@ -50,6 +53,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   let listItems: React.ReactNode[] = [];
 
   const renderAnnotatedText = (text: string, annotations?: NotionAnnotation[]) => {
+    if (!text) return null;
+    
     if (!annotations || annotations.length === 0) {
       return text;
     }
@@ -171,7 +176,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // Apply special styling to make them consistent with the list appearance
     if (block.type === "paragraph" && block.text && depth > 0) {
       return (
-        <div key={`paragraph-${index}`} className="pl-0 my-1 text-muted-foreground">
+        <div key={`paragraph-${index}`} className="pl-0 my-1">
           {block.annotations ? renderAnnotatedText(block.text, block.annotations) : block.text}
         </div>
       );
@@ -214,6 +219,13 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         }
         
         // Add the item to the current list
+        const counter = listType === "numbered_list" ? listCounters.getNextCount(childListPath) : undefined;
+        
+        // Set the counter for use in rendering
+        if (listType === "numbered_list") {
+          (child as NotionBlock & { _counter: number })._counter = counter || 0;
+        }
+        
         const itemContent = (
           <React.Fragment>
             {child.text && (child.annotations ? renderAnnotatedText(child.text, child.annotations) : child.text)}
@@ -279,7 +291,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
 
   // Render just the content of a single block, without handling children
   const renderBlockContent = (block: NotionBlock, index: number, depth: number = 0, listPath: string = 'root'): React.ReactNode => {
-    const { type, text, annotations, checked, media_url, media_type, caption, language } = block;
+    const { type, text, checked, media_url, media_type, caption, language } = block;
     
     // Handle both formats: older format uses media_url, newer format might use url
     const imageUrl = media_url || block.url;
@@ -443,13 +455,13 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           </h3>
         );
       case "paragraph":
-        // Special styling for paragraphs inside numbered lists to match indentation
-        // This is specifically for the "Goal: Increase buyback rates" case
+        // Enhanced styling for paragraphs inside lists to match indentation
+        // Note the change here to not add text-muted-foreground for paragraphs inside lists
         const isNestedParagraph = depth > 0;
         return (
           <p key={`p-${listPath}-${index}`} className={cn(
             "my-3", 
-            isNestedParagraph && "pl-4 text-gray-700"
+            isNestedParagraph && "pl-4"
           )}>
             {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
           </p>
@@ -499,6 +511,36 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
             </summary>
           </details>
         );
+      case "table":
+        return (
+          <div key={`table-${listPath}-${index}`} className="my-4 overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 border">
+              {block.children && block.children.map((row, rowIndex) => (
+                <tr key={`row-${rowIndex}`} className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                  {row.children && row.children.map((cell, cellIndex) => {
+                    const isHeader = (block.has_column_header && rowIndex === 0) || 
+                                    (block.has_row_header && cellIndex === 0);
+                    const CellTag = isHeader ? 'th' : 'td';
+                    return (
+                      <CellTag 
+                        key={`cell-${cellIndex}`}
+                        className={cn(
+                          "px-4 py-2 border text-left",
+                          isHeader && "font-semibold bg-gray-100"
+                        )}
+                      >
+                        {cell.text && (cell.annotations ? 
+                          renderAnnotatedText(cell.text, cell.annotations) : 
+                          cell.text
+                        )}
+                      </CellTag>
+                    );
+                  })}
+                </tr>
+              ))}
+            </table>
+          </div>
+        );
       case "div":
         // Special container type for nesting
         return null;
@@ -546,7 +588,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         Object.values(numberedListGroups).forEach(group => {
           // Add a counter attribute to each item that will be used for rendering
           group.forEach((item, index) => {
-            // Make sure to use TypeScript assertion since we added _counter to the type
+            // Use TypeScript assertion to add _counter to the item
             (item as NotionBlock & { _counter: number })._counter = index + 1;
           });
         });
@@ -592,6 +634,12 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           if (listType === "numbered_list") {
             listCounters.resetCounter(currentListPath);
           }
+        }
+        
+        // Set the counter for the item if it's a numbered list
+        if (listType === "numbered_list") {
+          const counter = listCounters.getNextCount(currentListPath);
+          (block as NotionBlock & { _counter: number })._counter = counter;
         }
         
         // Render the list item with its content and children
