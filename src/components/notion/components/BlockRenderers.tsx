@@ -48,7 +48,7 @@ export const HeadingRenderer: React.FC<BlockRendererProps> = ({ block, index, li
 // Component for paragraphs
 export const ParagraphRenderer: React.FC<BlockRendererProps> = ({ block, index, depth, listPath }) => {
   // Keep consistent spacing
-  const className = "my-3";
+  const className = "my-2";
   
   return (
     <p key={`p-${listPath}-${index}`} className={className}>
@@ -71,7 +71,7 @@ export const TodoRenderer: React.FC<BlockRendererProps> = ({ block, index, listP
   const { checked } = block;
   
   return (
-    <div key={`todo-${listPath}-${index}`} className="flex items-start gap-2 my-3">
+    <div key={`todo-${listPath}-${index}`} className="flex items-start gap-2 my-2">
       <input 
         type="checkbox" 
         checked={checked} 
@@ -122,7 +122,7 @@ export const ToggleRenderer: React.FC<BlockRendererProps> = ({ block, index, lis
   const { emoji, children } = block;
   
   return (
-    <Collapsible key={`toggle-${listPath}-${index}`} className="my-3 border border-muted rounded-md">
+    <Collapsible key={`toggle-${listPath}-${index}`} className="my-2 border border-muted rounded-md">
       <CollapsibleTrigger className="p-3 w-full flex items-center justify-between text-left font-medium hover:bg-muted/50">
         <div className="flex items-center">
           {emoji && <span className="mr-2">{renderIcon({emoji})}</span>}
@@ -224,7 +224,7 @@ export const EquationRenderer: React.FC<BlockRendererProps> = ({ block, index, l
   const { text } = block;
   
   return (
-    <div key={`equation-${listPath}-${index}`} className="my-3 px-2 py-1 bg-gray-50 font-mono text-sm overflow-x-auto">
+    <div key={`equation-${listPath}-${index}`} className="my-2 px-2 py-1 bg-gray-50 font-mono text-sm overflow-x-auto">
       {text && <code>{text}</code>}
     </div>
   );
@@ -281,7 +281,7 @@ export const MediaBlockRenderer: React.FC<BlockRendererProps> = ({ block, index,
 export const DefaultBlockRenderer: React.FC<BlockRendererProps> = ({ block, index, listPath }) => {
   if (block.text) {
     return (
-      <div key={`default-${listPath}-${index}`} className="my-3">
+      <div key={`default-${listPath}-${index}`} className="my-2">
         {renderTextWithLineBreaks(block)}
       </div>
     );
