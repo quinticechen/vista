@@ -142,7 +142,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         <li key={`${listPath}-list-${index}`} className="my-2">
           {renderTextWithLineBreaks(block)}
           {childrenElements.length > 0 && (
-            // Keep small indentation at ml-2 (0.5rem/8px) 
+            // Keep consistent spacing, with just enough indent (0.5rem/8px)
             <div className="ml-2 mt-2">
               {childrenElements}
             </div>
