@@ -13,7 +13,7 @@ import { ImageAspectRatio } from "@/components/ImageAspectRatio";
 import { cn, formatDate } from "@/lib/utils";
 import { Json } from "@/integrations/supabase/types";
 
-// Define extended ContentItem type to include HEIC-related properties
+// Update ExtendedContentItem type to include cover_image and is_heic_cover
 interface ExtendedContentItem {
   id: string;
   title: string;
@@ -27,14 +27,37 @@ interface ExtendedContentItem {
   end_date?: string;
   user_id: string;
   notion_page_status?: string;
-  cover_image?: string; // Optional field for cover image
-  is_heic_cover?: boolean; // Flag for HEIC image format
+  cover_image?: string; // Make sure this is explicitly defined
+  is_heic_cover?: boolean; // Make sure this is explicitly defined
   notion_page_id?: string;
   similarity?: number;
   embedding?: string | null;
   content_translations?: any;
   description_translations?: any;
   title_translations?: any;
+}
+
+// Define the content item type returned from Supabase to match the database schema
+interface ContentItemFromDB {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  content?: Json; 
+  created_at?: string;
+  updated_at?: string;
+  start_date?: string;
+  end_date?: string;
+  user_id: string;
+  notion_page_status?: string;
+  notion_page_id?: string;
+  embedding?: string | null;
+  content_translations?: Json;
+  description_translations?: Json;
+  title_translations?: Json;
+  cover_image?: string; // Adding these fields to match what's used in the code
+  is_heic_cover?: boolean;
 }
 
 const UrlParamContentDetail = () => {
@@ -74,7 +97,7 @@ const UrlParamContentDetail = () => {
         setOwnerProfile(profile);
         
         // Load content item
-        const contentItem = await getContentItemById(contentId);
+        const contentItem = await getContentItemById(contentId) as ContentItemFromDB;
         if (!contentItem) {
           toast.error("Content not found");
           navigate(`/${urlParam}/vista`);
@@ -221,13 +244,12 @@ const UrlParamContentDetail = () => {
 
         // Check if cover image is HEIC
         if (contentItem.cover_image && isHeicImage(contentItem.cover_image)) {
-          // Add this property to the contentItem object
-          (contentItem as any).is_heic_cover = true;
+          contentItem.is_heic_cover = true;
           console.warn("HEIC cover image detected:", contentItem.cover_image);
         }
         
-        // Cast the content item to our ExtendedContentItem type with proper type assertion
-        setContent(contentItem as unknown as ExtendedContentItem);
+        // Cast to ExtendedContentItem with explicit type assertion
+        setContent(contentItem as ExtendedContentItem);
       } catch (error) {
         console.error("Error loading content:", error);
         toast.error("Error loading content");
