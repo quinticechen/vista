@@ -144,7 +144,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           {renderTextWithLineBreaks(block)}
           {childrenElements.length > 0 && (
             // Use consistent 8px (2rem) indentation for nested content within a list item
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 space-y-2">
               {childrenElements}
             </div>
           )}
@@ -161,7 +161,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         <React.Fragment key={`${listPath}-frag-${index}`}>
           {blockContent}
           {childrenElements.length > 0 && (
-            <div className={depth > 0 ? "mt-3 space-y-3" : "space-y-3"}>
+            <div className={depth > 0 ? "mt-3 space-y-2" : "space-y-2"}>
               {childrenElements}
             </div>
           )}
@@ -313,7 +313,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   try {
     // Fix numbered lists and group list items
     const fixedBlocks = fixNumberedLists(blocks);
-    return <div className={cn("notion-content space-y-4", className)}>{groupListItems(fixedBlocks)}</div>;
+    return <div className={cn("notion-content space-y-2", className)}>{groupListItems(fixedBlocks)}</div>;
   } catch (error) {
     console.error("Error rendering Notion content:", error);
     toast.error("There was a problem rendering the content. Please try again later.");
