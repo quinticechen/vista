@@ -144,7 +144,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           {renderTextWithLineBreaks(block)}
           {childrenElements.length > 0 && (
             // Consistent 4-space (1rem) indentation for nested content within a list item
-            <div className="mt-1 ml-4 space-y-1">
+            <div className="mt-1 space-y-1">
               {childrenElements}
             </div>
           )}
@@ -161,7 +161,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         <React.Fragment key={`${listPath}-frag-${index}`}>
           {blockContent}
           {childrenElements.length > 0 && (
-            <div className={depth > 0 ? "mt-1 ml-4 space-y-1" : "space-y-1"}>
+            <div className={depth > 0 ? "mt-1 space-y-1" : "space-y-1"}>
               {childrenElements}
             </div>
           )}
