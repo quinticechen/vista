@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -56,12 +55,18 @@ const UrlParamContentDetail = () => {
         
         console.log("Content loaded successfully:", contentItem);
         
-        // Preprocessing for nested list structures (if needed)
+        // Preprocessing for nested list structures and other complex elements
         if (contentItem.content && Array.isArray(contentItem.content)) {
-          // Process the content to ensure icons are properly handled
+          // Process the content to properly handle all elements
           const processedContent = contentItem.content.map((block: any) => {
             // Deep clone to avoid modifying the original
-            const processedBlock = { ...block };
+            const processedBlock = JSON.parse(JSON.stringify(block));
+            
+            // Process line breaks in text
+            if (processedBlock.text && typeof processedBlock.text === 'string') {
+              // Keep line breaks intact for proper rendering
+              processedBlock.text = processedBlock.text;
+            }
             
             // Process any icon objects to ensure they're safely renderable
             if (processedBlock.icon && typeof processedBlock.icon === 'object') {
@@ -69,6 +74,13 @@ const UrlParamContentDetail = () => {
               if (processedBlock.icon.emoji) {
                 processedBlock.emoji = processedBlock.icon.emoji;
               }
+            }
+            
+            // Process nested lists to ensure proper hierarchy
+            if ((processedBlock.type === "bulleted_list_item" || processedBlock.type === "numbered_list_item") 
+                && !processedBlock.list_type) {
+              processedBlock.list_type = processedBlock.type === "bulleted_list_item" ? "bulleted_list" : "numbered_list";
+              processedBlock.is_list_item = true;
             }
             
             // Process for tables - ensure they have proper structure
@@ -83,7 +95,7 @@ const UrlParamContentDetail = () => {
             }
             
             // Process for columns - ensure proper structure
-            if (processedBlock.type === 'column_list' && processedBlock.children) {
+            if ((processedBlock.type === 'column_list' || processedBlock.type === 'column') && processedBlock.children) {
               // Make sure each column has proper structure
               processedBlock.children = processedBlock.children.map((column: any) => {
                 if (!column.children) {
@@ -98,11 +110,49 @@ const UrlParamContentDetail = () => {
               processedBlock.children = [];
             }
             
+            // Process text with annotations to ensure styles are applied correctly
+            if (processedBlock.annotations && processedBlock.annotations.length > 0) {
+              processedBlock.annotations = processedBlock.annotations.map((ann: any) => {
+                // Fix background colors by ensuring proper format
+                if (ann.color && ann.color.includes("background")) {
+                  ann.color = ann.color.replace("background", "_background");
+                }
+                return ann;
+              });
+            }
+            
+            // Recursively process children
+            if (processedBlock.children && Array.isArray(processedBlock.children)) {
+              processedBlock.children = processedBlock.children.map((child: any) => {
+                // Process each child block using the same logic
+                const processedChild = JSON.parse(JSON.stringify(child));
+                
+                // Fix list types for nested items
+                if ((processedChild.type === "bulleted_list_item" || processedChild.type === "numbered_list_item") 
+                    && !processedChild.list_type) {
+                  processedChild.list_type = processedChild.type === "bulleted_list_item" ? "bulleted_list" : "numbered_list";
+                  processedChild.is_list_item = true;
+                }
+                
+                // Handle nested annotations
+                if (processedChild.annotations && processedChild.annotations.length > 0) {
+                  processedChild.annotations = processedChild.annotations.map((ann: any) => {
+                    if (ann.color && ann.color.includes("background")) {
+                      ann.color = ann.color.replace("background", "_background");
+                    }
+                    return ann;
+                  });
+                }
+                
+                return processedChild;
+              });
+            }
+            
             return processedBlock;
           });
           
           contentItem.content = processedContent;
-          console.log("Content has array structure, ready for rendering");
+          console.log("Content has been preprocessed, ready for rendering");
         }
         
         setContent(contentItem);

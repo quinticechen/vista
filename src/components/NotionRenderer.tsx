@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -59,6 +58,19 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   const renderAnnotatedText = (text: string, annotations?: NotionAnnotation[]) => {
     if (!text) return null;
     
+    // Handle line breaks in text
+    if (text.includes('\n')) {
+      const segments = text.split('\n').map((segment, index, array) => {
+        return (
+          <React.Fragment key={`segment-${index}`}>
+            {segment}
+            {index < array.length - 1 && <br />}
+          </React.Fragment>
+        );
+      });
+      return segments;
+    }
+    
     if (!annotations || annotations.length === 0) {
       return text;
     }
@@ -88,8 +100,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           annotation.underline && "underline",
           annotation.strikethrough && "line-through",
           annotation.code && "font-mono bg-muted rounded px-1 py-0.5",
-          annotation.color && `text-${annotation.color}-500`,
-          annotation.color && annotation.color.includes("background") && `bg-${annotation.color.replace("background_", "")}-100`
+          annotation.color && `text-${annotation.color.replace('_background', '')}-500`,
+          annotation.color && annotation.color.includes("_background") && `bg-${annotation.color.replace("_background", "")}-100`
         );
         
         const content = (
@@ -129,8 +141,9 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       if (!annotationText) return null;
       
       // Handle background colors
-      const isBackgroundColor = color && color.includes("background_");
-      const bgColorClass = isBackgroundColor ? `bg-${color.replace("background_", "")}-100` : "";
+      const isBackgroundColor = color && color.includes("_background");
+      const colorName = color ? color.replace('_background', '') : '';
+      const bgColorClass = isBackgroundColor ? `bg-${colorName}-100` : "";
       
       const styles = cn(
         bold && "font-bold",
@@ -138,7 +151,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         underline && "underline",
         strikethrough && "line-through",
         code && "font-mono bg-muted rounded px-1 py-0.5",
-        color && !isBackgroundColor && color !== "default" && `text-${color}-500`,
+        color && !isBackgroundColor && color !== "default" && `text-${colorName}-500`,
         bgColorClass
       );
 
@@ -206,8 +219,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // Apply special styling to make them consistent with the list appearance
     if (block.type === "paragraph" && block.text && depth > 0) {
       return (
-        <div key={`paragraph-${index}`} className="pl-0 my-1">
-          {block.annotations ? renderAnnotatedText(block.text, block.annotations) : block.text}
+        <div key={`paragraph-${index}`} className="my-1">
+          {renderTextWithLineBreaks(block)}
         </div>
       );
     }
@@ -258,7 +271,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         
         const itemContent = (
           <React.Fragment>
-            {child.text && (child.annotations ? renderAnnotatedText(child.text, child.annotations) : child.text)}
+            {child.text && renderTextWithLineBreaks(child)}
             {child.children && child.children.length > 0 && renderNestedContent({ type: "div", children: child.children }, i, depth + 1, `${childListPath}-${i}`)}
           </React.Fragment>
         );
@@ -291,7 +304,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       return (
         <li key={`${listPath}-list-${index}`} className="my-1">
           {blockContent}
-          {childrenElements.length > 0 && <div className="pl-4 mt-1">{childrenElements}</div>}
+          {childrenElements.length > 0 && <div className="ml-6 mt-1">{childrenElements}</div>}
         </li>
       );
     } else if (block.type === "toggle") {
@@ -299,7 +312,10 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       return (
         <Collapsible key={`toggle-${listPath}-${index}`} className="my-2 border border-muted rounded-md">
           <CollapsibleTrigger className="p-3 w-full flex items-center justify-between text-left font-medium hover:bg-muted/50">
-            <span>{block.annotations && block.text ? renderAnnotatedText(block.text, block.annotations) : block.text}</span>
+            <div className="flex items-center">
+              <span className="mr-2">{block.emoji && renderIcon({emoji: block.emoji})}</span>
+              <span>{block.annotations && block.text ? renderAnnotatedText(block.text, block.annotations) : block.text}</span>
+            </div>
             <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 ui-open:rotate-180" />
           </CollapsibleTrigger>
           <CollapsibleContent className="p-3 pt-0 border-t">
@@ -311,22 +327,27 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       return (
         <React.Fragment key={`${listPath}-frag-${index}`}>
           {blockContent}
-          {childrenElements.length > 0 && <div className={depth > 0 ? "pl-4 mt-1" : ""}>{childrenElements}</div>}
+          {childrenElements.length > 0 && <div className={depth > 0 ? "ml-6 mt-1" : ""}>{childrenElements}</div>}
         </React.Fragment>
       );
     }
+  };
+
+  // Helper function to render text with line breaks
+  const renderTextWithLineBreaks = (block: NotionBlock) => {
+    return block.annotations && block.text ? renderAnnotatedText(block.text, block.annotations) : block.text;
   };
 
   // Helper to render list groups
   const renderListGroup = (listType: string | null, items: React.ReactNode[], depth: number = 0, listPath: string = 'root'): React.ReactNode => {
     if (!listType || items.length === 0) return null;
     
-    const className = `pl-${depth > 0 ? 4 : 0} my-2`;
+    const className = depth > 0 ? "ml-6 my-2" : "my-2";
     
     if (listType === "numbered_list") {
-      return <ol key={`numbered-list-${listPath}`} className={`list-decimal ${className}`} style={{ marginLeft: depth > 0 ? "1.5rem" : 0 }}>{items}</ol>;
+      return <ol key={`numbered-list-${listPath}`} className={`list-decimal ${className}`}>{items}</ol>;
     } else if (listType === "bulleted_list") {
-      return <ul key={`bulleted-list-${listPath}`} className={`list-disc ${className}`} style={{ marginLeft: depth > 0 ? "1.5rem" : 0 }}>{items}</ul>;
+      return <ul key={`bulleted-list-${listPath}`} className={`list-disc ${className}`}>{items}</ul>;
     }
     
     return null;
@@ -344,7 +365,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
       // We handle list items at a higher level
       if (text) {
-        return block.annotations ? renderAnnotatedText(text, block.annotations) : text;
+        return renderTextWithLineBreaks(block);
       }
       return null;
     }
@@ -482,40 +503,35 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       case "heading_1":
         return (
           <h1 key={`h1-${listPath}-${index}`} className="text-3xl font-bold mt-8 mb-4">
-            {block.emoji && <span className="mr-2">{block.emoji}</span>}
-            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
+            {block.emoji && <span className="mr-2">{renderIcon({emoji: block.emoji})}</span>}
+            {renderTextWithLineBreaks(block)}
           </h1>
         );
       case "heading_2":
         return (
           <h2 key={`h2-${listPath}-${index}`} className="text-2xl font-bold mt-6 mb-3">
-            {block.emoji && <span className="mr-2">{block.emoji}</span>}
-            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
+            {block.emoji && <span className="mr-2">{renderIcon({emoji: block.emoji})}</span>}
+            {renderTextWithLineBreaks(block)}
           </h2>
         );
       case "heading_3":
         return (
           <h3 key={`h3-${listPath}-${index}`} className="text-xl font-bold mt-5 mb-2">
-            {block.emoji && <span className="mr-2">{block.emoji}</span>}
-            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
+            {block.emoji && <span className="mr-2">{renderIcon({emoji: block.emoji})}</span>}
+            {renderTextWithLineBreaks(block)}
           </h3>
         );
       case "paragraph":
         // Enhanced styling for paragraphs inside lists to match indentation
-        // Note the change here to not add text-muted-foreground for paragraphs inside lists
-        const isNestedParagraph = depth > 0;
         return (
-          <p key={`p-${listPath}-${index}`} className={cn(
-            "my-3", 
-            isNestedParagraph && "pl-4"
-          )}>
-            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
+          <p key={`p-${listPath}-${index}`} className="my-3">
+            {renderTextWithLineBreaks(block)}
           </p>
         );
       case "quote":
         return (
           <blockquote key={`quote-${listPath}-${index}`} className="border-l-4 border-muted pl-4 py-1 my-4 italic">
-            {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
+            {renderTextWithLineBreaks(block)}
           </blockquote>
         );
       case "to_do":
@@ -528,20 +544,20 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
               className="mt-1"
             />
             <span className={cn(checked && "line-through text-muted-foreground")}>
-              {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
+              {renderTextWithLineBreaks(block)}
             </span>
           </div>
         );
       case "divider":
-        return <hr key={`divider-${listPath}-${index}`} className="my-6 border-t border-muted" />;
+        return <hr key={`divider-${listPath}-${index}`} className="my-6 border-t border-gray-300" />;
       case "callout":
         return (
           <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
             {(block.icon || block.emoji) && (
-              <div className="text-xl leading-none">{renderIcon(block.icon) || block.emoji}</div>
+              <div className="text-xl leading-none pt-1">{renderIcon(block.icon) || block.emoji}</div>
             )}
             <div className="flex-1">
-              {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
+              {renderTextWithLineBreaks(block)}
               {block.children && block.children.length > 0 && (
                 <div className="mt-2">
                   {block.children.map((child, idx) => renderNestedContent(child, idx, 0, `${listPath}-callout-${idx}`))}
@@ -581,10 +597,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
                             isHeader && "font-semibold bg-gray-100"
                           )}
                         >
-                          {cell.text && (cell.annotations ? 
-                            renderAnnotatedText(cell.text, cell.annotations) : 
-                            cell.text
-                          )}
+                          {cell.text && renderTextWithLineBreaks(cell)}
                         </CellTag>
                       );
                     })}
@@ -617,6 +630,15 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
             ))}
           </div>
         );
+      case "column":
+        if (!block.children || block.children.length === 0) return null;
+        return (
+          <div key={`column-${listPath}-${index}`} className="flex flex-col">
+            {block.children.map((child, childIndex) => (
+              renderNestedContent(child, childIndex, 0, `${listPath}-column-${childIndex}`)
+            ))}
+          </div>
+        );
       case "equation":
         return (
           <div key={`equation-${listPath}-${index}`} className="my-2 px-2 py-1 bg-gray-50 font-mono text-sm overflow-x-auto">
@@ -630,7 +652,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         if (text) {
           return (
             <div key={`default-${listPath}-${index}`} className="my-2">
-              {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
+              {renderTextWithLineBreaks(block)}
             </div>
           );
         }
