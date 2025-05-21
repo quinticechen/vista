@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -222,11 +221,12 @@ const UrlParamContentDetail = () => {
 
         // Check if cover image is HEIC
         if (contentItem.cover_image && isHeicImage(contentItem.cover_image)) {
-          contentItem.is_heic_cover = true;
+          // Add this property to the contentItem object
+          (contentItem as any).is_heic_cover = true;
           console.warn("HEIC cover image detected:", contentItem.cover_image);
         }
         
-        // Cast the content item to our ExtendedContentItem type
+        // Cast the content item to our ExtendedContentItem type with proper type assertion
         setContent(contentItem as unknown as ExtendedContentItem);
       } catch (error) {
         console.error("Error loading content:", error);
