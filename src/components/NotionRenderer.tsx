@@ -4,7 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Toggle } from "@/components/ui/toggle";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import ImageAspectRatio from "@/components/ui/image-aspect-ratio";
+import { ImageAspectRatio } from "@/components/ImageAspectRatio";
 
 // Define the types for our new simplified Notion blocks format
 type NotionAnnotation = {

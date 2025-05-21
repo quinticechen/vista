@@ -13,10 +13,34 @@ import NotionRenderer from "@/components/NotionRenderer";
 import { ImageAspectRatio } from "@/components/ImageAspectRatio";
 import { cn, formatDate } from "@/lib/utils";
 
+// Define extended ContentItem type to include HEIC-related properties
+interface ExtendedContentItem {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  content?: any[];
+  created_at?: string;
+  updated_at?: string;
+  start_date?: string;
+  end_date?: string;
+  user_id: string;
+  notion_page_status?: string;
+  cover_image?: string;
+  is_heic_cover?: boolean;
+  notion_page_id?: string;
+  similarity?: number;
+  embedding?: string;
+  content_translations?: any;
+  description_translations?: any;
+  title_translations?: any;
+}
+
 const UrlParamContentDetail = () => {
   const { urlParam, contentId } = useParams<{ urlParam: string, contentId: string }>();
   const navigate = useNavigate();
-  const [content, setContent] = useState<any>(null);
+  const [content, setContent] = useState<ExtendedContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
 
