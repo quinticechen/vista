@@ -83,7 +83,6 @@ const findMediaBlock = (content: Json | any[] | undefined): any => {
     if (!mediaBlock.media_url && mediaBlock.url) {
       mediaBlock.media_url = mediaBlock.url;
     }
-    console.log("Found media block:", mediaBlock);
   }
   
   return mediaBlock;
@@ -98,19 +97,26 @@ export const ContentDisplayItem = ({
   const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
   
-  // Add more debug logging to isolate the issue
-  console.log(`Processing ContentDisplay for item ${content.id}: ${content.title}`);
-  console.log("Content structure:", content.content);
-  
   // Deep check content's structure to find images
+  const normalizedContent = { ...content };
+  
+  // If content.content is a string, try to parse it
+  if (normalizedContent.content && typeof normalizedContent.content === 'string') {
+    try {
+      normalizedContent.content = JSON.parse(normalizedContent.content);
+    } catch (e) {
+      console.error(`Error parsing content for item ${content.id}:`, e);
+    }
+  }
+  
   // Check for cover image first, then look for media in content
-  const hasCoverImage = !!content.cover_image;
-  const mediaBlock = !hasCoverImage ? findMediaBlock(content.content) : null;
-  const mediaUrl = hasCoverImage ? content.cover_image : (mediaBlock?.media_url || null);
+  const hasCoverImage = !!normalizedContent.cover_image;
+  const mediaBlock = !hasCoverImage ? findMediaBlock(normalizedContent.content) : null;
+  const mediaUrl = hasCoverImage ? normalizedContent.cover_image : (mediaBlock?.media_url || null);
   
   // Enhanced logging for debugging media detection
-  console.log(`ContentDisplay - Content ID: ${content.id}, Title: ${content.title}`);
-  console.log(`ContentDisplay - Has cover image: ${hasCoverImage}, Cover image URL: ${content.cover_image}`);
+  console.log(`ContentDisplay - Content ID: ${normalizedContent.id}, Title: ${normalizedContent.title}`);
+  console.log(`ContentDisplay - Has cover image: ${hasCoverImage}, Cover image URL: ${normalizedContent.cover_image}`);
   console.log(`ContentDisplay - Media block found:`, mediaBlock);
   console.log(`ContentDisplay - Final mediaUrl: ${mediaUrl}`);
   
@@ -118,15 +124,15 @@ export const ContentDisplayItem = ({
   const isMediaRight = index % 2 === 0;
   
   // Determine orientation - check from content property first, then from mediaBlock
-  const orientation = content.orientation || mediaBlock?.orientation || 'landscape';
+  const orientation = normalizedContent.orientation || mediaBlock?.orientation || 'landscape';
   const isPortrait = orientation === 'portrait';
   
   // Function to get the correct detail route
   const getDetailRoute = () => {
     if (urlPrefix) {
-      return `${urlPrefix}/vista/${content.id}`;
+      return `${urlPrefix}/vista/${normalizedContent.id}`;
     }
-    return `/vista/${content.id}`;
+    return `/vista/${normalizedContent.id}`;
   };
 
   return (
@@ -137,49 +143,49 @@ export const ContentDisplayItem = ({
       <div className={`${hasMedia ? 'w-1/2' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'} justify-center`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-2 mb-1">
-            {content.category && (
+            {normalizedContent.category && (
               <Badge variant="outline" className="text-xs">
-                {content.category}
+                {normalizedContent.category}
               </Badge>
             )}
 
-            {(content.start_date || content.end_date) && (
+            {(normalizedContent.start_date || normalizedContent.end_date) && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3 mr-1" />
                 <span>
-                  {formatDate(content.start_date)}
-                  {content.end_date && content.start_date !== content.end_date && 
-                    ` - ${formatDate(content.end_date)}`}
+                  {formatDate(normalizedContent.start_date)}
+                  {normalizedContent.end_date && normalizedContent.start_date !== normalizedContent.end_date && 
+                    ` - ${formatDate(normalizedContent.end_date)}`}
                 </span>
               </div>
             )}
           </div>
 
           <h3 className="text-lg font-medium leading-tight group-hover:text-primary transition-colors duration-200">
-            {content.title}
+            {normalizedContent.title}
           </h3>
         </CardHeader>
         
         <CardContent className="pb-2 flex-grow">
           {/* Description display */}
-          {content.description && (
+          {normalizedContent.description && (
             <p className="text-sm text-muted-foreground line-clamp-4">
-              {content.description}
+              {normalizedContent.description}
             </p>
           )}
         </CardContent>
 
         <CardFooter className="flex flex-col items-start pt-2 gap-2">
           <div className="flex flex-wrap gap-1 w-full">
-            {content.tags && content.tags.slice(0, 3).map((tag, i) => (
+            {normalizedContent.tags && normalizedContent.tags.slice(0, 3).map((tag, i) => (
               <Badge key={i} variant="secondary" className="text-xs">
                 {tag}
               </Badge>
             ))}
 
-            {content.tags && content.tags.length > 3 && (
+            {normalizedContent.tags && normalizedContent.tags.length > 3 && (
               <Badge variant="secondary" className="text-xs">
-                +{content.tags.length - 3}
+                +{normalizedContent.tags.length - 3}
               </Badge>
             )}
           </div>
@@ -187,12 +193,12 @@ export const ContentDisplayItem = ({
           <div className="flex items-center justify-between w-full mt-2">
             <div className="flex items-center text-xs text-muted-foreground">
               <Clock className="h-3 w-3 mr-1" />
-              <span>{formatDate(content.created_at)}</span>
+              <span>{formatDate(normalizedContent.created_at)}</span>
             </div>
 
-            {content.similarity !== undefined && (
+            {normalizedContent.similarity !== undefined && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                {Math.round(content.similarity * 100)}% match
+                {Math.round(normalizedContent.similarity * 100)}% match
               </span>
             )}
           </div>
@@ -215,10 +221,10 @@ export const ContentDisplayItem = ({
           {hasCoverImage || (mediaBlock?.media_type === 'image') ? (
             <ImageAspectRatio
               src={mediaUrl}
-              alt={hasCoverImage ? content.title : (mediaBlock?.caption || content.title)}
+              alt={hasCoverImage ? normalizedContent.title : (mediaBlock?.caption || normalizedContent.title)}
               className="h-full"
               size={isPortrait ? 'portrait' : 'landscape'}
-              isHeic={content.is_heic_cover}
+              isHeic={normalizedContent.is_heic_cover}
             />
           ) : mediaBlock?.media_type === 'video' ? (
             <div className="w-full h-full">

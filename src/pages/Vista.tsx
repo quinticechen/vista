@@ -143,8 +143,62 @@ const Vista = () => {
         setLoading(false);
       }
     };
-
+    
     fetchContentItems();
+    
+    // Save/restore state to sessionStorage for page refreshes
+    const saveViewState = () => {
+      if (contentItems.length > 0) {
+        try {
+          sessionStorage.setItem('vista-items', JSON.stringify(contentItems));
+          sessionStorage.setItem('vista-showing-search', String(showingSearchResults));
+          sessionStorage.setItem('vista-search-query', searchQuery);
+          sessionStorage.setItem('vista-search-purpose', searchPurpose || '');
+        } catch (e) {
+          console.error("Error saving view state to sessionStorage:", e);
+        }
+      }
+    };
+    
+    const loadViewState = () => {
+      try {
+        const savedItems = sessionStorage.getItem('vista-items');
+        const savedShowingSearch = sessionStorage.getItem('vista-showing-search');
+        const savedSearchQuery = sessionStorage.getItem('vista-search-query');
+        const savedSearchPurpose = sessionStorage.getItem('vista-search-purpose');
+        
+        if (savedItems) {
+          const parsedItems = JSON.parse(savedItems);
+          if (parsedItems.length > 0) {
+            console.log("Restored items from session storage:", parsedItems.length);
+            setContentItems(parsedItems);
+            
+            if (savedShowingSearch === 'true') {
+              setShowingSearchResults(true);
+              console.log(`Restored search results view with query: ${savedSearchQuery || savedSearchPurpose}`);
+            }
+            
+            if (savedSearchQuery) {
+              setSearchQuery(savedSearchQuery);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error loading view state from sessionStorage:", e);
+      }
+    };
+    
+    // Initialize from session storage if we have it
+    window.addEventListener('beforeunload', saveViewState);
+    
+    // Only load from session storage if we're not already getting results from location state or URL params
+    if (!searchResults && !searchParams.get("search")) {
+      loadViewState();
+    }
+    
+    return () => {
+      window.removeEventListener('beforeunload', saveViewState);
+    };
   }, [searchResults, searchPurpose, searchTimestamp, searchParams]);
 
   // Perform search using semantic search
@@ -170,6 +224,15 @@ const Vista = () => {
         setContentItems(results);
         setShowingSearchResults(true);
         toast.success(`Found ${results.length} relevant items`);
+        
+        // Store search state
+        try {
+          sessionStorage.setItem('vista-items', JSON.stringify(results));
+          sessionStorage.setItem('vista-showing-search', 'true');
+          sessionStorage.setItem('vista-search-query', term);
+        } catch (e) {
+          console.error("Error saving search state to sessionStorage:", e);
+        }
       } else {
         console.log(`No results found for search: "${term}"`);
         setContentItems([]);
@@ -199,6 +262,15 @@ const Vista = () => {
     
     // Clear the search state but keep on same page
     navigate('/vista', { replace: true });
+    
+    // Clear search-specific session storage
+    try {
+      sessionStorage.setItem('vista-showing-search', 'false');
+      sessionStorage.setItem('vista-search-query', '');
+      sessionStorage.setItem('vista-search-purpose', '');
+    } catch (e) {
+      console.error("Error clearing search state in sessionStorage:", e);
+    }
   };
 
   // Get sorted content items - make sure the sort is applied directly before rendering

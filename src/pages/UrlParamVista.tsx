@@ -12,6 +12,7 @@ import { getProfileByUrlParam, getUserContentItems } from "@/services/urlParamSe
 import { semanticSearch } from "@/services/adminService";
 import { ContentItem } from "@/services/adminService";
 import { processNotionContent } from "@/utils/notionContentProcessor";
+import { Loader2 } from "lucide-react";
 
 const UrlParamVista = () => {
   const { urlParam } = useParams();
@@ -163,6 +164,61 @@ const UrlParamVista = () => {
     };
     
     loadData();
+    
+    // Use sessionStorage to store the current search state
+    const saveViewState = () => {
+      if (items.length > 0) {
+        try {
+          sessionStorage.setItem(`vista-${urlParam}-items`, JSON.stringify(items));
+          sessionStorage.setItem(`vista-${urlParam}-showing-search`, String(showingSearchResults));
+          sessionStorage.setItem(`vista-${urlParam}-search-query`, searchQuery);
+          sessionStorage.setItem(`vista-${urlParam}-search-purpose`, searchPurpose || '');
+        } catch (e) {
+          console.error("Error saving view state to sessionStorage:", e);
+        }
+      }
+    };
+    
+    // Load the saved state on mount if available
+    const loadViewState = () => {
+      try {
+        const savedItems = sessionStorage.getItem(`vista-${urlParam}-items`);
+        const savedShowingSearch = sessionStorage.getItem(`vista-${urlParam}-showing-search`);
+        const savedSearchQuery = sessionStorage.getItem(`vista-${urlParam}-search-query`);
+        const savedSearchPurpose = sessionStorage.getItem(`vista-${urlParam}-search-purpose`);
+        
+        if (savedItems) {
+          const parsedItems = JSON.parse(savedItems);
+          if (parsedItems.length > 0) {
+            console.log("Restored items from session storage:", parsedItems.length);
+            setItems(parsedItems);
+            
+            if (savedShowingSearch === 'true') {
+              setShowingSearchResults(true);
+              console.log(`Restored search results view with query: ${savedSearchQuery || savedSearchPurpose}`);
+            }
+            
+            if (savedSearchQuery) {
+              setSearchQuery(savedSearchQuery);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error loading view state from sessionStorage:", e);
+      }
+    };
+    
+    // Initialize from session storage if we have it
+    window.addEventListener('beforeunload', saveViewState);
+    
+    // Only load from session storage if we're not already getting results from location state
+    if (!searchResults && !searchParams.get("search")) {
+      loadViewState();
+    }
+    
+    return () => {
+      window.removeEventListener('beforeunload', saveViewState);
+    };
   }, [urlParam, searchResults, searchPurpose, searchTimestamp, navigate, searchParams]);
 
   const performSearch = async (term: string) => {
@@ -215,7 +271,6 @@ const UrlParamVista = () => {
             console.log(`Processing search result ${item.id}: ${item.title}`);
             const processed = deepProcessContent(item);
             console.log(`After processing search result: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
-            console.log(`Processed search result:`, processed);
             return processed;
           });
           
@@ -233,6 +288,15 @@ const UrlParamVista = () => {
           
           if (filteredResults.length === 0) {
             toast.warning(`No matches found for "${term}". Try different keywords.`, { duration: 5000 });
+          }
+          
+          // Store the search state in session storage
+          try {
+            sessionStorage.setItem(`vista-${urlParam}-items`, JSON.stringify(filteredResults));
+            sessionStorage.setItem(`vista-${urlParam}-showing-search`, 'true');
+            sessionStorage.setItem(`vista-${urlParam}-search-query`, term);
+          } catch (e) {
+            console.error("Error saving search state to sessionStorage:", e);
           }
         } catch (error) {
           console.error("Semantic search error:", error);
@@ -260,6 +324,15 @@ const UrlParamVista = () => {
     setShowingSearchResults(false);
     setSearchQuery("");
     navigate(`/${urlParam}/vista`, { replace: true });
+    
+    // Clear search-specific session storage
+    try {
+      sessionStorage.setItem(`vista-${urlParam}-showing-search`, 'false');
+      sessionStorage.setItem(`vista-${urlParam}-search-query`, '');
+      sessionStorage.setItem(`vista-${urlParam}-search-purpose`, '');
+    } catch (e) {
+      console.error("Error clearing search state in sessionStorage:", e);
+    }
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -357,8 +430,8 @@ const UrlParamVista = () => {
         </div>
         
         {isLoading ? (
-          <div className="py-20 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto"></div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin text-amber-500" />
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
               Searching for content...
             </p>
