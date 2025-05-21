@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -55,8 +56,10 @@ const UrlParamContentDetail = () => {
         
         console.log("Content loaded successfully:", contentItem);
         
-        // Preprocessing for nested list structures and other complex elements
+        // Preprocessing for Notion blocks
         if (contentItem.content && Array.isArray(contentItem.content)) {
+          console.log("Content has array structure, ready for rendering");
+          
           // Process the content to properly handle all elements
           const processedContent = contentItem.content.map((block: any) => {
             // Deep clone to avoid modifying the original
@@ -76,10 +79,14 @@ const UrlParamContentDetail = () => {
               }
             }
             
-            // Process nested lists to ensure proper hierarchy
-            if ((processedBlock.type === "bulleted_list_item" || processedBlock.type === "numbered_list_item") 
-                && !processedBlock.list_type) {
-              processedBlock.list_type = processedBlock.type === "bulleted_list_item" ? "bulleted_list" : "numbered_list";
+            // Process list types to ensure proper hierarchy and rendering
+            if (processedBlock.type === "bulleted_list_item" && !processedBlock.list_type) {
+              processedBlock.list_type = "bulleted_list";
+              processedBlock.is_list_item = true;
+            }
+            
+            if (processedBlock.type === "numbered_list_item" && !processedBlock.list_type) {
+              processedBlock.list_type = "numbered_list";
               processedBlock.is_list_item = true;
             }
             
@@ -128,9 +135,13 @@ const UrlParamContentDetail = () => {
                 const processedChild = JSON.parse(JSON.stringify(child));
                 
                 // Fix list types for nested items
-                if ((processedChild.type === "bulleted_list_item" || processedChild.type === "numbered_list_item") 
-                    && !processedChild.list_type) {
-                  processedChild.list_type = processedChild.type === "bulleted_list_item" ? "bulleted_list" : "numbered_list";
+                if (processedChild.type === "bulleted_list_item" && !processedChild.list_type) {
+                  processedChild.list_type = "bulleted_list";
+                  processedChild.is_list_item = true;
+                }
+                
+                if (processedChild.type === "numbered_list_item" && !processedChild.list_type) {
+                  processedChild.list_type = "numbered_list";
                   processedChild.is_list_item = true;
                 }
                 
@@ -152,7 +163,6 @@ const UrlParamContentDetail = () => {
           });
           
           contentItem.content = processedContent;
-          console.log("Content has been preprocessed, ready for rendering");
         }
         
         setContent(contentItem);

@@ -230,6 +230,17 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     
     // If there are no children, just return the block content
     if (!children || children.length === 0) {
+      // For list items without children, we need to wrap them in the appropriate list tag
+      if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
+        const listType = block.list_type || (block.type === "bulleted_list_item" ? "bulleted_list" : "numbered_list");
+        
+        return (
+          <li key={`${listPath}-item-${index}`} className="my-1">
+            {renderTextWithLineBreaks(block)}
+          </li>
+        );
+      }
+      
       return blockContent;
     }
     
@@ -239,6 +250,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     let childListItems: React.ReactNode[] = [];
     const childListPath = `${listPath}-${index}`;
     
+    // Group the children by their list types
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
       
@@ -269,18 +281,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           (child as NotionBlock & { _counter: number })._counter = counter || 0;
         }
         
-        const itemContent = (
-          <React.Fragment>
-            {child.text && renderTextWithLineBreaks(child)}
-            {child.children && child.children.length > 0 && renderNestedContent({ type: "div", children: child.children }, i, depth + 1, `${childListPath}-${i}`)}
-          </React.Fragment>
-        );
-        
-        childListItems.push(
-          <li key={`${childListPath}-item-${i}`} className="my-1">
-            {itemContent}
-          </li>
-        );
+        // Recursively render nested content
+        childListItems.push(renderNestedContent(child, i, depth + 1, `${childListPath}-${i}`));
       } else {
         // If we hit a non-list item and have existing list items, render the list first
         if (childListItems.length > 0) {
@@ -303,8 +305,12 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
       return (
         <li key={`${listPath}-list-${index}`} className="my-1">
-          {blockContent}
-          {childrenElements.length > 0 && <div className="ml-6 mt-1">{childrenElements}</div>}
+          {renderTextWithLineBreaks(block)}
+          {childrenElements.length > 0 && (
+            <div className="ml-4 mt-1">
+              {childrenElements}
+            </div>
+          )}
         </li>
       );
     } else if (block.type === "toggle") {
@@ -313,8 +319,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         <Collapsible key={`toggle-${listPath}-${index}`} className="my-2 border border-muted rounded-md">
           <CollapsibleTrigger className="p-3 w-full flex items-center justify-between text-left font-medium hover:bg-muted/50">
             <div className="flex items-center">
-              <span className="mr-2">{block.emoji && renderIcon({emoji: block.emoji})}</span>
-              <span>{block.annotations && block.text ? renderAnnotatedText(block.text, block.annotations) : block.text}</span>
+              {block.emoji && <span className="mr-2">{renderIcon({emoji: block.emoji})}</span>}
+              {block.text && <span>{renderTextWithLineBreaks(block)}</span>}
             </div>
             <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 ui-open:rotate-180" />
           </CollapsibleTrigger>
@@ -323,11 +329,32 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           </CollapsibleContent>
         </Collapsible>
       );
+    } else if (block.type === "callout") {
+      // Special handling for callout blocks
+      return (
+        <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
+          {(block.icon || block.emoji) && (
+            <div className="text-xl flex-shrink-0 mt-0.5">{renderIcon(block.icon) || block.emoji}</div>
+          )}
+          <div className="flex-1">
+            {block.text && renderTextWithLineBreaks(block)}
+            {childrenElements.length > 0 && (
+              <div className="mt-2">
+                {childrenElements}
+              </div>
+            )}
+          </div>
+        </div>
+      );
     } else {
       return (
         <React.Fragment key={`${listPath}-frag-${index}`}>
           {blockContent}
-          {childrenElements.length > 0 && <div className={depth > 0 ? "ml-6 mt-1" : ""}>{childrenElements}</div>}
+          {childrenElements.length > 0 && (
+            <div className={depth > 0 ? "ml-4 mt-1" : ""}>
+              {childrenElements}
+            </div>
+          )}
         </React.Fragment>
       );
     }
@@ -335,19 +362,22 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
 
   // Helper function to render text with line breaks
   const renderTextWithLineBreaks = (block: NotionBlock) => {
-    return block.annotations && block.text ? renderAnnotatedText(block.text, block.annotations) : block.text;
+    return block.annotations && block.text ? 
+      renderAnnotatedText(block.text, block.annotations) : 
+      renderAnnotatedText(block.text || "");
   };
 
   // Helper to render list groups
   const renderListGroup = (listType: string | null, items: React.ReactNode[], depth: number = 0, listPath: string = 'root'): React.ReactNode => {
     if (!listType || items.length === 0) return null;
     
-    const className = depth > 0 ? "ml-6 my-2" : "my-2";
+    // Use consistent indentation with 1rem (16px) per level
+    const className = "my-2";
     
     if (listType === "numbered_list") {
-      return <ol key={`numbered-list-${listPath}`} className={`list-decimal ${className}`}>{items}</ol>;
+      return <ol key={`numbered-list-${listPath}`} className={`list-decimal pl-8 ${className}`}>{items}</ol>;
     } else if (listType === "bulleted_list") {
-      return <ul key={`bulleted-list-${listPath}`} className={`list-disc ${className}`}>{items}</ul>;
+      return <ul key={`bulleted-list-${listPath}`} className={`list-disc pl-8 ${className}`}>{items}</ul>;
     }
     
     return null;
@@ -361,12 +391,9 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     const imageUrl = media_url || block.url;
     const videoUrl = media_url || block.url;
     
-    // Process list items separately to group them
+    // Special handling for list items - we now handle them differently
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
-      // We handle list items at a higher level
-      if (text) {
-        return renderTextWithLineBreaks(block);
-      }
+      // List items are now handled in renderNestedContent and renderListGroup
       return null;
     }
 
@@ -522,7 +549,6 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           </h3>
         );
       case "paragraph":
-        // Enhanced styling for paragraphs inside lists to match indentation
         return (
           <p key={`p-${listPath}-${index}`} className="my-3">
             {renderTextWithLineBreaks(block)}
@@ -549,20 +575,15 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           </div>
         );
       case "divider":
-        return <hr key={`divider-${listPath}-${index}`} className="my-6 border-t border-gray-300" />;
+        return <hr key={`divider-${listPath}-${index}`} className="my-6 border-t border-gray-400" />;
       case "callout":
         return (
           <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
             {(block.icon || block.emoji) && (
-              <div className="text-xl leading-none pt-1">{renderIcon(block.icon) || block.emoji}</div>
+              <div className="text-xl flex-shrink-0 mt-0.5">{renderIcon(block.icon) || block.emoji}</div>
             )}
             <div className="flex-1">
               {renderTextWithLineBreaks(block)}
-              {block.children && block.children.length > 0 && (
-                <div className="mt-2">
-                  {block.children.map((child, idx) => renderNestedContent(child, idx, 0, `${listPath}-callout-${idx}`))}
-                </div>
-              )}
             </div>
           </div>
         );
@@ -575,8 +596,23 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           </pre>
         );
       case "toggle":
-        // Note: The children will be handled in renderNestedContent
-        return null;
+        // Note: Toggle is now handled in renderNestedContent
+        return (
+          <Collapsible key={`toggle-${listPath}-${index}`} className="my-2 border border-muted rounded-md">
+            <CollapsibleTrigger className="p-3 w-full flex items-center justify-between text-left font-medium hover:bg-muted/50">
+              <div className="flex items-center">
+                {block.emoji && <span className="mr-2">{renderIcon({emoji: block.emoji})}</span>}
+                <span>{renderTextWithLineBreaks(block)}</span>
+              </div>
+              <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="p-3 pt-0 border-t">
+              {block.children && block.children.map((child, idx) => 
+                renderNestedContent(child, idx, 0, `${listPath}-toggle-${idx}`)
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        );
       case "table":
         if (!block.children || block.children.length === 0) return null;
         return (
@@ -665,117 +701,117 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // Deep clone the content to avoid mutating the original
     const fixedContent = JSON.parse(JSON.stringify(content));
     
-    // Fix the numbering in nested numbered lists
-    const processBlock = (block: NotionBlock) => {
-      // Process children if they exist
-      if (block.children?.length) {
-        // Collect numbered list items by their parent
-        const numberedListGroups: Record<string, NotionBlock[]> = {};
+    // Track list items at each level to correctly assign numbers
+    let listTracking: Record<string, { type: string, count: number }> = {};
+    
+    // Process blocks recursively to handle nested lists
+    const processBlocks = (blocks: NotionBlock[], path: string = 'root') => {
+      let currentListType: string | null = null;
+      let currentCount = 0;
+      
+      for (let i = 0; i < blocks.length; i++) {
+        const block = blocks[i];
         
-        // Group numbered list items
-        block.children.forEach(child => {
-          if (child.type === "numbered_list_item" || 
-              (child.is_list_item && child.list_type === "numbered_list")) {
-            // Create a key based on the parent and list type
-            const key = `numbered_list`;
-            if (!numberedListGroups[key]) {
-              numberedListGroups[key] = [];
-            }
-            numberedListGroups[key].push(child);
+        // Process this block if it's a list item
+        if (block.type === "numbered_list_item" || 
+            (block.is_list_item && block.list_type === "numbered_list")) {
+          
+          // Start or continue a numbered list
+          if (currentListType !== "numbered_list") {
+            currentListType = "numbered_list";
+            currentCount = 0;
           }
           
-          // Process this child's children recursively
-          processBlock(child);
-        });
+          // Increment the counter and assign it
+          currentCount++;
+          (block as NotionBlock & { _counter: number })._counter = currentCount;
+        } else if (block.type === "bulleted_list_item" || 
+                 (block.is_list_item && block.list_type === "bulleted_list")) {
+          // Encountered a different list type
+          currentListType = "bulleted_list";
+        } else {
+          // Not a list item, reset tracking
+          currentListType = null;
+        }
         
-        // Fix the number attribute for each group
-        Object.values(numberedListGroups).forEach(group => {
-          // Add a counter attribute to each item that will be used for rendering
-          group.forEach((item, index) => {
-            // Use TypeScript assertion to add _counter to the item
-            (item as NotionBlock & { _counter: number })._counter = index + 1;
-          });
-        });
+        // Process children recursively
+        if (block.children && block.children.length > 0) {
+          processBlocks(block.children, `${path}-${i}`);
+        }
       }
     };
     
-    // Process all top-level blocks
-    fixedContent.forEach(processBlock);
+    // Start processing from top-level blocks
+    processBlocks(fixedContent);
     
     return fixedContent;
   };
 
-  // Render all blocks at the top level
-  const renderContent = () => {
-    // Fix numbering issues
-    const fixedBlocks = fixNumberedLists(blocks);
+  // Group consecutive list items into their own lists
+  const groupListItems = (blocks: NotionBlock[]) => {
+    const result: React.ReactNode[] = [];
+    let currentType: string | null = null;
+    let currentItems: React.ReactNode[] = [];
+    let listPath = 'root-grouped';
     
-    // Group list items first
-    const renderedContent: React.ReactNode[] = [];
-    let currentListType: string | null = null;
-    let listItems: React.ReactNode[] = [];
-    let currentListPath = 'root-list';
-    
-    for (let i = 0; i < fixedBlocks.length; i++) {
-      const block = fixedBlocks[i];
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
       
-      // Check if this is a list item
+      // Check if this block is a list item
       if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
         const listType = block.list_type || (block.type === "bulleted_list_item" ? "bulleted_list" : "numbered_list");
         
-        // If starting a new list or changing list type
-        if (currentListType !== listType) {
-          // Render any existing list before starting a new one
-          if (listItems.length > 0) {
-            renderedContent.push(renderListGroup(currentListType, listItems, 0, currentListPath));
-            listItems = [];
+        // If we're starting a new list or changing list type
+        if (currentType !== listType) {
+          // Render the current list if it exists
+          if (currentItems.length > 0) {
+            result.push(renderListGroup(currentType, currentItems, 0, `${listPath}-${i}`));
+            currentItems = [];
           }
           
-          currentListType = listType;
-          currentListPath = `root-list-${i}`;
+          // Start new list
+          currentType = listType;
           
-          // Reset counter for new list
+          // Reset counter for numbered lists
           if (listType === "numbered_list") {
-            listCounters.resetCounter(currentListPath);
+            listCounters.resetCounter(`${listPath}-${i}`);
           }
         }
         
-        // Set the counter for the item if it's a numbered list
+        // Add counter for numbered list items
         if (listType === "numbered_list") {
-          const counter = listCounters.getNextCount(currentListPath);
+          const counter = listCounters.getNextCount(`${listPath}-${i}`);
           (block as NotionBlock & { _counter: number })._counter = counter;
         }
         
-        // Render the list item with its content and children
-        listItems.push(renderNestedContent(block, i, 0, `${currentListPath}-item-${i}`));
+        // Render the list item and add it to current items
+        currentItems.push(renderNestedContent(block, i, 0, `${listPath}-item-${i}`));
       } else {
-        // If we hit a non-list item and have existing list items, render the list first
-        if (listItems.length > 0) {
-          renderedContent.push(renderListGroup(currentListType, listItems, 0, currentListPath));
-          listItems = [];
-          currentListType = null;
+        // This is not a list item, so render any pending list
+        if (currentItems.length > 0) {
+          result.push(renderListGroup(currentType, currentItems, 0, `${listPath}-${i}`));
+          currentItems = [];
+          currentType = null;
         }
         
-        // Render the non-list block with its content and children
-        renderedContent.push(renderNestedContent(block, i, 0, `root-block-${i}`));
+        // Render this non-list block
+        result.push(renderNestedContent(block, i, 0, `root-block-${i}`));
       }
     }
     
     // Render any remaining list items
-    if (listItems.length > 0) {
-      renderedContent.push(renderListGroup(currentListType, listItems, 0, currentListPath));
+    if (currentItems.length > 0) {
+      result.push(renderListGroup(currentType, currentItems, 0, `${listPath}-final`));
     }
     
-    return renderedContent;
+    return result;
   };
 
   // Error handling wrapper for the entire renderer
   try {
-    return (
-      <div className={cn("notion-content", className)}>
-        {renderContent()}
-      </div>
-    );
+    // Fix numbered lists and group list items
+    const fixedBlocks = fixNumberedLists(blocks);
+    return <div className={cn("notion-content", className)}>{groupListItems(fixedBlocks)}</div>;
   } catch (error) {
     console.error("Error rendering Notion content:", error);
     toast({
