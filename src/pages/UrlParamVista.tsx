@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -10,7 +11,6 @@ import { toast } from "@/components/ui/sonner";
 import { getProfileByUrlParam, getUserContentItems } from "@/services/urlParamService";
 import { semanticSearch } from "@/services/adminService";
 import { ContentItem } from "@/services/adminService";
-import { Badge } from "@/components/ui/badge";
 import { processNotionContent } from "@/utils/notionContentProcessor";
 
 const UrlParamVista = () => {
@@ -24,7 +24,6 @@ const UrlParamVista = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
-  const [showRemovedItems, setShowRemovedItems] = useState(false);
   
   // Check if we have search results from navigation state (from PurposeInput)
   const searchResults = location.state?.searchResults as ContentItem[] | undefined;
@@ -61,6 +60,11 @@ const UrlParamVista = () => {
         // Process each content item to ensure proper orientation detection
         userContent = userContent.map((item: ContentItem) => processNotionContent(item));
         
+        // Filter out any removed items - only show active content
+        userContent = userContent.filter(item => 
+          item.notion_page_status !== 'removed'
+        );
+        
         setAllContentItems(userContent);
         
         // Check if we have search results from PurposeInput
@@ -70,6 +74,9 @@ const UrlParamVista = () => {
           // Filter search results to only include items from this user
           const userIdsSet = new Set(userContent.map((item: ContentItem) => item.id));
           let filteredResults = searchResults.filter((item: ContentItem) => userIdsSet.has(item.id));
+          
+          // Filter out any removed items
+          filteredResults = filteredResults.filter(item => item.notion_page_status !== 'removed');
           
           // Process each search result to ensure proper orientation detection
           filteredResults = filteredResults.map((item: ContentItem) => processNotionContent(item));
@@ -91,10 +98,7 @@ const UrlParamVista = () => {
           performSearch(searchParams.get("search") || "");
         } else {
           // Default: show only active content
-          const activeContent = userContent.filter(item => 
-            item.notion_page_status !== 'removed' || item.notion_page_status === null || item.notion_page_status === undefined
-          );
-          setItems(activeContent);
+          setItems(userContent);
           setShowingSearchResults(false);
         }
       } catch (error) {
@@ -136,6 +140,8 @@ const UrlParamVista = () => {
       // First get all content for this user if we don't have it yet
       if (allContentItems.length === 0) {
         let userContent = await getUserContentItems(userId);
+        // Filter out removed items
+        userContent = userContent.filter(item => item.notion_page_status !== 'removed');
         // Process content items for proper orientation detection
         userContent = userContent.map((item: ContentItem) => processNotionContent(item));
         setAllContentItems(userContent);
@@ -150,15 +156,11 @@ const UrlParamVista = () => {
           // Process search results for proper orientation detection
           searchResults = searchResults.map((item: ContentItem) => processNotionContent(item));
           
-          // Filter search results to only include items from this user
+          // Filter search results to only include items from this user and only active items
           const userIdsSet = new Set(allContentItems.map(item => item.id));
-          
-          // Filter out removed items unless specifically showing them
           const filteredResults = searchResults.filter(item => {
             const isUserItem = userIdsSet.has(item.id);
-            const isActive = !showRemovedItems ? 
-              item.notion_page_status !== 'removed' || item.notion_page_status === null || item.notion_page_status === undefined
-              : true;
+            const isActive = item.notion_page_status !== 'removed';
             return isUserItem && isActive;
           });
           
@@ -174,7 +176,7 @@ const UrlParamVista = () => {
           toast.error("Error performing semantic search");
           
           // Fall back to showing all user content if search fails
-          loadActiveItems();
+          loadAllItems();
         }
       } else {
         setItems([]);
@@ -195,29 +197,6 @@ const UrlParamVista = () => {
     navigate(`/${urlParam}/vista`, { replace: true });
   };
 
-  const loadActiveItems = () => {
-    const activeContent = allContentItems.filter(item => 
-      item.notion_page_status !== 'removed' || 
-      item.notion_page_status === null || 
-      item.notion_page_status === undefined
-    );
-    setItems(activeContent);
-    setShowingSearchResults(false);
-    setShowRemovedItems(false);
-  };
-
-  const toggleRemovedItems = () => {
-    setShowRemovedItems(!showRemovedItems);
-    
-    if (!showRemovedItems) {
-      // Show all items including removed
-      setItems(allContentItems);
-    } else {
-      // Show only active items
-      loadActiveItems();
-    }
-  };
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     navigate(`/${urlParam}/vista?search=${encodeURIComponent(searchQuery)}`);
@@ -225,18 +204,7 @@ const UrlParamVista = () => {
   };
 
   const handleClearSearch = () => {
-    loadActiveItems();
-  };
-
-  const handleBackToResults = () => {
-    if (searchResults && searchResults.length > 0) {
-      // Filter search results to only include items from this user
-      const userIdsSet = new Set(allContentItems.map(item => item.id));
-      const filteredResults = searchResults.filter(item => userIdsSet.has(item.id));
-      
-      setItems(filteredResults);
-      setShowingSearchResults(true);
-    }
+    loadAllItems();
   };
 
   // Get sorted content items
@@ -305,59 +273,20 @@ const UrlParamVista = () => {
               <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
                 Search
               </Button>
-              {(showingSearchResults || searchParams.get("search")) && (
-                <Button type="button" variant="outline" onClick={handleClearSearch}>
-                  View Active
-                </Button>
-              )}
             </form>
           </CardContent>
         </Card>
         
         {/* Search result controls */}
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-6">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             {showingSearchResults && sortedItems.length > 0 ? (
               <span>Showing {sortedItems.length} relevant results sorted by relevance</span>
             ) : showingSearchResults && sortedItems.length === 0 ? (
               <span>No relevant content found for your search</span>
             ) : (
-              <span>
-                Showing {sortedItems.length} content items 
-                {!showRemovedItems && " (active only)"}
-              </span>
+              <span>Showing {sortedItems.length} content items</span>
             )}
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              onClick={toggleRemovedItems}
-              variant="outline"
-              size="sm"
-              className="text-sm"
-            >
-              {showRemovedItems ? "Hide Removed" : "Show Removed"}
-            </Button>
-            
-            {showingSearchResults ? (
-              <Button 
-                onClick={handleClearSearch} 
-                variant="outline"
-                size="sm"
-                className="text-sm"
-              >
-                View All Content
-              </Button>
-            ) : searchResults && searchResults.length > 0 ? (
-              <Button 
-                onClick={handleBackToResults} 
-                variant="outline"
-                size="sm"
-                className="text-sm"
-              >
-                Back to Search Results
-              </Button>
-            ) : null}
           </div>
         </div>
         
@@ -376,7 +305,6 @@ const UrlParamVista = () => {
                   content={item}
                   urlPrefix={`/${urlParam}`}
                   index={index}
-                  showStatus={true}
                 />
               </div>
             ))}
@@ -388,12 +316,21 @@ const UrlParamVista = () => {
                 ? "No matching content found" 
                 : "No content available"}
             </p>
+          </div>
+        )}
+        
+        {/* View All Content button moved to bottom of page */}
+        {(showingSearchResults || searchParams.get("search")) && (
+          <div className="text-center mt-12 pt-6 border-t border-gray-200">
+            <p className="mb-4 text-gray-600 dark:text-gray-400">
+              Want to explore all content?
+            </p>
             <Button 
               onClick={handleClearSearch} 
               variant="outline"
-              className="mt-4"
+              className="mx-auto"
             >
-              View all content
+              View All Content
             </Button>
           </div>
         )}

@@ -95,7 +95,7 @@ export const ContentDisplayItem = ({
       className={`group ${hasMedia ? 'h-[400px]' : 'h-auto'} overflow-hidden flex flex-row hover:shadow-md transition-shadow duration-200`}
     > 
       {/* Text Content Section - Always present */}
-      <div className={`${hasMedia ? 'w-1/2' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'}`}>
+      <div className={`${hasMedia ? 'w-1/2' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'} justify-center`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-2 mb-1">
             {content.category && (
@@ -130,7 +130,7 @@ export const ContentDisplayItem = ({
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col items-start pt-2 gap-2 mt-auto">
+        <CardFooter className="flex flex-col items-start pt-2 gap-2">
           <div className="flex flex-wrap gap-1 w-full">
             {content.tags && content.tags.slice(0, 3).map((tag, i) => (
               <Badge key={i} variant="secondary" className="text-xs">
@@ -155,21 +155,6 @@ export const ContentDisplayItem = ({
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 {Math.round(content.similarity * 100)}% match
               </span>
-            )}
-            
-            {showStatus && (
-              <div className="ml-auto">
-                {content.notion_page_status === "removed" && (
-                  <Badge variant="destructive" className="text-xs">
-                    Removed
-                  </Badge>
-                )}
-                {content.notion_page_status === "active" && (
-                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                    Active
-                  </Badge>
-                )}
-              </div>
             )}
           </div>
 

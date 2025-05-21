@@ -36,7 +36,8 @@ const Vista = () => {
         // Always fetch all content items for "View All" functionality
         const { data, error } = await supabase
           .from("content_items")
-          .select("*");
+          .select("*")
+          .neq("notion_page_status", "removed"); // Only get active items
 
         if (error) {
           throw error;
@@ -69,11 +70,16 @@ const Vista = () => {
           // Process search results to ensure orientation and image properties are set
           const processedSearchResults = searchResults.map(item => processNotionContent(item));
           
-          setContentItems(processedSearchResults);
+          // Filter out any removed items
+          const activeSearchResults = processedSearchResults.filter(
+            item => item.notion_page_status !== 'removed'
+          );
+          
+          setContentItems(activeSearchResults);
           setShowingSearchResults(true);
     
           toast.success(
-            `Found ${processedSearchResults.length} relevant items based on your search`,
+            `Found ${activeSearchResults.length} relevant items based on your search`,
             { duration: 5000 }
           );
         } else if (searchPurpose) {
@@ -118,6 +124,9 @@ const Vista = () => {
       // Process search results to ensure orientation and image properties are set
       results = results.map(item => processNotionContent(item));
       
+      // Filter out any removed items
+      results = results.filter(item => item.notion_page_status !== 'removed');
+      
       if (results && results.length > 0) {
         console.log(`Found ${results.length} results for search: "${term}"`);
         setContentItems(results);
@@ -152,16 +161,6 @@ const Vista = () => {
     
     // Clear the search state but keep on same page
     navigate('/vista', { replace: true });
-    
-    toast.info("Showing all content items", { duration: 3000 });
-  };
-
-  // Handle "Back to Results" button click
-  const handleBackToResults = () => {
-    if (searchResults && searchResults.length > 0) {
-      setContentItems(searchResults);
-      setShowingSearchResults(true);
-    }
   };
 
   // Get sorted content items - make sure the sort is applied directly before rendering
@@ -191,7 +190,7 @@ const Vista = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-beige-100 dark:bg-gray-900">
-      {/* <Header /> */}
+      <Header />
       
       <main className="flex-1 container py-8 max-w-6xl">
         <div className="mb-8">
@@ -225,56 +224,27 @@ const Vista = () => {
               <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
                 Search
               </Button>
-              {(showingSearchResults || searchParams.get("search")) && (
-                <Button type="button" variant="outline" onClick={handleViewAll}>
-                  View All
-                </Button>
-              )}
             </form>
           </CardContent>
         </Card>
         
         {/* Search result controls */}
-        <div className="mb-6 flex justify-between items-center">
-          {showingSearchResults && sortedItems.length > 0 ? (
-            <div className="text-sm text-beige-600">
-              Showing {sortedItems.length} relevant results sorted by relevance
-            </div>
-          ) : showingSearchResults && sortedItems.length === 0 ? (
-            <div className="text-sm text-beige-600">
-              No relevant content found for your search
-            </div>
-          ) : (
-            <div className="text-sm text-beige-600">
-              Showing all content items
-            </div>
-          )}
-          
-          <div>
-            {showingSearchResults ? (
-              <Button 
-                onClick={handleViewAll} 
-                variant="outline"
-                className="text-sm"
-              >
-                View All Content
-              </Button>
-            ) : searchResults && searchResults.length > 0 ? (
-              <Button 
-                onClick={handleBackToResults} 
-                variant="outline"
-                className="text-sm"
-              >
-                Back to Search Results
-              </Button>
-            ) : null}
+        <div className="mb-6">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {showingSearchResults && sortedItems.length > 0 ? (
+              <span>Showing {sortedItems.length} relevant results sorted by relevance</span>
+            ) : showingSearchResults && sortedItems.length === 0 ? (
+              <span>No relevant content found for your search</span>
+            ) : (
+              <span>Showing all content items</span>
+            )}
           </div>
         </div>
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-beige-600" />
-            <p className="mt-4 text-lg text-beige-700">Searching for relevant content...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
+            <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Searching for relevant content...</p>
           </div>
         ) : sortedItems.length > 0 ? (
           <div className="flex flex-col gap-6">
@@ -288,14 +258,11 @@ const Vista = () => {
             ))}
           </div>
         ) : showingSearchResults ? (
-          <div className="text-center py-10 bg-beige-50 rounded-lg">
+          <div className="text-center py-10 bg-gray-50 rounded-lg">
             <p className="text-xl text-gray-500 mb-4">No relevant content found.</p>
             <p className="text-gray-400 mb-6">
               Try adjusting your search term or exploring our general content.
             </p>
-            <Button onClick={handleViewAll} variant="secondary">
-              View All Content
-            </Button>
           </div>
         ) : (
           <div className="text-center py-10">
@@ -303,9 +270,25 @@ const Vista = () => {
           </div>
         )}
         
+        {/* View All Content button moved to bottom of page */}
+        {(showingSearchResults || searchParams.get("search")) && (
+          <div className="text-center mt-12 pt-6 border-t border-gray-200">
+            <p className="mb-4 text-gray-600 dark:text-gray-400">
+              Want to explore all content?
+            </p>
+            <Button 
+              onClick={handleViewAll} 
+              variant="outline"
+              className="mx-auto"
+            >
+              View All Content
+            </Button>
+          </div>
+        )}
+        
         {/* About page link */}
         <div className="mt-12 text-center border-t pt-8">
-          <p className="text-beige-600 mb-4">Want to explore all our content in detail?</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Want to explore all our content in detail?</p>
           <Button 
             asChild
             variant="secondary"
