@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
@@ -46,7 +47,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       // For list items without children, we need to wrap them in the appropriate list tag
       if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
         return (
-          <li key={`${listPath}-item-${index}`} className="my-2">
+          <li key={`${listPath}-item-${index}`} className="my-3" style={{ lineHeight: '1.6' }}>
             {renderTextWithLineBreaks(block)}
           </li>
         );
@@ -139,11 +140,11 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // For list items, we want to include children within the li, otherwise we render as siblings
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
       return (
-        <li key={`${listPath}-list-${index}`} className="my-2">
+        <li key={`${listPath}-list-${index}`} className="my-3" style={{ lineHeight: '1.6' }}>
           {renderTextWithLineBreaks(block)}
           {childrenElements.length > 0 && (
-            // Keep consistent spacing, with proper indentation
-            <div className="ml-4 mt-2 space-y-2">
+            // Use consistent 8px (2rem) indentation for nested content within a list item
+            <div className="ml-8 mt-3 space-y-3">
               {childrenElements}
             </div>
           )}
@@ -160,7 +161,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         <React.Fragment key={`${listPath}-frag-${index}`}>
           {blockContent}
           {childrenElements.length > 0 && (
-            <div className={depth > 0 ? "ml-4 mt-2 space-y-2" : "space-y-2"}>
+            <div className={depth > 0 ? "ml-8 mt-3 space-y-3" : "space-y-3"}>
               {childrenElements}
             </div>
           )}

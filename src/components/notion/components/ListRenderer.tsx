@@ -17,15 +17,32 @@ export const ListRenderer: React.FC<ListRendererProps> = ({
 }) => {
   if (!listType || items.length === 0) return null;
   
-  // Consistent spacing between list items and ensure lists align with other content
-  const className = "my-4 space-y-2";
+  // Set consistent spacing and indentation based on depth
+  const className = "my-4 space-y-3";
+  
+  // Apply proper indentation based on depth - each level gets one full-width space
+  const indentClass = depth > 0 ? `ml-8` : '';
   
   if (listType === "numbered_list") {
-    // Use pl-6 to match the same starting point as paragraphs and other content
-    return <ol key={`numbered-list-${listPath}`} className={`list-decimal pl-6 ${className}`}>{items}</ol>;
+    return (
+      <ol 
+        key={`numbered-list-${listPath}`} 
+        className={`list-decimal ${indentClass} pl-6 ${className}`}
+        style={{ lineHeight: '1.6' }}
+      >
+        {items}
+      </ol>
+    );
   } else if (listType === "bulleted_list") {
-    // Use pl-6 to match the same starting point as paragraphs and other content
-    return <ul key={`bulleted-list-${listPath}`} className={`list-disc pl-6 ${className}`}>{items}</ul>;
+    return (
+      <ul 
+        key={`bulleted-list-${listPath}`} 
+        className={`list-disc ${indentClass} pl-6 ${className}`}
+        style={{ lineHeight: '1.6' }}
+      >
+        {items}
+      </ul>
+    );
   }
   
   return null;

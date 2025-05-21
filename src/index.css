@@ -78,22 +78,50 @@
     @apply my-3;
   }
   
+  /* Improved list styling with consistent spacing */
   .notion-content ul {
-    @apply pl-6 list-disc space-y-2 my-4;
+    @apply pl-6 list-disc space-y-3 my-4 leading-relaxed;
   }
   
   .notion-content ol {
-    @apply pl-6 list-decimal space-y-2 my-4;
+    @apply pl-6 list-decimal space-y-3 my-4 leading-relaxed;
   }
   
+  /* Ensure consistent vertical spacing between list items */
   .notion-content li {
-    @apply my-2;
+    @apply my-3 leading-relaxed;
+    line-height: 1.6;
   }
   
-  /* Fix nested list alignment */
+  /* Fixed indentation for nested lists */
   .notion-content li > ul,
   .notion-content li > ol {
-    @apply my-2 ml-4;
+    @apply my-3 ml-8;
+  }
+  
+  /* Ensure all items at same level have consistent horizontal alignment */
+  .notion-content li > p {
+    @apply inline-block;
+  }
+  
+  /* Fix alignment of list symbols with text */
+  .notion-content li {
+    @apply pl-1;
+  }
+  
+  /* Consistent spacing for toggle items */
+  .notion-content .collapsible {
+    @apply my-3;
+  }
+  
+  /* Fix alignment of todo checkboxes with text */
+  .notion-content .flex.items-start.gap-2 {
+    @apply pl-6;
+  }
+  
+  /* Ensure text content in lists aligns with paragraphs */
+  .notion-content li::marker {
+    margin-right: 0.5rem;
   }
 }
 
