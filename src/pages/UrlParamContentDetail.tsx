@@ -117,11 +117,11 @@ const UrlParamContentDetail = () => {
               processedBlock.children = [];
             }
             
-            // Process text with annotations to ensure styles are applied correctly
+            // Ensure text annotations are properly processed
             if (processedBlock.annotations && processedBlock.annotations.length > 0) {
               processedBlock.annotations = processedBlock.annotations.map((ann: any) => {
                 // Fix background colors by ensuring proper format
-                if (ann.color && ann.color.includes("background")) {
+                if (ann.color && ann.color.includes("background") && !ann.color.includes("_background")) {
                   ann.color = ann.color.replace("background", "_background");
                 }
                 return ann;
@@ -148,7 +148,7 @@ const UrlParamContentDetail = () => {
                 // Handle nested annotations
                 if (processedChild.annotations && processedChild.annotations.length > 0) {
                   processedChild.annotations = processedChild.annotations.map((ann: any) => {
-                    if (ann.color && ann.color.includes("background")) {
+                    if (ann.color && ann.color.includes("background") && !ann.color.includes("_background")) {
                       ann.color = ann.color.replace("background", "_background");
                     }
                     return ann;
@@ -287,3 +287,4 @@ const UrlParamContentDetail = () => {
 };
 
 export default UrlParamContentDetail;
+

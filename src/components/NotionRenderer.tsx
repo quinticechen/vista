@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -76,61 +77,80 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     }
 
     // If we have the text and annotations are in the new format with start/end positions
-    if (annotations[0]?.start !== undefined && annotations[0]?.end !== undefined) {
-      // Create an array to hold all the text segments
+    if (annotations.some(a => a.start !== undefined && a.end !== undefined)) {
+      // Create spans for each annotation with proper styling
       let segments: React.ReactNode[] = [];
-      let currentPosition = 0;
       
-      // Sort annotations by start position
+      // Sort annotations by start position to ensure proper order
       const sortedAnnotations = [...annotations].sort((a, b) => (a.start || 0) - (b.start || 0));
       
-      // Process each annotation
+      // Create a segment for each part of the text that has annotations
+      let lastEnd = 0;
+      
       for (const annotation of sortedAnnotations) {
-        const { start, end } = annotation;
+        const start = annotation.start || 0;
+        const end = annotation.end || 0;
         
-        // Add plain text before this annotation if needed
-        if ((start || 0) > currentPosition) {
-          segments.push(text.substring(currentPosition, start || 0));
+        // Add any text before this annotation
+        if (start > lastEnd) {
+          segments.push(text.substring(lastEnd, start));
         }
         
-        // Add the annotated text
+        // Skip if invalid positions
+        if (end <= start) continue;
+        
+        // Extract the text for this annotation
+        const annotatedText = text.substring(start, end);
+        
+        // Determine styling classes
+        const isBackgroundColor = annotation.color && annotation.color.includes("_background");
+        const colorName = annotation.color ? annotation.color.replace('_background', '') : '';
+        const textColorClass = !isBackgroundColor && annotation.color ? `text-${colorName}-500` : '';
+        const bgColorClass = isBackgroundColor ? `bg-${colorName}-100` : '';
+        
         const styles = cn(
           annotation.bold && "font-bold",
           annotation.italic && "italic",
           annotation.underline && "underline",
           annotation.strikethrough && "line-through",
           annotation.code && "font-mono bg-muted rounded px-1 py-0.5",
-          annotation.color && `text-${annotation.color.replace('_background', '')}-500`,
-          annotation.color && annotation.color.includes("_background") && `bg-${annotation.color.replace("_background", "")}-100`
+          textColorClass,
+          bgColorClass
         );
         
-        const content = (
-          <span key={start} className={styles}>
-            {text.substring(start || 0, end || text.length)}
+        // Create the styled span
+        const styledSpan = (
+          <span key={`annotation-${start}-${end}`} className={styles}>
+            {annotatedText}
           </span>
         );
         
-        // If it's a link, wrap it
+        // Add the span directly or wrap in a link if needed
         if (annotation.href) {
           segments.push(
-            <a key={start} href={annotation.href} className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer">
-              {content}
+            <a 
+              key={`link-${start}-${end}`} 
+              href={annotation.href}
+              className="text-blue-500 hover:underline" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              {styledSpan}
             </a>
           );
         } else {
-          segments.push(content);
+          segments.push(styledSpan);
         }
         
-        // Update current position
-        currentPosition = end || 0;
+        lastEnd = end;
       }
       
       // Add any remaining text
-      if (currentPosition < text.length) {
-        segments.push(text.substring(currentPosition));
+      if (lastEnd < text.length) {
+        segments.push(text.substring(lastEnd));
       }
       
-      return segments;
+      return segments.length > 0 ? segments : text;
     }
     
     // For backward compatibility with old annotation format
@@ -330,19 +350,15 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         </Collapsible>
       );
     } else if (block.type === "callout") {
-      // Special handling for callout blocks
+      // Special handling for callout blocks - Fix for duplicate callout rendering
+      // Only render callout with its content once
       return (
         <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
           {(block.icon || block.emoji) && (
             <div className="text-xl flex-shrink-0 mt-0.5">{renderIcon(block.icon) || block.emoji}</div>
           )}
           <div className="flex-1">
-            {block.text && renderTextWithLineBreaks(block)}
-            {childrenElements.length > 0 && (
-              <div className="mt-2">
-                {childrenElements}
-              </div>
-            )}
+            {childrenElements}
           </div>
         </div>
       );
@@ -394,6 +410,13 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // Special handling for list items - we now handle them differently
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
       // List items are now handled in renderNestedContent and renderListGroup
+      return null;
+    }
+    
+    // Special handling for callout blocks - we want to prevent duplication
+    // They will be fully rendered in renderNestedContent with children
+    if (block.type === "callout" && block.children && block.children.length > 0) {
+      // If callout has children, return null here and let renderNestedContent handle it
       return null;
     }
 
@@ -575,8 +598,9 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           </div>
         );
       case "divider":
-        return <hr key={`divider-${listPath}-${index}`} className="my-6 border-t border-gray-400" />;
+        return <hr key={`divider-${listPath}-${index}`} className="my-6 border-t border-gray-500" />;
       case "callout":
+        // If this is a simple callout without children, render it here
         return (
           <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
             {(block.icon || block.emoji) && (
@@ -829,3 +853,4 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
 };
 
 export default NotionRenderer;
+
