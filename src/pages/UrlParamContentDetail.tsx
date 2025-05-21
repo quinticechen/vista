@@ -12,6 +12,7 @@ import { getProfileByUrlParam, getContentItemById } from "@/services/urlParamSer
 import NotionRenderer from "@/components/NotionRenderer";
 import { ImageAspectRatio } from "@/components/ImageAspectRatio";
 import { cn, formatDate } from "@/lib/utils";
+import { Json } from "@/integrations/supabase/types";
 
 // Define extended ContentItem type to include HEIC-related properties
 interface ExtendedContentItem {
@@ -20,18 +21,18 @@ interface ExtendedContentItem {
   description?: string;
   category?: string;
   tags?: string[];
-  content?: any[];
+  content?: any; // Accept either Json or any[] for flexibility
   created_at?: string;
   updated_at?: string;
   start_date?: string;
   end_date?: string;
   user_id: string;
   notion_page_status?: string;
-  cover_image?: string;
-  is_heic_cover?: boolean;
+  cover_image?: string; // Optional field for cover image
+  is_heic_cover?: boolean; // Flag for HEIC image format
   notion_page_id?: string;
   similarity?: number;
-  embedding?: string;
+  embedding?: string | null;
   content_translations?: any;
   description_translations?: any;
   title_translations?: any;
@@ -225,7 +226,8 @@ const UrlParamContentDetail = () => {
           console.warn("HEIC cover image detected:", contentItem.cover_image);
         }
         
-        setContent(contentItem);
+        // Cast the content item to our ExtendedContentItem type
+        setContent(contentItem as unknown as ExtendedContentItem);
       } catch (error) {
         console.error("Error loading content:", error);
         toast.error("Error loading content");

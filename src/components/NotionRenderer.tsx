@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/sonner";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { Toggle } from "@/components/ui/toggle";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { ImageAspectRatio } from "@/components/ImageAspectRatio";
 
 // Define the types for our new simplified Notion blocks format
