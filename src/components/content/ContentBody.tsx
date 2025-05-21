@@ -13,8 +13,8 @@ export const ContentBody: React.FC<ContentBodyProps> = ({ content }) => {
     <Card className="mb-8 border rounded-md shadow-sm">
       <CardContent className="p-6">
         {content?.content ? (
-          <div className="prose prose-sm sm:prose max-w-none">
-            <NotionRenderer blocks={content.content} />
+          <div className="prose prose-sm sm:prose max-w-none notion-content-wrapper">
+            <NotionRenderer blocks={content.content as any[]} />
           </div>
         ) : (
           <p className="text-gray-500 italic">No content available</p>

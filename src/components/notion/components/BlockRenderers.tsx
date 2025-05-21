@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
@@ -48,7 +47,8 @@ export const HeadingRenderer: React.FC<BlockRendererProps> = ({ block, index, li
 
 // Component for paragraphs
 export const ParagraphRenderer: React.FC<BlockRendererProps> = ({ block, index, depth, listPath }) => {
-  const className = depth && depth > 0 ? "my-1" : "my-3";
+  // Keep consistent spacing
+  const className = "my-3";
   
   return (
     <p key={`p-${listPath}-${index}`} className={className}>
@@ -71,7 +71,7 @@ export const TodoRenderer: React.FC<BlockRendererProps> = ({ block, index, listP
   const { checked } = block;
   
   return (
-    <div key={`todo-${listPath}-${index}`} className="flex items-start gap-2 my-2">
+    <div key={`todo-${listPath}-${index}`} className="flex items-start gap-2 my-3">
       <input 
         type="checkbox" 
         checked={checked} 
@@ -94,7 +94,7 @@ export const CalloutRenderer: React.FC<BlockRendererProps> = ({ block, index, li
       {(icon || emoji) && (
         <div className="text-xl flex-shrink-0 mt-0.5">{renderIcon(icon) || emoji}</div>
       )}
-      <div className="flex-1">
+      <div className="flex-1 space-y-2">
         {!children || children.length === 0 ? 
           renderTextWithLineBreaks(block) : 
           children.map((child, idx) => renderNested(child, idx, 0, `${listPath}-callout-${idx}`))
@@ -122,7 +122,7 @@ export const ToggleRenderer: React.FC<BlockRendererProps> = ({ block, index, lis
   const { emoji, children } = block;
   
   return (
-    <Collapsible key={`toggle-${listPath}-${index}`} className="my-2 border border-muted rounded-md">
+    <Collapsible key={`toggle-${listPath}-${index}`} className="my-3 border border-muted rounded-md">
       <CollapsibleTrigger className="p-3 w-full flex items-center justify-between text-left font-medium hover:bg-muted/50">
         <div className="flex items-center">
           {emoji && <span className="mr-2">{renderIcon({emoji})}</span>}
@@ -130,7 +130,7 @@ export const ToggleRenderer: React.FC<BlockRendererProps> = ({ block, index, lis
         </div>
         <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
       </CollapsibleTrigger>
-      <CollapsibleContent className="p-3 pt-0 border-t">
+      <CollapsibleContent className="p-3 pt-0 border-t space-y-2">
         {children && children.map((child, idx) => 
           renderNested(child, idx, 0, `${listPath}-toggle-${idx}`)
         )}
@@ -194,7 +194,7 @@ export const ColumnListRenderer: React.FC<BlockRendererProps> = ({ block, index,
   return (
     <div key={`column-list-${listPath}-${index}`} className={`my-4 ${columnClass}`}>
       {children.map((column, colIndex) => (
-        <div key={`column-${colIndex}`} className="flex flex-col">
+        <div key={`column-${colIndex}`} className="flex flex-col space-y-2">
           {column.children && column.children.map((child, childIndex) => (
             renderNested(child, childIndex, 0, `${listPath}-col-${colIndex}-${childIndex}`)
           ))}
@@ -211,7 +211,7 @@ export const ColumnRenderer: React.FC<BlockRendererProps> = ({ block, index, lis
   if (!children || children.length === 0) return null;
   
   return (
-    <div key={`column-${listPath}-${index}`} className="flex flex-col">
+    <div key={`column-${listPath}-${index}`} className="flex flex-col space-y-2">
       {children.map((child, childIndex) => (
         renderNested(child, childIndex, 0, `${listPath}-column-${childIndex}`)
       ))}
@@ -224,7 +224,7 @@ export const EquationRenderer: React.FC<BlockRendererProps> = ({ block, index, l
   const { text } = block;
   
   return (
-    <div key={`equation-${listPath}-${index}`} className="my-2 px-2 py-1 bg-gray-50 font-mono text-sm overflow-x-auto">
+    <div key={`equation-${listPath}-${index}`} className="my-3 px-2 py-1 bg-gray-50 font-mono text-sm overflow-x-auto">
       {text && <code>{text}</code>}
     </div>
   );
@@ -281,7 +281,7 @@ export const MediaBlockRenderer: React.FC<BlockRendererProps> = ({ block, index,
 export const DefaultBlockRenderer: React.FC<BlockRendererProps> = ({ block, index, listPath }) => {
   if (block.text) {
     return (
-      <div key={`default-${listPath}-${index}`} className="my-2">
+      <div key={`default-${listPath}-${index}`} className="my-3">
         {renderTextWithLineBreaks(block)}
       </div>
     );

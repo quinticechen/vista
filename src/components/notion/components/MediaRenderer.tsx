@@ -31,50 +31,19 @@ export const ImageRenderer: React.FC<MediaProps> = ({
   const isHeic = is_heic || isHeicImage(imageUrl);
   
   try {
-    // If the image is HEIC, use the ImageAspectRatio component for better error handling
-    if (isHeic) {
-      return (
-        <figure key={`image-${listPath}-${index}`} className="my-4">
-          <ImageAspectRatio
-            src={imageUrl}
-            alt={caption || text || "Notion image"}
-            className="max-w-full rounded-md"
-          />
-          <figcaption className="text-center text-sm text-muted-foreground mt-2 flex flex-col">
-            {(caption || text) && <span>{caption || text}</span>}
-            <span className="text-xs text-amber-600">HEIC format - not supported by most browsers</span>
-          </figcaption>
-        </figure>
-      );
-    }
-
-    // For regular images
+    // Always use the ImageAspectRatio component for consistent rendering and better error handling
     return (
       <figure key={`image-${listPath}-${index}`} className="my-4">
-        <img 
-          src={imageUrl} 
-          alt={caption || text || "Notion image"} 
+        <ImageAspectRatio
+          src={imageUrl}
+          alt={caption || text || "Notion image"}
           className="max-w-full rounded-md"
-          onError={(e) => {
-            console.error(`Failed to load image: ${imageUrl}`);
-            e.currentTarget.onerror = null; // Prevent infinite loops
-            e.currentTarget.classList.add("opacity-50");
-            
-            // Check if it might be a HEIC file based on URL
-            if (isHeicImage(imageUrl)) {
-              const parent = e.currentTarget.parentElement;
-              if (parent) {
-                const notice = document.createElement('div');
-                notice.className = 'mt-2 text-sm text-amber-600';
-                notice.textContent = 'HEIC image format not supported by your browser';
-                parent.appendChild(notice);
-              }
-            }
-          }}
+          isHeic={isHeic}
         />
-        {(caption || text) && (
-          <figcaption className="text-center text-sm text-muted-foreground mt-2">
-            {caption || text}
+        {(caption || text || isHeic) && (
+          <figcaption className="text-center text-sm text-muted-foreground mt-2 flex flex-col">
+            {(caption || text) && <span>{caption || text}</span>}
+            {isHeic && <span className="text-xs text-amber-600">HEIC format - not supported by most browsers</span>}
           </figcaption>
         )}
       </figure>

@@ -51,10 +51,41 @@ export const renderAnnotatedText = (text: string, annotations?: NotionAnnotation
       const annotatedText = text.substring(start, end);
       
       // Determine styling classes
-      const isBackgroundColor = annotation.color && annotation.color.includes("_background");
-      const colorName = annotation.color ? annotation.color.replace('_background', '') : '';
-      const textColorClass = !isBackgroundColor && annotation.color ? `text-${colorName}-500` : '';
-      const bgColorClass = isBackgroundColor ? `bg-${colorName}-100` : '';
+      let colorClass = '';
+      let bgColorClass = '';
+      
+      if (annotation.color) {
+        // Handle background colors correctly
+        if (annotation.color.includes("_background")) {
+          const colorName = annotation.color.replace('_background', '');
+          switch (colorName) {
+            case "red": bgColorClass = "bg-red-100"; break;
+            case "blue": bgColorClass = "bg-blue-100"; break;
+            case "green": bgColorClass = "bg-green-100"; break;
+            case "yellow": bgColorClass = "bg-yellow-100"; break;
+            case "orange": bgColorClass = "bg-orange-100"; break;
+            case "purple": bgColorClass = "bg-purple-100"; break;
+            case "pink": bgColorClass = "bg-pink-100"; break;
+            case "gray": bgColorClass = "bg-gray-100"; break;
+            case "brown": bgColorClass = "bg-amber-100"; break;
+            default: bgColorClass = "bg-gray-100";
+          }
+        } else if (annotation.color !== "default") {
+          // Handle text colors correctly
+          switch (annotation.color) {
+            case "red": colorClass = "text-red-500"; break;
+            case "blue": colorClass = "text-blue-500"; break;
+            case "green": colorClass = "text-green-500"; break;
+            case "yellow": colorClass = "text-yellow-500"; break;
+            case "orange": colorClass = "text-orange-500"; break;
+            case "purple": colorClass = "text-purple-500"; break;
+            case "pink": colorClass = "text-pink-500"; break;
+            case "gray": colorClass = "text-gray-500"; break;
+            case "brown": colorClass = "text-amber-500"; break;
+            default: colorClass = "";
+          }
+        }
+      }
       
       const styles = cn(
         annotation.bold && "font-bold",
@@ -62,7 +93,7 @@ export const renderAnnotatedText = (text: string, annotations?: NotionAnnotation
         annotation.underline && "underline",
         annotation.strikethrough && "line-through",
         annotation.code && "font-mono bg-muted rounded px-1 py-0.5",
-        textColorClass,
+        colorClass,
         bgColorClass
       );
       
@@ -108,10 +139,42 @@ export const renderAnnotatedText = (text: string, annotations?: NotionAnnotation
     // Use annotationText if available, otherwise this is the wrong format
     if (!annotationText) return null;
     
-    // Handle background colors
-    const isBackgroundColor = color && color.includes("_background");
-    const colorName = color ? color.replace('_background', '') : '';
-    const bgColorClass = isBackgroundColor ? `bg-${colorName}-100` : "";
+    // Handle styling classes properly
+    let colorClass = '';
+    let bgColorClass = '';
+    
+    if (color) {
+      // Handle background colors correctly
+      if (color.includes("_background")) {
+        const colorName = color.replace('_background', '');
+        switch (colorName) {
+          case "red": bgColorClass = "bg-red-100"; break;
+          case "blue": bgColorClass = "bg-blue-100"; break;
+          case "green": bgColorClass = "bg-green-100"; break;
+          case "yellow": bgColorClass = "bg-yellow-100"; break;
+          case "orange": bgColorClass = "bg-orange-100"; break;
+          case "purple": bgColorClass = "bg-purple-100"; break;
+          case "pink": bgColorClass = "bg-pink-100"; break;
+          case "gray": bgColorClass = "bg-gray-100"; break;
+          case "brown": bgColorClass = "bg-amber-100"; break;
+          default: bgColorClass = "bg-gray-100";
+        }
+      } else if (color !== "default") {
+        // Handle text colors correctly
+        switch (color) {
+          case "red": colorClass = "text-red-500"; break;
+          case "blue": colorClass = "text-blue-500"; break;
+          case "green": colorClass = "text-green-500"; break;
+          case "yellow": colorClass = "text-yellow-500"; break;
+          case "orange": colorClass = "text-orange-500"; break;
+          case "purple": colorClass = "text-purple-500"; break;
+          case "pink": colorClass = "text-pink-500"; break;
+          case "gray": colorClass = "text-gray-500"; break;
+          case "brown": colorClass = "text-amber-500"; break;
+          default: colorClass = "";
+        }
+      }
+    }
     
     const styles = cn(
       bold && "font-bold",
@@ -119,7 +182,7 @@ export const renderAnnotatedText = (text: string, annotations?: NotionAnnotation
       underline && "underline",
       strikethrough && "line-through",
       code && "font-mono bg-muted rounded px-1 py-0.5",
-      color && !isBackgroundColor && color !== "default" && `text-${colorName}-500`,
+      colorClass,
       bgColorClass
     );
 

@@ -17,15 +17,15 @@ export const ListRenderer: React.FC<ListRendererProps> = ({
 }) => {
   if (!listType || items.length === 0) return null;
   
-  // Use consistent spacing and make sure lists align with other content
-  // pl-4 provides enough indentation without being excessive
-  // space-y-2 ensures consistent vertical spacing between items
+  // Consistent spacing between list items and ensure lists align with other content
   const className = "my-4 space-y-2";
   
   if (listType === "numbered_list") {
-    return <ol key={`numbered-list-${listPath}`} className={`list-decimal pl-4 ${className}`}>{items}</ol>;
+    // Use pl-6 to match the same starting point as paragraphs and other content
+    return <ol key={`numbered-list-${listPath}`} className={`list-decimal pl-6 ${className}`}>{items}</ol>;
   } else if (listType === "bulleted_list") {
-    return <ul key={`bulleted-list-${listPath}`} className={`list-disc pl-4 ${className}`}>{items}</ul>;
+    // Use pl-6 to match the same starting point as paragraphs and other content
+    return <ul key={`bulleted-list-${listPath}`} className={`list-disc pl-6 ${className}`}>{items}</ul>;
   }
   
   return null;

@@ -64,6 +64,37 @@
   .button-purpose {
     @apply px-4 py-2 rounded-md transition-all duration-300 text-sm md:text-base border border-beige-300 bg-beige-100 hover:bg-beige-200 text-beige-800;
   }
+  
+  /* Notion content styling */
+  .notion-content-wrapper {
+    @apply text-base leading-relaxed;
+  }
+  
+  .notion-content {
+    @apply space-y-4;
+  }
+  
+  .notion-content > * {
+    @apply my-3;
+  }
+  
+  .notion-content ul {
+    @apply pl-6 list-disc space-y-2 my-4;
+  }
+  
+  .notion-content ol {
+    @apply pl-6 list-decimal space-y-2 my-4;
+  }
+  
+  .notion-content li {
+    @apply my-2;
+  }
+  
+  /* Fix nested list alignment */
+  .notion-content li > ul,
+  .notion-content li > ol {
+    @apply my-2 ml-4;
+  }
 }
 
 /* Google Translate Widget Styling */

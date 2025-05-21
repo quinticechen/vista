@@ -1,11 +1,13 @@
 
 import { cn } from "@/lib/utils";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { isHeicImage as checkIsHeicImage } from "@/components/notion/utils/image-utils";
 
 interface ImageAspectRatioProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   aspectRatio?: number;
   size?: "portrait" | "landscape" | "square";
+  isHeic?: boolean;
 }
 
 export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
@@ -14,20 +16,19 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
   src,
   alt,
   size = "landscape",
+  isHeic: initialIsHeic = false,
   ...props
 }) => {
   const [error, setError] = useState(false);
-  const [isHeic, setIsHeic] = useState(false);
+  const [isHeic, setIsHeic] = useState(initialIsHeic);
 
-  // Check if the image is a HEIC file by URL
-  const isHeicImage = (url?: string): boolean => {
-    if (!url) return false;
-    const urlLower = url.toLowerCase();
-    return urlLower.endsWith('.heic') || 
-           urlLower.includes('/heic') || 
-           urlLower.includes('heic.') ||
-           urlLower.includes('image/heic');
-  };
+  // Check if the image is a HEIC file on mount or when src changes
+  useEffect(() => {
+    if (initialIsHeic || (src && checkIsHeicImage(src.toString()))) {
+      setIsHeic(true);
+      setError(true);
+    }
+  }, [src, initialIsHeic]);
 
   // Default aspect ratios
   const getAspectRatio = () => {
@@ -44,10 +45,6 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
     }
   };
 
-  // Pre-check if it's a HEIC image
-  const imageUrl = src?.toString() || '';
-  const detectedHeic = isHeicImage(imageUrl);
-
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setError(true);
     
@@ -63,12 +60,6 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
       props.onError(e);
     }
   };
-
-  // If we already know it's a HEIC image before loading, show the error state immediately
-  if (detectedHeic && !error) {
-    setError(true);
-    setIsHeic(true);
-  }
 
   return (
     <AspectRatio 
