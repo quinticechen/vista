@@ -75,10 +75,19 @@ export const ContentDisplayItem = ({
   const hasCoverImage = !!content.cover_image;
   const mediaBlock = !hasCoverImage ? findMediaBlock(content.content) : null;
   const mediaUrl = hasCoverImage ? content.cover_image : (mediaBlock?.media_url || null);
+  
+  // Force a comparison of JSON strings for debugging
   const hasMedia = !!mediaUrl;
+  
+  // Log content details for debugging
+  console.log(`Content ID: ${content.id}, Title: ${content.title}`);
+  console.log(`Has cover image: ${hasCoverImage}, Cover image URL: ${content.cover_image}`);
+  console.log(`Media block found: ${!!mediaBlock}, Media URL: ${mediaBlock?.media_url}`);
+  console.log(`Final hasMedia: ${hasMedia}, mediaUrl: ${mediaUrl}`);
+  
   const isMediaRight = index % 2 === 0;
   
-  // Determine orientation - check from content property first, then from mediaBlock or cover image
+  // Determine orientation - check from content property first, then from mediaBlock
   const orientation = content.orientation || mediaBlock?.orientation || 'landscape';
   const isPortrait = orientation === 'portrait';
   
@@ -172,7 +181,7 @@ export const ContentDisplayItem = ({
 
       {/* Media Section - Only show if we have media */}
       {hasMedia && (
-        <div className={`w-1/2 relative ${isMediaRight ? 'order-last' : 'order-first'}`}>
+        <div className={`w-1/2 relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100`}>
           {hasCoverImage || (mediaBlock?.media_type === 'image') ? (
             <ImageAspectRatio
               src={mediaUrl}

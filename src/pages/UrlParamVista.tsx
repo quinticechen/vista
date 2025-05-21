@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -58,7 +57,12 @@ const UrlParamVista = () => {
         console.log('Content loaded:', userContent);
         
         // Process each content item to ensure proper orientation detection
-        userContent = userContent.map((item: ContentItem) => processNotionContent(item));
+        userContent = userContent.map((item: ContentItem) => {
+          console.log(`Processing item ${item.id}: ${item.title}`);
+          const processed = processNotionContent(item);
+          console.log(`After processing: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
+          return processed;
+        });
         
         // Filter out any removed items - only show active content
         userContent = userContent.filter(item => 
@@ -79,7 +83,12 @@ const UrlParamVista = () => {
           filteredResults = filteredResults.filter(item => item.notion_page_status !== 'removed');
           
           // Process each search result to ensure proper orientation detection
-          filteredResults = filteredResults.map((item: ContentItem) => processNotionContent(item));
+          filteredResults = filteredResults.map((item: ContentItem) => {
+            console.log(`Processing search result ${item.id}: ${item.title}`);
+            const processed = processNotionContent(item);
+            console.log(`After processing search result: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
+            return processed;
+          });
           
           setItems(filteredResults);
           setShowingSearchResults(true);
@@ -153,8 +162,16 @@ const UrlParamVista = () => {
           console.log(`Performing semantic search with term: "${term}"`);
           let searchResults = await semanticSearch(term);
           
+          // Log search results for debugging
+          console.log(`Search returned ${searchResults.length} results (before filtering)`, searchResults);
+          
           // Process search results for proper orientation detection
-          searchResults = searchResults.map((item: ContentItem) => processNotionContent(item));
+          searchResults = searchResults.map((item: ContentItem) => {
+            console.log(`Processing search result ${item.id}: ${item.title}`);
+            const processed = processNotionContent(item);
+            console.log(`After processing search result: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
+            return processed;
+          });
           
           // Filter search results to only include items from this user and only active items
           const userIdsSet = new Set(allContentItems.map(item => item.id));
