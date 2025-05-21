@@ -9,6 +9,8 @@ interface ContentCoverImageProps {
 
 export const ContentCoverImage: React.FC<ContentCoverImageProps> = ({ content }) => {
   if (!content?.cover_image) return null;
+  
+  const isPortrait = content.orientation === 'portrait';
 
   return (
     <div className="mb-8">
@@ -16,6 +18,7 @@ export const ContentCoverImage: React.FC<ContentCoverImageProps> = ({ content })
         src={content.cover_image} 
         alt={content.title} 
         className="w-full"
+        size={isPortrait ? 'portrait' : 'landscape'}
       />
       {content.is_heic_cover && (
         <div className="mt-2 bg-amber-50 border-l-4 border-amber-500 p-3 text-amber-700 text-sm">

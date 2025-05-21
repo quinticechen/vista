@@ -34,6 +34,10 @@ export type NotionBlock = {
   has_row_header?: boolean;
   has_column_header?: boolean;
   is_heic?: boolean; // New property to indicate HEIC images
+  width?: number; // Width of the image
+  height?: number; // Height of the image
+  orientation?: 'portrait' | 'landscape' | 'square'; // Orientation of the image
+  aspect_ratio?: number; // Aspect ratio of the image (width/height)
 };
 
 export interface NotionRendererProps {

@@ -101,6 +101,15 @@ export const fixNumberedLists = (content: NotionBlock[]): NotionBlock[] => {
         currentListType = null;
       }
       
+      // Process images to determine orientation
+      if ((block.type === 'image' || block.media_type === 'image') && 
+          (block.media_url || block.url) && 
+          (block.width && block.height)) {
+        // Calculate aspect ratio to determine orientation
+        const aspectRatio = block.width / block.height;
+        block.orientation = aspectRatio < 1 ? 'portrait' : 'landscape';
+      }
+      
       // Process children recursively
       if (block.children && block.children.length > 0) {
         processBlocks(block.children, `${path}-${i}`);

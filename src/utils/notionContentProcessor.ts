@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 import { toast } from "@/components/ui/sonner";
 
@@ -24,9 +25,10 @@ export interface ContentItemFromDB {
   is_heic_cover?: boolean;
 }
 
-// Update ExtendedContentItem type to include cover_image and is_heic_cover
+// Update ExtendedContentItem type to include cover_image, is_heic_cover, and orientation
 export interface ExtendedContentItem extends ContentItemFromDB {
   similarity?: number;
+  orientation?: 'portrait' | 'landscape' | 'square';
 }
 
 // Helper function to check if an image URL is a HEIC format
@@ -39,15 +41,34 @@ export const isHeicImage = (url?: string): boolean => {
          urlLower.includes('image/heic');
 };
 
+// Detect image orientation based on width and height
+export const detectImageOrientation = (width?: number, height?: number): 'portrait' | 'landscape' | 'square' => {
+  if (!width || !height) return 'landscape'; // Default to landscape if dimensions unknown
+  
+  if (width > height) {
+    return 'landscape';
+  } else if (height > width) {
+    return 'portrait';
+  } else {
+    return 'square';
+  }
+};
+
 // Process Notion blocks for rendering
 export const processNotionContent = (contentItem: ContentItemFromDB): ExtendedContentItem => {
   try {
     // Create a deep clone to avoid modifying the original
     const processed = JSON.parse(JSON.stringify(contentItem)) as ExtendedContentItem;
     
+    // Initialize processed.orientation as landscape by default
+    processed.orientation = 'landscape';
+    
     // Process content if it's an array
     if (processed.content && Array.isArray(processed.content)) {
       console.log("Content has array structure, ready for rendering");
+      
+      // Look for the first image in the content to determine orientation
+      let foundFirstImage = false;
       
       // Process the content to properly handle all elements
       processed.content = (processed.content as any[]).map((block: any) => {
@@ -125,6 +146,23 @@ export const processNotionContent = (contentItem: ContentItemFromDB): ExtendedCo
             processedBlock.is_heic = true;
             console.warn("HEIC image detected in content:", imageUrl);
           }
+          
+          // If this is the first image and we haven't determined orientation yet
+          if (!foundFirstImage) {
+            foundFirstImage = true;
+            
+            // Determine orientation from image dimensions if available
+            if (processedBlock.width && processedBlock.height) {
+              processed.orientation = detectImageOrientation(processedBlock.width, processedBlock.height);
+              processedBlock.orientation = processed.orientation;
+              console.log(`Detected first image orientation: ${processed.orientation}`);
+            } else if (processedBlock.aspect_ratio) {
+              // If aspect_ratio is directly provided
+              processed.orientation = processedBlock.aspect_ratio < 1 ? 'portrait' : 'landscape';
+              processedBlock.orientation = processed.orientation;
+              console.log(`Using provided aspect ratio: ${processed.orientation}`);
+            }
+          }
         }
         
         // Recursively process children
@@ -161,6 +199,23 @@ export const processNotionContent = (contentItem: ContentItemFromDB): ExtendedCo
               if (isHeicImage(imageUrl)) {
                 processedChild.is_heic = true;
                 console.warn("HEIC image detected in child content:", imageUrl);
+              }
+              
+              // If this is the first image and we haven't determined orientation yet
+              if (!foundFirstImage) {
+                foundFirstImage = true;
+                
+                // Determine orientation from image dimensions if available
+                if (processedChild.width && processedChild.height) {
+                  processed.orientation = detectImageOrientation(processedChild.width, processedChild.height);
+                  processedChild.orientation = processed.orientation;
+                  console.log(`Detected first child image orientation: ${processed.orientation}`);
+                } else if (processedChild.aspect_ratio) {
+                  // If aspect_ratio is directly provided
+                  processed.orientation = processedChild.aspect_ratio < 1 ? 'portrait' : 'landscape';
+                  processedChild.orientation = processed.orientation;
+                  console.log(`Using provided child aspect ratio: ${processed.orientation}`);
+                }
               }
             }
             

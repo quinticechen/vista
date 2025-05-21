@@ -74,7 +74,10 @@ export const ContentDisplayItem = ({
   const mediaBlock = findMediaBlock(content.content);
   const mediaUrl = mediaBlock?.media_url;
   const isMediaRight = index % 2 === 0;
-  const isPortrait = mediaBlock?.orientation === 'portrait';
+  
+  // Determine orientation from content property or from mediaBlock
+  const orientation = content.orientation || mediaBlock?.orientation || 'landscape';
+  const isPortrait = orientation === 'portrait';
   
   // Function to get the correct detail route
   const getDetailRoute = () => {
@@ -87,7 +90,7 @@ export const ContentDisplayItem = ({
 
   return (
     <Card
-      className={`group h-[400px] overflow-hidden flex ${mediaUrl ? 'w-full' : 'w-full'} flex-row hover:shadow-md transition-shadow duration-200`}
+      className={`group ${mediaUrl ? 'h-[400px]' : 'h-auto'} overflow-hidden flex ${mediaUrl ? 'w-full' : 'w-full'} flex-row hover:shadow-md transition-shadow duration-200`}
     > 
       {/* Text Content Section - Always present */}
       <div className={`${mediaUrl ? 'w-1/2' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'}`}>
@@ -188,6 +191,7 @@ export const ContentDisplayItem = ({
               src={mediaUrl}
               alt={mediaBlock.caption || content.title}
               className="h-full"
+              size={isPortrait ? 'portrait' : 'landscape'}
             />
           ) : mediaBlock?.media_type === 'video' ? (
             <div className="w-full h-full">
@@ -198,7 +202,7 @@ export const ContentDisplayItem = ({
                 playsInline
                 preload="metadata"
                 style={{
-                  aspectRatio: '16/9'
+                  aspectRatio: isPortrait ? '3/4' : '16/9'
                 }}
               >
                 Your browser does not support the video tag.

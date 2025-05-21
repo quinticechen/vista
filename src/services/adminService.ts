@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 
@@ -25,29 +24,26 @@ export interface EmbeddingJob {
 // Define the content item type with embedding
 export interface ContentItem {
   id: string;
-  user_id: string;
   title: string;
-  description: string;
-  content: Json | any[];
+  description?: string;
   category?: string;
   tags?: string[];
-  cover_image?: string;
-  created_at: string;
+  content?: any;
+  created_at?: string;
   updated_at?: string;
   start_date?: string;
   end_date?: string;
-  notion_id?: string;
+  user_id: string;
+  notion_page_status?: string;
   notion_page_id?: string;
-  notion_page_url?: string;
-  notion_parent_id?: string;
-  notion_page_created_time?: string;
-  notion_page_last_edited_time?: string;
-  notion_page_status?: 'active' | 'removed' | string;
-  embedding?: string;
-  content_translations?: Json;
-  description_translations?: Json;
-  title_translations?: Json;
+  embedding?: string | null;
+  content_translations?: any;
+  description_translations?: any;
+  title_translations?: any;
+  cover_image?: string;
+  is_heic_cover?: boolean;
   similarity?: number;
+  orientation?: 'portrait' | 'landscape' | 'square';
 }
 
 // Define interface for vector search parameters

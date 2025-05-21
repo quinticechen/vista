@@ -36,7 +36,7 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
     
     switch (size) {
       case "portrait":
-        return 3/4; // Portrait ratio for media display
+        return 8/9; // Portrait ratio for media display
       case "square":
         return 1;
       case "landscape":
