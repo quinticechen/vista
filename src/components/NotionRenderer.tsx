@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
@@ -873,7 +874,6 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   } catch (error) {
     console.error("Error rendering Notion content:", error);
     toast({
-      title: "Error displaying content",
       description: "There was a problem rendering the content. Please try again later.",
       variant: "destructive"
     });
