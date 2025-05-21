@@ -21,7 +21,7 @@ export const ListRenderer: React.FC<ListRendererProps> = ({
   const className = "space-y-2"; // 8px in Tailwind (space-y-2)
   
   // Apply proper indentation based on depth - each level gets one full-width space
-  const indentClass = depth > 0 ? `ml-4` : '';
+  const indentClass = depth > 0 ? `ml-0` : '';
   
   if (listType === "numbered_list") {
     return (
