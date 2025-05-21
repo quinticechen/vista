@@ -17,11 +17,11 @@ export const ListRenderer: React.FC<ListRendererProps> = ({
 }) => {
   if (!listType || items.length === 0) return null;
   
-  // Set consistent spacing and indentation based on depth
-  const className = "my-4 space-y-2";
+  // Set consistent spacing with 4px between items (my-1 in tailwind)
+  const className = "my-1 space-y-1";
   
   // Apply proper indentation based on depth - each level gets one full-width space
-  const indentClass = depth > 0 ? `ml-0` : '';
+  const indentClass = depth > 0 ? `ml-4` : '';
   
   if (listType === "numbered_list") {
     return (

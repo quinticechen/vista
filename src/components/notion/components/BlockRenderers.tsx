@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
@@ -47,11 +48,11 @@ export const HeadingRenderer: React.FC<BlockRendererProps> = ({ block, index, li
 
 // Component for paragraphs
 export const ParagraphRenderer: React.FC<BlockRendererProps> = ({ block, index, depth, listPath }) => {
-  // Keep consistent spacing
-  const className = "my-2";
+  // Set consistent 4px spacing
+  const className = "my-1";
   
   return (
-    <p key={`p-${listPath}-${index}`} className={className}>
+    <p key={`p-${listPath}-${index}`} className={className} style={{ lineHeight: '1.6' }}>
       {renderTextWithLineBreaks(block)}
     </p>
   );
@@ -60,7 +61,7 @@ export const ParagraphRenderer: React.FC<BlockRendererProps> = ({ block, index, 
 // Component for quote blocks
 export const QuoteRenderer: React.FC<BlockRendererProps> = ({ block, index, listPath }) => {
   return (
-    <blockquote key={`quote-${listPath}-${index}`} className="border-l-4 border-muted pl-4 py-1 my-4 italic">
+    <blockquote key={`quote-${listPath}-${index}`} className="border-l-4 border-muted pl-4 py-1 my-1 italic" style={{ lineHeight: '1.6' }}>
       {renderTextWithLineBreaks(block)}
     </blockquote>
   );
@@ -71,7 +72,7 @@ export const TodoRenderer: React.FC<BlockRendererProps> = ({ block, index, listP
   const { checked } = block;
   
   return (
-    <div key={`todo-${listPath}-${index}`} className="flex items-start gap-2 my-2">
+    <div key={`todo-${listPath}-${index}`} className="flex items-start gap-2 my-1" style={{ lineHeight: '1.6' }}>
       <input 
         type="checkbox" 
         checked={checked} 
@@ -90,11 +91,11 @@ export const CalloutRenderer: React.FC<BlockRendererProps> = ({ block, index, li
   const { icon, emoji, children } = block;
   
   return (
-    <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
+    <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-1 flex gap-3 items-start" style={{ lineHeight: '1.6' }}>
       {(icon || emoji) && (
         <div className="text-xl flex-shrink-0 mt-0.5">{renderIcon(icon) || emoji}</div>
       )}
-      <div className="flex-1 space-y-2">
+      <div className="flex-1 space-y-1">
         {!children || children.length === 0 ? 
           renderTextWithLineBreaks(block) : 
           children.map((child, idx) => renderNested(child, idx, 0, `${listPath}-callout-${idx}`))
@@ -109,7 +110,7 @@ export const CodeRenderer: React.FC<BlockRendererProps> = ({ block, index, listP
   const { text, language } = block;
   
   return (
-    <pre key={`code-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 overflow-x-auto">
+    <pre key={`code-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-1 overflow-x-auto" style={{ lineHeight: '1.6' }}>
       <code className={language ? `language-${language}` : ""}>
         {text}
       </code>
@@ -122,15 +123,15 @@ export const ToggleRenderer: React.FC<BlockRendererProps> = ({ block, index, lis
   const { emoji, children } = block;
   
   return (
-    <Collapsible key={`toggle-${listPath}-${index}`} className="my-2 border border-muted rounded-md">
-      <CollapsibleTrigger className="p-3 w-full flex items-center justify-between text-left font-medium hover:bg-muted/50">
+    <Collapsible key={`toggle-${listPath}-${index}`} className="my-1 border border-muted rounded-md">
+      <CollapsibleTrigger className="p-3 w-full flex items-center justify-between text-left font-medium hover:bg-muted/50" style={{ lineHeight: '1.6' }}>
         <div className="flex items-center">
           {emoji && <span className="mr-2">{renderIcon({emoji})}</span>}
           <span>{renderTextWithLineBreaks(block)}</span>
         </div>
         <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
       </CollapsibleTrigger>
-      <CollapsibleContent className="p-3 pt-0 border-t space-y-2">
+      <CollapsibleContent className="p-3 pt-0 border-t space-y-1">
         {children && children.map((child, idx) => 
           renderNested(child, idx, 0, `${listPath}-toggle-${idx}`)
         )}
@@ -192,9 +193,9 @@ export const ColumnListRenderer: React.FC<BlockRendererProps> = ({ block, index,
   );
   
   return (
-    <div key={`column-list-${listPath}-${index}`} className={`my-4 ${columnClass}`}>
+    <div key={`column-list-${listPath}-${index}`} className={`my-1 ${columnClass}`}>
       {children.map((column, colIndex) => (
-        <div key={`column-${colIndex}`} className="flex flex-col space-y-2">
+        <div key={`column-${colIndex}`} className="flex flex-col space-y-1">
           {column.children && column.children.map((child, childIndex) => (
             renderNested(child, childIndex, 0, `${listPath}-col-${colIndex}-${childIndex}`)
           ))}
@@ -211,7 +212,7 @@ export const ColumnRenderer: React.FC<BlockRendererProps> = ({ block, index, lis
   if (!children || children.length === 0) return null;
   
   return (
-    <div key={`column-${listPath}-${index}`} className="flex flex-col space-y-2">
+    <div key={`column-${listPath}-${index}`} className="flex flex-col space-y-1">
       {children.map((child, childIndex) => (
         renderNested(child, childIndex, 0, `${listPath}-column-${childIndex}`)
       ))}
@@ -281,7 +282,7 @@ export const MediaBlockRenderer: React.FC<BlockRendererProps> = ({ block, index,
 export const DefaultBlockRenderer: React.FC<BlockRendererProps> = ({ block, index, listPath }) => {
   if (block.text) {
     return (
-      <div key={`default-${listPath}-${index}`} className="my-2">
+      <div key={`default-${listPath}-${index}`} className="my-1" style={{ lineHeight: '1.6' }}>
         {renderTextWithLineBreaks(block)}
       </div>
     );
@@ -291,5 +292,5 @@ export const DefaultBlockRenderer: React.FC<BlockRendererProps> = ({ block, inde
 
 // Divider renderer
 export const DividerRenderer: React.FC<{ index: number, listPath: string }> = ({ index, listPath }) => {
-  return <hr key={`divider-${listPath}-${index}`} className="my-6 border-t border-gray-400" />;
+  return <hr key={`divider-${listPath}-${index}`} className="my-3 border-t border-gray-400" />;
 };

@@ -47,7 +47,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       // For list items without children, we need to wrap them in the appropriate list tag
       if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
         return (
-          <li key={`${listPath}-item-${index}`} className="my-2" style={{ lineHeight: '1.6' }}>
+          <li key={`${listPath}-item-${index}`} className="my-1" style={{ lineHeight: '1.6' }}>
             {renderTextWithLineBreaks(block)}
           </li>
         );
@@ -140,11 +140,11 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // For list items, we want to include children within the li, otherwise we render as siblings
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
       return (
-        <li key={`${listPath}-list-${index}`} className="my-2" style={{ lineHeight: '1.6' }}>
+        <li key={`${listPath}-list-${index}`} className="my-1" style={{ lineHeight: '1.6' }}>
           {renderTextWithLineBreaks(block)}
           {childrenElements.length > 0 && (
-            // Use consistent 8px (2rem) indentation for nested content within a list item
-            <div className="mt-3 space-y-2">
+            // Consistent 4-space (1rem) indentation for nested content within a list item
+            <div className="mt-1 ml-4 space-y-1">
               {childrenElements}
             </div>
           )}
@@ -161,7 +161,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         <React.Fragment key={`${listPath}-frag-${index}`}>
           {blockContent}
           {childrenElements.length > 0 && (
-            <div className={depth > 0 ? "mt-3 space-y-2" : "space-y-2"}>
+            <div className={depth > 0 ? "mt-1 ml-4 space-y-1" : "space-y-1"}>
               {childrenElements}
             </div>
           )}
@@ -313,7 +313,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   try {
     // Fix numbered lists and group list items
     const fixedBlocks = fixNumberedLists(blocks);
-    return <div className={cn("notion-content space-y-2", className)}>{groupListItems(fixedBlocks)}</div>;
+    return <div className={cn("notion-content space-y-1", className)}>{groupListItems(fixedBlocks)}</div>;
   } catch (error) {
     console.error("Error rendering Notion content:", error);
     toast.error("There was a problem rendering the content. Please try again later.");
