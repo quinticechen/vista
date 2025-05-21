@@ -11,6 +11,7 @@ import { getProfileByUrlParam, getUserContentItems } from "@/services/urlParamSe
 import { semanticSearch } from "@/services/adminService";
 import { ContentItem } from "@/services/adminService";
 import { Badge } from "@/components/ui/badge";
+import { processNotionContent } from "@/utils/notionContentProcessor";
 
 const UrlParamVista = () => {
   const { urlParam } = useParams();
@@ -54,8 +55,11 @@ const UrlParamVista = () => {
         // Load all content items for this user (for "View All" functionality)
         const userId = profile.id;
         console.log(`Loading all content items for user ID: ${userId}`);
-        const userContent = await getUserContentItems(userId);
+        let userContent = await getUserContentItems(userId);
         console.log('Content loaded:', userContent);
+        
+        // Process each content item to ensure proper orientation detection
+        userContent = userContent.map((item: ContentItem) => processNotionContent(item));
         
         setAllContentItems(userContent);
         
@@ -65,7 +69,10 @@ const UrlParamVista = () => {
           
           // Filter search results to only include items from this user
           const userIdsSet = new Set(userContent.map((item: ContentItem) => item.id));
-          const filteredResults = searchResults.filter((item: ContentItem) => userIdsSet.has(item.id));
+          let filteredResults = searchResults.filter((item: ContentItem) => userIdsSet.has(item.id));
+          
+          // Process each search result to ensure proper orientation detection
+          filteredResults = filteredResults.map((item: ContentItem) => processNotionContent(item));
           
           setItems(filteredResults);
           setShowingSearchResults(true);
@@ -128,7 +135,9 @@ const UrlParamVista = () => {
 
       // First get all content for this user if we don't have it yet
       if (allContentItems.length === 0) {
-        const userContent = await getUserContentItems(userId);
+        let userContent = await getUserContentItems(userId);
+        // Process content items for proper orientation detection
+        userContent = userContent.map((item: ContentItem) => processNotionContent(item));
         setAllContentItems(userContent);
       }
       
@@ -136,7 +145,10 @@ const UrlParamVista = () => {
       if (allContentItems.length > 0) {
         try {
           console.log(`Performing semantic search with term: "${term}"`);
-          const searchResults = await semanticSearch(term);
+          let searchResults = await semanticSearch(term);
+          
+          // Process search results for proper orientation detection
+          searchResults = searchResults.map((item: ContentItem) => processNotionContent(item));
           
           // Filter search results to only include items from this user
           const userIdsSet = new Set(allContentItems.map(item => item.id));

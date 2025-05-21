@@ -38,7 +38,7 @@ const hasMediaInContent = (content: Json | any[] | undefined): boolean => {
     }
   }
   return false;
-};
+}
 
 // Helper function to find media block
 const findMediaBlock = (content: Json | any[] | undefined): any => {
@@ -60,7 +60,7 @@ const findMediaBlock = (content: Json | any[] | undefined): any => {
     }
   }
   return null;
-};
+}
 
 export const ContentDisplayItem = ({ 
   content, 
@@ -71,17 +71,19 @@ export const ContentDisplayItem = ({
   const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
   
-  const mediaBlock = findMediaBlock(content.content);
-  const mediaUrl = mediaBlock?.media_url;
+  // Check for cover image first, then look for media in content
+  const hasCoverImage = !!content.cover_image;
+  const mediaBlock = !hasCoverImage ? findMediaBlock(content.content) : null;
+  const mediaUrl = hasCoverImage ? content.cover_image : (mediaBlock?.media_url || null);
+  const hasMedia = !!mediaUrl;
   const isMediaRight = index % 2 === 0;
   
-  // Determine orientation from content property or from mediaBlock
+  // Determine orientation - check from content property first, then from mediaBlock or cover image
   const orientation = content.orientation || mediaBlock?.orientation || 'landscape';
   const isPortrait = orientation === 'portrait';
   
   // Function to get the correct detail route
   const getDetailRoute = () => {
-    // Fix the URL structure - should point to vista/:contentId not content/:contentId
     if (urlPrefix) {
       return `${urlPrefix}/vista/${content.id}`;
     }
@@ -90,10 +92,10 @@ export const ContentDisplayItem = ({
 
   return (
     <Card
-      className={`group ${mediaUrl ? 'h-[400px]' : 'h-auto'} overflow-hidden flex ${mediaUrl ? 'w-full' : 'w-full'} flex-row hover:shadow-md transition-shadow duration-200`}
+      className={`group ${hasMedia ? 'h-[400px]' : 'h-auto'} overflow-hidden flex flex-row hover:shadow-md transition-shadow duration-200`}
     > 
       {/* Text Content Section - Always present */}
-      <div className={`${mediaUrl ? 'w-1/2' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'}`}>
+      <div className={`${hasMedia ? 'w-1/2' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'}`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-2 mb-1">
             {content.category && (
@@ -184,14 +186,15 @@ export const ContentDisplayItem = ({
       </div>
 
       {/* Media Section - Only show if we have media */}
-      {mediaUrl && (
+      {hasMedia && (
         <div className={`w-1/2 relative ${isMediaRight ? 'order-last' : 'order-first'}`}>
-          {mediaBlock?.media_type === 'image' ? (
+          {hasCoverImage || (mediaBlock?.media_type === 'image') ? (
             <ImageAspectRatio
               src={mediaUrl}
-              alt={mediaBlock.caption || content.title}
+              alt={hasCoverImage ? content.title : (mediaBlock?.caption || content.title)}
               className="h-full"
               size={isPortrait ? 'portrait' : 'landscape'}
+              isHeic={content.is_heic_cover}
             />
           ) : mediaBlock?.media_type === 'video' ? (
             <div className="w-full h-full">

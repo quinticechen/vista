@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { processNotionContent } from "@/utils/notionContentProcessor";
 
 const Vista = () => {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -44,10 +45,12 @@ const Vista = () => {
         console.log(`Fetched ${data?.length || 0} content items from the database`);
         
         // Process the data to match ContentItem interface
-        const processedData = (data || []).map((item: any) => ({
+        let processedData = (data || []).map((item: any) => ({
           ...item,
-          // Properties will be kept as is with updated ContentItem interface
         })) as ContentItem[];
+        
+        // Process each item to ensure orientation and image properties are set
+        processedData = processedData.map(item => processNotionContent(item));
         
         setAllContentItems(processedData);
         
@@ -62,11 +65,15 @@ const Vista = () => {
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
-          setContentItems(searchResults);
+          
+          // Process search results to ensure orientation and image properties are set
+          const processedSearchResults = searchResults.map(item => processNotionContent(item));
+          
+          setContentItems(processedSearchResults);
           setShowingSearchResults(true);
     
           toast.success(
-            `Found ${searchResults.length} relevant items based on your search`,
+            `Found ${processedSearchResults.length} relevant items based on your search`,
             { duration: 5000 }
           );
         } else if (searchPurpose) {
@@ -106,7 +113,10 @@ const Vista = () => {
     setLoading(true);
     try {
       console.log(`Performing semantic search with term: "${term}"`);
-      const results = await semanticSearch(term.trim());
+      let results = await semanticSearch(term.trim());
+      
+      // Process search results to ensure orientation and image properties are set
+      results = results.map(item => processNotionContent(item));
       
       if (results && results.length > 0) {
         console.log(`Found ${results.length} results for search: "${term}"`);
@@ -267,7 +277,7 @@ const Vista = () => {
             <p className="mt-4 text-lg text-beige-700">Searching for relevant content...</p>
           </div>
         ) : sortedItems.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col gap-6">
             {sortedItems.map((item, index) => (
               <div key={item.id} className="block group">
                 <ContentDisplayItem 
