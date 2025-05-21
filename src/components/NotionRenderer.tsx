@@ -1,10 +1,10 @@
-
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Toggle } from "@/components/ui/toggle";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import ImageAspectRatio from "@/components/ui/image-aspect-ratio";
 
 // Define the types for our new simplified Notion blocks format
 type NotionAnnotation = {
@@ -40,6 +40,7 @@ type NotionBlock = {
   table_width?: number;
   has_row_header?: boolean;
   has_column_header?: boolean;
+  is_heic?: boolean; // New property to indicate HEIC images
 };
 
 interface NotionRendererProps {
@@ -55,6 +56,16 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   // Keep track of lists to group them
   let currentListType: string | null = null;
   let listItems: React.ReactNode[] = [];
+
+  // Helper function to check if an image URL is a HEIC format
+  const isHeicImage = (url?: string): boolean => {
+    if (!url) return false;
+    const urlLower = url.toLowerCase();
+    return urlLower.endsWith('.heic') || 
+           urlLower.includes('/heic') || 
+           urlLower.includes('heic.') ||
+           urlLower.includes('image/heic');
+  };
 
   const renderAnnotatedText = (text: string, annotations?: NotionAnnotation[]) => {
     if (!text) return null;
@@ -407,6 +418,9 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     const imageUrl = media_url || block.url;
     const videoUrl = media_url || block.url;
     
+    // Check if the image is marked as HEIC or if the URL indicates it's HEIC
+    const isHeic = block.is_heic || isHeicImage(imageUrl);
+    
     // Special handling for list items - we now handle them differently
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
       // List items are now handled in renderNestedContent and renderListGroup
@@ -423,6 +437,24 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // Handle media blocks (unified media approach)
     if (media_type === "image" || type === "image" || (type === "media" && block.media_type === "image")) {
       try {
+        // If the image is HEIC, use the ImageAspectRatio component for better error handling
+        if (isHeic) {
+          return (
+            <figure key={`image-${listPath}-${index}`} className="my-4">
+              <ImageAspectRatio
+                src={media_url || imageUrl}
+                alt={caption || text || "Notion image"}
+                className="max-w-full rounded-md"
+              />
+              <figcaption className="text-center text-sm text-muted-foreground mt-2 flex flex-col">
+                {(caption || text) && <span>{caption || text}</span>}
+                <span className="text-xs text-amber-600">HEIC format - not supported by most browsers</span>
+              </figcaption>
+            </figure>
+          );
+        }
+
+        // For regular images
         return (
           <figure key={`image-${listPath}-${index}`} className="my-4">
             <img 
@@ -434,8 +466,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
                 e.currentTarget.onerror = null; // Prevent infinite loops
                 e.currentTarget.classList.add("opacity-50");
                 
-                // If it's a HEIC file, add a notice
-                if ((media_url || imageUrl)?.toLowerCase().endsWith('.heic')) {
+                // Check if it might be a HEIC file based on URL
+                if (isHeicImage(media_url || imageUrl)) {
                   const parent = e.currentTarget.parentElement;
                   if (parent) {
                     const notice = document.createElement('div');
@@ -459,6 +491,9 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           <div key={`image-error-${listPath}-${index}`} className="p-4 border border-red-300 bg-red-50 my-4 rounded-md">
             <p className="text-red-500">Failed to load image</p>
             <p className="text-xs text-red-400">{media_url || imageUrl}</p>
+            {isHeic && (
+              <p className="text-xs mt-2 text-amber-600">HEIC format not supported by most browsers</p>
+            )}
           </div>
         );
       }
@@ -598,7 +633,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           </div>
         );
       case "divider":
-        return <hr key={`divider-${listPath}-${index}`} className="my-6 border-t border-gray-500" />;
+        return <hr key={`divider-${listPath}-${index}`} className="my-6 border-t border-gray-400" />;
       case "callout":
         // If this is a simple callout without children, render it here
         return (
@@ -853,4 +888,3 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
 };
 
 export default NotionRenderer;
-

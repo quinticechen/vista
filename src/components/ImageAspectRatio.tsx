@@ -19,6 +19,16 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
   const [error, setError] = useState(false);
   const [isHeic, setIsHeic] = useState(false);
 
+  // Check if the image is a HEIC file by URL
+  const isHeicImage = (url?: string): boolean => {
+    if (!url) return false;
+    const urlLower = url.toLowerCase();
+    return urlLower.endsWith('.heic') || 
+           urlLower.includes('/heic') || 
+           urlLower.includes('heic.') ||
+           urlLower.includes('image/heic');
+  };
+
   // Default aspect ratios
   const getAspectRatio = () => {
     if (aspectRatio) return aspectRatio;
@@ -33,6 +43,10 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
         return 16/9; // Landscape ratio for media display
     }
   };
+
+  // Pre-check if it's a HEIC image
+  const imageUrl = src?.toString() || '';
+  const detectedHeic = isHeicImage(imageUrl);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setError(true);
@@ -49,6 +63,12 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
       props.onError(e);
     }
   };
+
+  // If we already know it's a HEIC image before loading, show the error state immediately
+  if (detectedHeic && !error) {
+    setError(true);
+    setIsHeic(true);
+  }
 
   return (
     <AspectRatio 
@@ -79,7 +99,10 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
             {isHeic ? "HEIC format not supported by browser" : "Failed to load image"}
           </span>
           {isHeic && (
-            <span className="text-xs mt-1 text-center">This image format requires conversion to be displayed</span>
+            <>
+              <span className="text-xs mt-1 text-center">This image format requires conversion to be displayed</span>
+              <span className="text-xs mt-1 text-center text-amber-500">Try using PNG or JPEG formats instead</span>
+            </>
           )}
         </div>
       ) : (

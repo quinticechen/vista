@@ -20,6 +20,16 @@ const UrlParamContentDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
 
+  // Helper function to check if an image URL is a HEIC format
+  const isHeicImage = (url?: string): boolean => {
+    if (!url) return false;
+    const urlLower = url.toLowerCase();
+    return urlLower.endsWith('.heic') || 
+           urlLower.includes('/heic') || 
+           urlLower.includes('heic.') ||
+           urlLower.includes('image/heic');
+  };
+
   useEffect(() => {
     const loadData = async () => {
       if (!urlParam || !contentId) {
@@ -127,6 +137,16 @@ const UrlParamContentDetail = () => {
                 return ann;
               });
             }
+
+            // Detect and mark HEIC images for better error handling
+            if ((processedBlock.type === 'image' || processedBlock.media_type === 'image') && 
+                (processedBlock.media_url || processedBlock.url)) {
+              const imageUrl = processedBlock.media_url || processedBlock.url;
+              if (isHeicImage(imageUrl)) {
+                processedBlock.is_heic = true;
+                console.warn("HEIC image detected in content:", imageUrl);
+              }
+            }
             
             // Recursively process children
             if (processedBlock.children && Array.isArray(processedBlock.children)) {
@@ -154,6 +174,16 @@ const UrlParamContentDetail = () => {
                     return ann;
                   });
                 }
+
+                // Detect and mark HEIC images in children
+                if ((processedChild.type === 'image' || processedChild.media_type === 'image') && 
+                    (processedChild.media_url || processedChild.url)) {
+                  const imageUrl = processedChild.media_url || processedChild.url;
+                  if (isHeicImage(imageUrl)) {
+                    processedChild.is_heic = true;
+                    console.warn("HEIC image detected in child content:", imageUrl);
+                  }
+                }
                 
                 return processedChild;
               });
@@ -163,6 +193,12 @@ const UrlParamContentDetail = () => {
           });
           
           contentItem.content = processedContent;
+        }
+
+        // Check if cover image is HEIC
+        if (contentItem.cover_image && isHeicImage(contentItem.cover_image)) {
+          contentItem.is_heic_cover = true;
+          console.warn("HEIC cover image detected:", contentItem.cover_image);
         }
         
         setContent(contentItem);
@@ -264,6 +300,12 @@ const UrlParamContentDetail = () => {
               alt={content.title} 
               className="w-full"
             />
+            {content.is_heic_cover && (
+              <div className="mt-2 bg-amber-50 border-l-4 border-amber-500 p-3 text-amber-700 text-sm">
+                <p className="font-medium">HEIC image format detected</p>
+                <p className="text-xs">This image format is not supported by most browsers. Consider converting it to JPEG or PNG.</p>
+              </div>
+            )}
           </div>
         )}
         
@@ -287,4 +329,3 @@ const UrlParamContentDetail = () => {
 };
 
 export default UrlParamContentDetail;
-
