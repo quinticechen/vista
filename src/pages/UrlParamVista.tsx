@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -29,6 +30,33 @@ const UrlParamVista = () => {
   const searchPurpose = location.state?.purpose as string | undefined;
   const searchTimestamp = location.state?.searchQuery;
 
+  // Function to thoroughly process content to ensure all properties are detected
+  const deepProcessContent = (item: ContentItem): ContentItem => {
+    // First process with the standard processor
+    const processed = processNotionContent(item);
+    
+    // Additional deep processing to ensure we find all media
+    if (processed.content) {
+      // Log for debugging
+      console.log(`Deep processing content for ${item.id}: ${item.title}`);
+      console.log(`Content structure before deep processing:`, processed.content);
+      
+      // Ensure content is parsed if it's a string
+      if (typeof processed.content === 'string') {
+        try {
+          processed.content = JSON.parse(processed.content);
+        } catch (e) {
+          console.error(`Error parsing content in deep processing: ${e}`);
+        }
+      }
+      
+      // Log after parsing
+      console.log(`Content structure after parsing:`, processed.content);
+    }
+    
+    return processed;
+  };
+  
   // Get initial search term from URL or navigation state
   useEffect(() => {
     const loadData = async () => {
@@ -56,10 +84,10 @@ const UrlParamVista = () => {
         let userContent = await getUserContentItems(userId);
         console.log('Content loaded:', userContent);
         
-        // Process each content item to ensure proper orientation detection
+        // Process each content item to ensure proper orientation detection and media
         userContent = userContent.map((item: ContentItem) => {
           console.log(`Processing item ${item.id}: ${item.title}`);
-          const processed = processNotionContent(item);
+          const processed = deepProcessContent(item);
           console.log(`After processing: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
           return processed;
         });
@@ -82,10 +110,11 @@ const UrlParamVista = () => {
           // Filter out any removed items
           filteredResults = filteredResults.filter(item => item.notion_page_status !== 'removed');
           
-          // Process each search result to ensure proper orientation detection
+          // Process each search result to ensure proper orientation detection and media
           filteredResults = filteredResults.map((item: ContentItem) => {
             console.log(`Processing search result ${item.id}: ${item.title}`);
-            const processed = processNotionContent(item);
+            // Use deep processing for search results
+            const processed = deepProcessContent(item);
             console.log(`After processing search result: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
             return processed;
           });
@@ -152,7 +181,7 @@ const UrlParamVista = () => {
         // Filter out removed items
         userContent = userContent.filter(item => item.notion_page_status !== 'removed');
         // Process content items for proper orientation detection
-        userContent = userContent.map((item: ContentItem) => processNotionContent(item));
+        userContent = userContent.map((item: ContentItem) => deepProcessContent(item));
         setAllContentItems(userContent);
       }
       
@@ -165,11 +194,12 @@ const UrlParamVista = () => {
           // Log search results for debugging
           console.log(`Search returned ${searchResults.length} results (before filtering)`, searchResults);
           
-          // Process search results for proper orientation detection
+          // Process search results for proper orientation detection and media detection
           searchResults = searchResults.map((item: ContentItem) => {
             console.log(`Processing search result ${item.id}: ${item.title}`);
-            const processed = processNotionContent(item);
+            const processed = deepProcessContent(item);
             console.log(`After processing search result: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
+            console.log(`Processed search result:`, processed);
             return processed;
           });
           

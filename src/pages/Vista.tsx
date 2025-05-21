@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +28,33 @@ const Vista = () => {
   const searchPurpose = location.state?.purpose as string | undefined;
   const searchTimestamp = location.state?.searchQuery; // Used to force re-render
 
+  // Function to thoroughly process content to ensure all properties are detected
+  const deepProcessContent = (item: ContentItem): ContentItem => {
+    // First process with the standard processor
+    const processed = processNotionContent(item);
+    
+    // Additional deep processing to ensure we find all media
+    if (processed.content) {
+      // Log for debugging
+      console.log(`Deep processing content for ${item.id}: ${item.title}`);
+      console.log(`Content structure before deep processing:`, processed.content);
+      
+      // Ensure content is parsed if it's a string
+      if (typeof processed.content === 'string') {
+        try {
+          processed.content = JSON.parse(processed.content);
+        } catch (e) {
+          console.error(`Error parsing content in deep processing: ${e}`);
+        }
+      }
+      
+      // Log after parsing
+      console.log(`Content structure after parsing:`, processed.content);
+    }
+    
+    return processed;
+  };
+
   useEffect(() => {
     console.log("Vista page mounted or search updated");
     const fetchContentItems = async () => {
@@ -51,7 +79,7 @@ const Vista = () => {
         })) as ContentItem[];
         
         // Process each item to ensure orientation and image properties are set
-        processedData = processedData.map(item => processNotionContent(item));
+        processedData = processedData.map(item => deepProcessContent(item));
         
         setAllContentItems(processedData);
         
@@ -68,7 +96,7 @@ const Vista = () => {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
           
           // Process search results to ensure orientation and image properties are set
-          const processedSearchResults = searchResults.map(item => processNotionContent(item));
+          const processedSearchResults = searchResults.map(item => deepProcessContent(item));
           
           // Filter out any removed items
           const activeSearchResults = processedSearchResults.filter(
@@ -122,7 +150,7 @@ const Vista = () => {
       let results = await semanticSearch(term.trim());
       
       // Process search results to ensure orientation and image properties are set
-      results = results.map(item => processNotionContent(item));
+      results = results.map(item => deepProcessContent(item));
       
       // Filter out any removed items
       results = results.filter(item => item.notion_page_status !== 'removed');
