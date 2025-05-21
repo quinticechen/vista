@@ -1,7 +1,10 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Toggle } from "@/components/ui/toggle";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 // Define the types for our new simplified Notion blocks format
 type NotionAnnotation = {
@@ -85,7 +88,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           annotation.underline && "underline",
           annotation.strikethrough && "line-through",
           annotation.code && "font-mono bg-muted rounded px-1 py-0.5",
-          annotation.color && `text-${annotation.color}-500`
+          annotation.color && `text-${annotation.color}-500`,
+          annotation.color && annotation.color.includes("background") && `bg-${annotation.color.replace("background_", "")}-100`
         );
         
         const content = (
@@ -124,13 +128,18 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       // Use annotationText if available, otherwise this is the wrong format
       if (!annotationText) return null;
       
+      // Handle background colors
+      const isBackgroundColor = color && color.includes("background_");
+      const bgColorClass = isBackgroundColor ? `bg-${color.replace("background_", "")}-100` : "";
+      
       const styles = cn(
         bold && "font-bold",
         italic && "italic",
         underline && "underline",
         strikethrough && "line-through",
         code && "font-mono bg-muted rounded px-1 py-0.5",
-        color && color !== "default" && `text-${color}-500`
+        color && !isBackgroundColor && color !== "default" && `text-${color}-500`,
+        bgColorClass
       );
 
       const content = (
@@ -285,6 +294,19 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           {childrenElements.length > 0 && <div className="pl-4 mt-1">{childrenElements}</div>}
         </li>
       );
+    } else if (block.type === "toggle") {
+      // Special handling for toggle blocks - return the toggle with its children inside the CollapsibleContent
+      return (
+        <Collapsible key={`toggle-${listPath}-${index}`} className="my-2 border border-muted rounded-md">
+          <CollapsibleTrigger className="p-3 w-full flex items-center justify-between text-left font-medium hover:bg-muted/50">
+            <span>{block.annotations && block.text ? renderAnnotatedText(block.text, block.annotations) : block.text}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 ui-open:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="p-3 pt-0 border-t">
+            {childrenElements}
+          </CollapsibleContent>
+        </Collapsible>
+      );
     } else {
       return (
         <React.Fragment key={`${listPath}-frag-${index}`}>
@@ -299,12 +321,12 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   const renderListGroup = (listType: string | null, items: React.ReactNode[], depth: number = 0, listPath: string = 'root'): React.ReactNode => {
     if (!listType || items.length === 0) return null;
     
-    const className = `pl-${4 + depth} my-2`;
+    const className = `pl-${depth > 0 ? 4 : 0} my-2`;
     
     if (listType === "numbered_list") {
-      return <ol key={`numbered-list-${listPath}`} className={`list-decimal ${className}`}>{items}</ol>;
+      return <ol key={`numbered-list-${listPath}`} className={`list-decimal ${className}`} style={{ marginLeft: depth > 0 ? "1.5rem" : 0 }}>{items}</ol>;
     } else if (listType === "bulleted_list") {
-      return <ul key={`bulleted-list-${listPath}`} className={`list-disc ${className}`}>{items}</ul>;
+      return <ul key={`bulleted-list-${listPath}`} className={`list-disc ${className}`} style={{ marginLeft: depth > 0 ? "1.5rem" : 0 }}>{items}</ul>;
     }
     
     return null;
@@ -460,18 +482,21 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       case "heading_1":
         return (
           <h1 key={`h1-${listPath}-${index}`} className="text-3xl font-bold mt-8 mb-4">
+            {block.emoji && <span className="mr-2">{block.emoji}</span>}
             {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
           </h1>
         );
       case "heading_2":
         return (
           <h2 key={`h2-${listPath}-${index}`} className="text-2xl font-bold mt-6 mb-3">
+            {block.emoji && <span className="mr-2">{block.emoji}</span>}
             {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
           </h2>
         );
       case "heading_3":
         return (
           <h3 key={`h3-${listPath}-${index}`} className="text-xl font-bold mt-5 mb-2">
+            {block.emoji && <span className="mr-2">{block.emoji}</span>}
             {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
           </h3>
         );
@@ -512,8 +537,17 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       case "callout":
         return (
           <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
-            {block.icon && <div>{renderIcon(block.icon)}</div>}
-            <div>{block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}</div>
+            {(block.icon || block.emoji) && (
+              <div className="text-xl leading-none">{renderIcon(block.icon) || block.emoji}</div>
+            )}
+            <div className="flex-1">
+              {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
+              {block.children && block.children.length > 0 && (
+                <div className="mt-2">
+                  {block.children.map((child, idx) => renderNestedContent(child, idx, 0, `${listPath}-callout-${idx}`))}
+                </div>
+              )}
+            </div>
           </div>
         );
       case "code":
@@ -525,41 +559,68 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
           </pre>
         );
       case "toggle":
-        return (
-          <details key={`toggle-${listPath}-${index}`} className="my-2 border border-muted rounded-md">
-            <summary className="p-3 cursor-pointer font-medium hover:bg-muted/50">
-              {block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}
-            </summary>
-          </details>
-        );
+        // Note: The children will be handled in renderNestedContent
+        return null;
       case "table":
+        if (!block.children || block.children.length === 0) return null;
         return (
           <div key={`table-${listPath}-${index}`} className="my-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 border">
-              {block.children && block.children.map((row, rowIndex) => (
-                <tr key={`row-${rowIndex}`} className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  {row.children && row.children.map((cell, cellIndex) => {
-                    const isHeader = (block.has_column_header && rowIndex === 0) || 
-                                    (block.has_row_header && cellIndex === 0);
-                    const CellTag = isHeader ? 'th' : 'td';
-                    return (
-                      <CellTag 
-                        key={`cell-${cellIndex}`}
-                        className={cn(
-                          "px-4 py-2 border text-left",
-                          isHeader && "font-semibold bg-gray-100"
-                        )}
-                      >
-                        {cell.text && (cell.annotations ? 
-                          renderAnnotatedText(cell.text, cell.annotations) : 
-                          cell.text
-                        )}
-                      </CellTag>
-                    );
-                  })}
-                </tr>
-              ))}
+              <tbody>
+                {block.children.map((row, rowIndex) => (
+                  <tr key={`row-${rowIndex}`} className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    {row.children && row.children.map((cell, cellIndex) => {
+                      const isHeader = (block.has_column_header && rowIndex === 0) || 
+                                      (block.has_row_header && cellIndex === 0);
+                      const CellTag = isHeader ? 'th' : 'td';
+                      return (
+                        <CellTag 
+                          key={`cell-${cellIndex}`}
+                          className={cn(
+                            "px-4 py-2 border text-left",
+                            isHeader && "font-semibold bg-gray-100"
+                          )}
+                        >
+                          {cell.text && (cell.annotations ? 
+                            renderAnnotatedText(cell.text, cell.annotations) : 
+                            cell.text
+                          )}
+                        </CellTag>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
             </table>
+          </div>
+        );
+      case "column_list":
+        if (!block.children || block.children.length === 0) return null;
+        // Determine the column count and use appropriate grid classes
+        const columnCount = block.children.length;
+        const columnClass = cn(
+          "grid gap-4", 
+          columnCount === 2 && "grid-cols-1 md:grid-cols-2",
+          columnCount === 3 && "grid-cols-1 md:grid-cols-3",
+          columnCount === 4 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-4",
+          columnCount > 4 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+        );
+        
+        return (
+          <div key={`column-list-${listPath}-${index}`} className={`my-4 ${columnClass}`}>
+            {block.children.map((column, colIndex) => (
+              <div key={`column-${colIndex}`} className="flex flex-col">
+                {column.children && column.children.map((child, childIndex) => (
+                  renderNestedContent(child, childIndex, 0, `${listPath}-col-${colIndex}-${childIndex}`)
+                ))}
+              </div>
+            ))}
+          </div>
+        );
+      case "equation":
+        return (
+          <div key={`equation-${listPath}-${index}`} className="my-2 px-2 py-1 bg-gray-50 font-mono text-sm overflow-x-auto">
+            {text && <code>{text}</code>}
           </div>
         );
       case "div":

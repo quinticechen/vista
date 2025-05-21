@@ -71,6 +71,33 @@ const UrlParamContentDetail = () => {
               }
             }
             
+            // Process for tables - ensure they have proper structure
+            if (processedBlock.type === 'table' && processedBlock.children) {
+              // Make sure each row has cells with proper structure
+              processedBlock.children = processedBlock.children.map((row: any) => {
+                if (!row.children || !Array.isArray(row.children)) {
+                  row.children = []; // Ensure children is an array
+                }
+                return row;
+              });
+            }
+            
+            // Process for columns - ensure proper structure
+            if (processedBlock.type === 'column_list' && processedBlock.children) {
+              // Make sure each column has proper structure
+              processedBlock.children = processedBlock.children.map((column: any) => {
+                if (!column.children) {
+                  column.children = [];
+                }
+                return column;
+              });
+            }
+            
+            // Fix toggle blocks
+            if (processedBlock.type === 'toggle' && !processedBlock.children) {
+              processedBlock.children = [];
+            }
+            
             return processedBlock;
           });
           
