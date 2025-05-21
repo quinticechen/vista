@@ -30,7 +30,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   // Initialize list counters
   const listCounters = createListCounters();
 
-  // Improved function to render nested lists recursively
+  // Improved function to render nested content recursively
   const renderNestedContent = (block: NotionBlock, index: number, depth: number = 0, listPath: string = 'root'): React.ReactNode => {
     const { children } = block;
     
@@ -143,7 +143,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         <li key={`${listPath}-list-${index}`} className="my-1">
           {renderTextWithLineBreaks(block)}
           {childrenElements.length > 0 && (
-            <div className="ml-4 mt-1">
+            // Reduce the ml-4 (1rem/16px) indentation to ml-2 (0.5rem/8px)
+            <div className="ml-2 mt-1">
               {childrenElements}
             </div>
           )}
@@ -160,7 +161,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         <React.Fragment key={`${listPath}-frag-${index}`}>
           {blockContent}
           {childrenElements.length > 0 && (
-            <div className={depth > 0 ? "ml-4 mt-1" : ""}>
+            // Reduce the ml-4 (1rem/16px) indentation to ml-2 (0.5rem/8px) when depth > 0
+            <div className={depth > 0 ? "ml-2 mt-1" : ""}>
               {childrenElements}
             </div>
           )}

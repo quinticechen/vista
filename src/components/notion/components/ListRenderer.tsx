@@ -17,13 +17,13 @@ export const ListRenderer: React.FC<ListRendererProps> = ({
 }) => {
   if (!listType || items.length === 0) return null;
   
-  // Use consistent indentation with 1rem (16px) per level
+  // Reduce the indentation from pl-8 (2rem/32px) to pl-4 (1rem/16px)
   const className = "my-2";
   
   if (listType === "numbered_list") {
-    return <ol key={`numbered-list-${listPath}`} className={`list-decimal pl-8 ${className}`}>{items}</ol>;
+    return <ol key={`numbered-list-${listPath}`} className={`list-decimal pl-4 ${className}`}>{items}</ol>;
   } else if (listType === "bulleted_list") {
-    return <ul key={`bulleted-list-${listPath}`} className={`list-disc pl-8 ${className}`}>{items}</ul>;
+    return <ul key={`bulleted-list-${listPath}`} className={`list-disc pl-4 ${className}`}>{items}</ul>;
   }
   
   return null;
