@@ -1,4 +1,3 @@
-
 import React from "react";
 import { NotionBlock } from "../types";
 
@@ -17,8 +16,9 @@ export const ListRenderer: React.FC<ListRendererProps> = ({
 }) => {
   if (!listType || items.length === 0) return null;
   
-  // Reduce the indentation from pl-8 (2rem/32px) to pl-4 (1rem/16px)
-  const className = "my-2";
+  // Keep indentation smaller at pl-4 (1rem/16px)
+  // Add consistent vertical spacing for both list types
+  const className = "my-2 space-y-2";
   
   if (listType === "numbered_list") {
     return <ol key={`numbered-list-${listPath}`} className={`list-decimal pl-4 ${className}`}>{items}</ol>;

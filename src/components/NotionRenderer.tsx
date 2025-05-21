@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
@@ -47,7 +46,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       // For list items without children, we need to wrap them in the appropriate list tag
       if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
         return (
-          <li key={`${listPath}-item-${index}`} className="my-1">
+          <li key={`${listPath}-item-${index}`} className="my-2">
             {renderTextWithLineBreaks(block)}
           </li>
         );
@@ -140,11 +139,11 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // For list items, we want to include children within the li, otherwise we render as siblings
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
       return (
-        <li key={`${listPath}-list-${index}`} className="my-1">
+        <li key={`${listPath}-list-${index}`} className="my-2">
           {renderTextWithLineBreaks(block)}
           {childrenElements.length > 0 && (
-            // Reduce the ml-4 (1rem/16px) indentation to ml-2 (0.5rem/8px)
-            <div className="ml-2 mt-1">
+            // Keep small indentation at ml-2 (0.5rem/8px) 
+            <div className="ml-2 mt-2">
               {childrenElements}
             </div>
           )}
@@ -161,8 +160,8 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         <React.Fragment key={`${listPath}-frag-${index}`}>
           {blockContent}
           {childrenElements.length > 0 && (
-            // Reduce the ml-4 (1rem/16px) indentation to ml-2 (0.5rem/8px) when depth > 0
-            <div className={depth > 0 ? "ml-2 mt-1" : ""}>
+            // Keep consistent spacing
+            <div className={depth > 0 ? "ml-2 mt-2" : ""}>
               {childrenElements}
             </div>
           )}
