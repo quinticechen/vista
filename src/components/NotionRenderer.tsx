@@ -47,7 +47,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       // For list items without children, we need to wrap them in the appropriate list tag
       if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
         return (
-          <li key={`${listPath}-item-${index}`} className="my-3" style={{ lineHeight: '1.6' }}>
+          <li key={`${listPath}-item-${index}`} className="my-2" style={{ lineHeight: '1.6' }}>
             {renderTextWithLineBreaks(block)}
           </li>
         );
@@ -140,7 +140,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // For list items, we want to include children within the li, otherwise we render as siblings
     if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
       return (
-        <li key={`${listPath}-list-${index}`} className="my-3" style={{ lineHeight: '1.6' }}>
+        <li key={`${listPath}-list-${index}`} className="my-2" style={{ lineHeight: '1.6' }}>
           {renderTextWithLineBreaks(block)}
           {childrenElements.length > 0 && (
             // Use consistent 8px (2rem) indentation for nested content within a list item
