@@ -30,37 +30,50 @@ const UrlParamVista = () => {
   const searchPurpose = location.state?.purpose as string | undefined;
   const searchTimestamp = location.state?.searchQuery;
 
+  // Function to normalize content - ensure arrays and parsed JSON
+  const normalizeContent = (item: ContentItem): ContentItem => {
+    const normalized = { ...item };
+    
+    // If content is a string, try to parse it
+    if (normalized.content && typeof normalized.content === 'string') {
+      try {
+        normalized.content = JSON.parse(normalized.content);
+      } catch (e) {
+        console.error(`Error parsing content for ${item.id}:`, e);
+      }
+    }
+    
+    // If it's not an array at this point, make it an empty array
+    if (!Array.isArray(normalized.content)) {
+      normalized.content = [];
+    }
+    
+    return normalized;
+  };
+
   // Function to thoroughly process content to ensure all properties are detected
   const deepProcessContent = (item: ContentItem): ContentItem => {
+    console.log(`Deep processing content for ${item.id}: ${item.title}`);
+    
     // First process with the standard processor
     const processed = processNotionContent(item);
     
-    // Additional deep processing to ensure we find all media
-    if (processed.content) {
-      // Log for debugging
-      console.log(`Deep processing content for ${item.id}: ${item.title}`);
-      console.log(`Content structure before deep processing:`, processed.content);
-      
-      // Ensure content is parsed if it's a string
-      if (typeof processed.content === 'string') {
-        try {
-          processed.content = JSON.parse(processed.content);
-        } catch (e) {
-          console.error(`Error parsing content in deep processing: ${e}`);
-        }
-      }
-      
-      // Log after parsing
-      console.log(`Content structure after parsing:`, processed.content);
-    }
+    // Then normalize to ensure proper structure
+    const normalized = normalizeContent(processed);
     
-    return processed;
+    // Log after processing
+    console.log(`Content structure after processing:`, normalized.content);
+    
+    return normalized;
   };
   
   // Get initial search term from URL or navigation state
   useEffect(() => {
     const loadData = async () => {
       try {
+        setIsLoading(true);
+        console.log("Loading data for UrlParamVista - Start");
+        
         // Load owner profile first
         if (!urlParam) {
           navigate('/');
@@ -119,6 +132,7 @@ const UrlParamVista = () => {
             return processed;
           });
           
+          // Set items state for display
           setItems(filteredResults);
           setShowingSearchResults(true);
           
@@ -127,18 +141,19 @@ const UrlParamVista = () => {
           }
         } else if (searchPurpose) {
           // If we had a search but it returned no results
-          setItems([]);
-          setShowingSearchResults(true);
           toast.warning(`No matches found for "${searchPurpose}". Showing all content instead.`, { duration: 5000 });
           setItems(userContent);
+          setShowingSearchResults(false);
         } else if (searchParams.get("search")) {
           // If we have a search term in URL params
-          performSearch(searchParams.get("search") || "");
+          await performSearch(searchParams.get("search") || "");
         } else {
           // Default: show only active content
           setItems(userContent);
           setShowingSearchResults(false);
         }
+        
+        console.log("Loading data for UrlParamVista - Complete");
       } catch (error) {
         console.error("Error loading data:", error);
         toast.error("Error loading content");
@@ -157,6 +172,7 @@ const UrlParamVista = () => {
     }
 
     setIsLoading(true);
+    console.log("Starting search on UrlParamVista page");
     try {
       if (!ownerProfile) {
         const profile = await getProfileByUrlParam(urlParam || "");
@@ -234,10 +250,12 @@ const UrlParamVista = () => {
       toast.error("Error performing search");
     } finally {
       setIsLoading(false);
+      console.log("Search complete on UrlParamVista page");
     }
   };
 
   const loadAllItems = () => {
+    console.log("Loading all items in UrlParamVista");
     setItems(allContentItems);
     setShowingSearchResults(false);
     setSearchQuery("");
@@ -281,6 +299,7 @@ const UrlParamVista = () => {
   };
 
   const sortedItems = getSortedItems();
+  console.log(`UrlParamVista rendering with ${sortedItems.length} items, isLoading=${isLoading}`);
 
   return (
     <div className="min-h-screen bg-beige-100 dark:bg-gray-900">

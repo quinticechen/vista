@@ -28,31 +28,41 @@ const Vista = () => {
   const searchPurpose = location.state?.purpose as string | undefined;
   const searchTimestamp = location.state?.searchQuery; // Used to force re-render
 
+  // Function to normalize content - ensure arrays and parsed JSON
+  const normalizeContent = (item: ContentItem): ContentItem => {
+    const normalized = { ...item };
+    
+    // If content is a string, try to parse it
+    if (normalized.content && typeof normalized.content === 'string') {
+      try {
+        normalized.content = JSON.parse(normalized.content);
+      } catch (e) {
+        console.error(`Error parsing content for ${item.id}:`, e);
+      }
+    }
+    
+    // If it's not an array at this point, make it an empty array
+    if (!Array.isArray(normalized.content)) {
+      normalized.content = [];
+    }
+    
+    return normalized;
+  };
+
   // Function to thoroughly process content to ensure all properties are detected
   const deepProcessContent = (item: ContentItem): ContentItem => {
+    console.log(`Deep processing content for ${item.id}: ${item.title}`);
+    
     // First process with the standard processor
     const processed = processNotionContent(item);
     
-    // Additional deep processing to ensure we find all media
-    if (processed.content) {
-      // Log for debugging
-      console.log(`Deep processing content for ${item.id}: ${item.title}`);
-      console.log(`Content structure before deep processing:`, processed.content);
-      
-      // Ensure content is parsed if it's a string
-      if (typeof processed.content === 'string') {
-        try {
-          processed.content = JSON.parse(processed.content);
-        } catch (e) {
-          console.error(`Error parsing content in deep processing: ${e}`);
-        }
-      }
-      
-      // Log after parsing
-      console.log(`Content structure after parsing:`, processed.content);
-    }
+    // Then normalize to ensure proper structure
+    const normalized = normalizeContent(processed);
     
-    return processed;
+    // Log after normalization
+    console.log(`Content structure after processing:`, normalized.content);
+    
+    return normalized;
   };
 
   useEffect(() => {
@@ -215,6 +225,7 @@ const Vista = () => {
   };
 
   const sortedItems = getSortedItems();
+  console.log(`Vista page rendering with ${sortedItems.length} content items, loading = ${loading}`);
 
   return (
     <div className="min-h-screen flex flex-col bg-beige-100 dark:bg-gray-900">

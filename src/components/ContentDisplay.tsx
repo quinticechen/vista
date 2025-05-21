@@ -41,6 +41,7 @@ const hasMediaInContent = (content: Json | any[] | undefined): boolean => {
           (block?.media_type === 'video' && block?.media_url));
       }
     } catch (e) {
+      console.error("Error parsing content string:", e);
       return false;
     }
   }
@@ -51,47 +52,41 @@ const hasMediaInContent = (content: Json | any[] | undefined): boolean => {
 const findMediaBlock = (content: Json | any[] | undefined): any => {
   if (!content) return null;
   
-  // Handle array content
-  if (Array.isArray(content)) {
-    const mediaBlock = content.find((block: any) => 
-      (block?.media_type === 'image' && block?.media_url) || 
-      (block?.type === 'image' && block?.url) ||
-      (block?.media_type === 'video' && block?.media_url));
-    
-    // If found a media block, ensure it has the correct structure
-    if (mediaBlock) {
-      // Normalize the media URL (handle different property names)
-      if (!mediaBlock.media_url && mediaBlock.url) {
-        mediaBlock.media_url = mediaBlock.url;
-      }
-      return mediaBlock;
-    }
-    return null;
-  }
+  // Ensure we're working with an array
+  let contentArray: any[] = [];
   
-  // Handle Json case - try to parse if it's a string
-  if (typeof content === 'string') {
+  if (Array.isArray(content)) {
+    contentArray = content;
+  } else if (typeof content === 'string') {
     try {
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed)) {
-        const mediaBlock = parsed.find((block: any) => 
-          (block?.media_type === 'image' && block?.media_url) || 
-          (block?.type === 'image' && block?.url) ||
-          (block?.media_type === 'video' && block?.media_url));
-        
-        // Normalize the media URL if found
-        if (mediaBlock) {
-          if (!mediaBlock.media_url && mediaBlock.url) {
-            mediaBlock.media_url = mediaBlock.url;
-          }
-          return mediaBlock;
-        }
+        contentArray = parsed;
       }
     } catch (e) {
+      console.error("Error parsing content in findMediaBlock:", e);
       return null;
     }
+  } else if (content && typeof content === 'object') {
+    // Try to handle if it's already a JSON object but not an array
+    return null;
   }
-  return null;
+
+  // Now search the content array for media
+  const mediaBlock = contentArray.find((block: any) => 
+    (block?.media_type === 'image' && block?.media_url) || 
+    (block?.type === 'image' && block?.url) ||
+    (block?.media_type === 'video' && block?.media_url));
+  
+  // Normalize the media URL (handle different property names)
+  if (mediaBlock) {
+    if (!mediaBlock.media_url && mediaBlock.url) {
+      mediaBlock.media_url = mediaBlock.url;
+    }
+    console.log("Found media block:", mediaBlock);
+  }
+  
+  return mediaBlock;
 }
 
 export const ContentDisplayItem = ({ 
@@ -103,15 +98,18 @@ export const ContentDisplayItem = ({
   const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
   
+  // Add more debug logging to isolate the issue
+  console.log(`Processing ContentDisplay for item ${content.id}: ${content.title}`);
+  console.log("Content structure:", content.content);
+  
   // Deep check content's structure to find images
   // Check for cover image first, then look for media in content
   const hasCoverImage = !!content.cover_image;
   const mediaBlock = !hasCoverImage ? findMediaBlock(content.content) : null;
   const mediaUrl = hasCoverImage ? content.cover_image : (mediaBlock?.media_url || null);
   
-  // Log full content for debugging - looking for media issues
+  // Enhanced logging for debugging media detection
   console.log(`ContentDisplay - Content ID: ${content.id}, Title: ${content.title}`);
-  console.log(`ContentDisplay - Content structure:`, content.content);
   console.log(`ContentDisplay - Has cover image: ${hasCoverImage}, Cover image URL: ${content.cover_image}`);
   console.log(`ContentDisplay - Media block found:`, mediaBlock);
   console.log(`ContentDisplay - Final mediaUrl: ${mediaUrl}`);
