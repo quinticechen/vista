@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
@@ -873,10 +872,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     return <div className={cn("notion-content", className)}>{groupListItems(fixedBlocks)}</div>;
   } catch (error) {
     console.error("Error rendering Notion content:", error);
-    toast({
-      description: "There was a problem rendering the content. Please try again later.",
-      variant: "destructive"
-    });
+    toast.error("There was a problem rendering the content. Please try again later.");
     return (
       <div className="p-6 border border-red-300 bg-red-50 rounded-md">
         <h3 className="text-lg font-semibold text-red-600 mb-2">Error displaying content</h3>
