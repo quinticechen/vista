@@ -29,6 +29,7 @@ type NotionBlock = {
   caption?: string;
   language?: string;
   icon?: any;
+  emoji?: string;
   annotations?: NotionAnnotation[];
   children?: NotionBlock[];
   url?: string; // For backward compatibility
@@ -168,6 +169,26 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   
   const listCounters = createListCounters();
 
+  // Helper function to safely render an icon
+  const renderIcon = (icon: any) => {
+    if (!icon) return null;
+    
+    if (typeof icon === 'string') {
+      return icon;
+    }
+    
+    if (icon.emoji) {
+      return icon.emoji;
+    }
+    
+    if (icon.type === 'emoji' && icon.emoji) {
+      return icon.emoji;
+    }
+    
+    // For other icon types, return a generic representation
+    return null;
+  };
+
   // Improved function to render nested lists recursively
   const renderNestedContent = (block: NotionBlock, index: number, depth: number = 0, listPath: string = 'root'): React.ReactNode => {
     const { children } = block;
@@ -222,7 +243,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
         const counter = listType === "numbered_list" ? listCounters.getNextCount(childListPath) : undefined;
         
         // Set the counter for use in rendering
-        if (listType === "numbered_list") {
+        if (listType === "numbered_list" && child) {
           (child as NotionBlock & { _counter: number })._counter = counter || 0;
         }
         
@@ -491,7 +512,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       case "callout":
         return (
           <div key={`callout-${listPath}-${index}`} className="bg-muted p-4 rounded-md my-4 flex gap-3 items-start">
-            {block.icon && <div>{block.icon}</div>}
+            {block.icon && <div>{renderIcon(block.icon)}</div>}
             <div>{block.annotations && text ? renderAnnotatedText(text, block.annotations) : text}</div>
           </div>
         );

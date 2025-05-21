@@ -58,7 +58,23 @@ const UrlParamContentDetail = () => {
         
         // Preprocessing for nested list structures (if needed)
         if (contentItem.content && Array.isArray(contentItem.content)) {
-          // Ensure we've correctly structured any nested lists
+          // Process the content to ensure icons are properly handled
+          const processedContent = contentItem.content.map((block: any) => {
+            // Deep clone to avoid modifying the original
+            const processedBlock = { ...block };
+            
+            // Process any icon objects to ensure they're safely renderable
+            if (processedBlock.icon && typeof processedBlock.icon === 'object') {
+              // Extract emoji from icon if present
+              if (processedBlock.icon.emoji) {
+                processedBlock.emoji = processedBlock.icon.emoji;
+              }
+            }
+            
+            return processedBlock;
+          });
+          
+          contentItem.content = processedContent;
           console.log("Content has array structure, ready for rendering");
         }
         
