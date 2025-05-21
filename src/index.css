@@ -96,7 +96,7 @@
   /* Fixed indentation for nested lists */
   .notion-content li > ul,
   .notion-content li > ol {
-    @apply my-3 ml-8;
+    @apply my-3;
   }
   
   /* Ensure all items at same level have consistent horizontal alignment */
