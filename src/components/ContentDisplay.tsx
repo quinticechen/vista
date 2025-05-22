@@ -72,11 +72,42 @@ const findMediaBlock = (content: Json | any[] | undefined): any => {
     return null;
   }
 
-  // Now search the content array for media
-  const mediaBlock = contentArray.find((block: any) => 
+  // First, search for images in the top level blocks
+  let mediaBlock = contentArray.find((block: any) => 
     (block?.media_type === 'image' && block?.media_url) || 
     (block?.type === 'image' && block?.url) ||
     (block?.media_type === 'video' && block?.media_url));
+  
+  // If no media found at top level, recursively search in children
+  if (!mediaBlock) {
+    for (const block of contentArray) {
+      if (block.children && Array.isArray(block.children)) {
+        // Search in direct children first
+        mediaBlock = block.children.find((child: any) => 
+          (child?.media_type === 'image' && child?.media_url) || 
+          (child?.type === 'image' && child?.url) ||
+          (child?.media_type === 'video' && child?.media_url));
+        
+        // If found, stop searching
+        if (mediaBlock) break;
+        
+        // If columns, search in each column's children
+        if (block.type === 'column_list') {
+          for (const column of block.children) {
+            if (column.children && Array.isArray(column.children)) {
+              mediaBlock = column.children.find((child: any) => 
+                (child?.media_type === 'image' && child?.media_url) || 
+                (child?.type === 'image' && child?.url) ||
+                (child?.media_type === 'video' && child?.media_url));
+              
+              // If found, stop searching
+              if (mediaBlock) break;
+            }
+          }
+        }
+      }
+    }
+  }
   
   // Normalize the media URL (handle different property names)
   if (mediaBlock) {

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/sonner";
@@ -21,16 +22,39 @@ import {
   DividerRenderer
 } from "./notion/components/BlockRenderers";
 
+// Create a Map to track rendered blocks by ID to prevent duplicate rendering
+const renderedBlocks = new Map<string, boolean>();
+
 const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) => {
   if (!blocks || !Array.isArray(blocks)) {
     return <div className="text-muted-foreground">No content available</div>;
   }
 
+  // Reset the rendered blocks tracking on each new render
+  renderedBlocks.clear();
+
   // Initialize list counters
   const listCounters = createListCounters();
 
+  // Generate a unique ID for blocks that don't have one
+  const getBlockId = (block: NotionBlock, index: number, path: string): string => {
+    return block.id || `${path}-${index}-${block.type}-${Date.now()}`;
+  };
+
   // Improved function to render nested content recursively
   const renderNestedContent = (block: NotionBlock, index: number, depth: number = 0, listPath: string = 'root'): React.ReactNode => {
+    // Generate a unique ID for the block
+    const blockId = getBlockId(block, index, listPath);
+    
+    // Check if we've already rendered this block
+    if (renderedBlocks.has(blockId)) {
+      console.log(`Preventing duplicate render of block: ${blockId}`, block);
+      return null;
+    }
+    
+    // Mark this block as rendered
+    renderedBlocks.set(blockId, true);
+    
     const { children } = block;
     
     // Special case for paragraphs that are direct children of list items
@@ -64,6 +88,13 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     // Group the children by their list types
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
+      
+      // Skip duplicated blocks
+      const childId = getBlockId(child, i, childListPath);
+      if (renderedBlocks.has(childId)) {
+        console.log(`Skipping duplicate child block: ${childId}`);
+        continue;
+      }
       
       // Check if this is a list item
       if (child.is_list_item || child.type === "bulleted_list_item" || child.type === "numbered_list_item") {
@@ -155,6 +186,9 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     } else if (block.type === "callout") {
       // Special handling for callout blocks - already handled in CalloutRenderer
       return <CalloutRenderer block={block} index={index} listPath={listPath} renderNested={renderNestedContent} />;
+    } else if (block.type === "column_list") {
+      // Special handling for column lists to prevent duplication
+      return <ColumnListRenderer block={block} index={index} listPath={`${listPath}-collist-${Date.now()}`} renderNested={renderNestedContent} />;
     } else {
       return (
         <React.Fragment key={`${listPath}-frag-${index}`}>
@@ -214,7 +248,7 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
       case "table":
         return <TableRenderer block={block} index={index} listPath={listPath} renderNested={renderNestedContent} />;
       case "column_list":
-        return <ColumnListRenderer block={block} index={index} listPath={listPath} renderNested={renderNestedContent} />;
+        return <ColumnListRenderer block={block} index={index} listPath={`${listPath}-col-${Date.now()}`} renderNested={renderNestedContent} />;
       case "column":
         return <ColumnRenderer block={block} index={index} listPath={listPath} renderNested={renderNestedContent} />;
       case "equation":
@@ -236,6 +270,13 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
     
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i];
+      
+      // Skip already rendered blocks
+      const blockId = getBlockId(block, i, listPath);
+      if (renderedBlocks.has(blockId)) {
+        console.log(`Skipping duplicate top-level block: ${blockId}`);
+        continue;
+      }
       
       // Check if this block is a list item
       if (block.is_list_item || block.type === "bulleted_list_item" || block.type === "numbered_list_item") {
@@ -312,7 +353,15 @@ const NotionRenderer: React.FC<NotionRendererProps> = ({ blocks, className }) =>
   try {
     // Fix numbered lists and group list items
     const fixedBlocks = fixNumberedLists(blocks);
-    return <div className={cn("notion-content space-y-2", className)}>{groupListItems(fixedBlocks)}</div>;
+    
+    // Add timestamp to force re-render and prevent caching issues
+    const renderKey = `notion-content-${Date.now()}`;
+    
+    return (
+      <div className={cn("notion-content space-y-2", className)} key={renderKey}>
+        {groupListItems(fixedBlocks)}
+      </div>
+    );
   } catch (error) {
     console.error("Error rendering Notion content:", error);
     toast.error("There was a problem rendering the content. Please try again later.");

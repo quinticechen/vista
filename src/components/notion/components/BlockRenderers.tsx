@@ -192,12 +192,15 @@ export const ColumnListRenderer: React.FC<BlockRendererProps> = ({ block, index,
     columnCount > 4 && "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
   );
   
+  // Add a unique identifier for each column list to prevent duplication issues
+  const uniqueKey = `column-list-${listPath}-${index}-${Date.now()}`;
+  
   return (
-    <div key={`column-list-${listPath}-${index}`} className={`my-2 ${columnClass}`}>
+    <div key={uniqueKey} className={`my-2 ${columnClass}`}>
       {children.map((column, colIndex) => (
         <div key={`column-${colIndex}`} className="flex flex-col space-y-2">
           {column.children && column.children.map((child, childIndex) => (
-            renderNested(child, childIndex, 0, `${listPath}-col-${colIndex}-${childIndex}`)
+            renderNested(child, childIndex, 0, `${uniqueKey}-col-${colIndex}-${childIndex}`)
           ))}
         </div>
       ))}
