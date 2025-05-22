@@ -1,3 +1,4 @@
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { NotionAnnotation } from "../types";
@@ -30,58 +31,10 @@ const renderAnnotatedTextSegment = (text: string, annotations?: NotionAnnotation
 
   // If we have position-based annotations (start/end)
   if (annotations.some(a => a.start !== undefined && a.end !== undefined)) {
-    const textLength = text.length;
-    const segments: React.ReactNode[] = [];
-    
-    // Sort annotations by start position
-    const positionAnnotations = annotations
-      .filter(a => a.start !== undefined && a.end !== undefined)
-      .sort((a, b) => (a.start || 0) - (b.start || 0));
-    
-    // If there are no position-based annotations with valid ranges, just return the text
-    if (positionAnnotations.length === 0) {
-      return text;
-    }
-    
-    // Process non-overlapping segments
-    let lastEnd = 0;
-    
-    // Add text before first annotation if needed
-    if (positionAnnotations[0].start && positionAnnotations[0].start > 0) {
-      segments.push(text.substring(0, positionAnnotations[0].start));
-      lastEnd = positionAnnotations[0].start;
-    }
-
-    // Process each annotation
-    for (let i = 0; i < positionAnnotations.length; i++) {
-      const annotation = positionAnnotations[i];
-      const start = annotation.start || 0;
-      const end = annotation.end || 0;
-
-      // Skip if invalid positions
-      if (end <= start || start >= textLength) continue;
-      
-      // If there's a gap between the last segment and this one, add the plain text
-      if (start > lastEnd) {
-        segments.push(text.substring(lastEnd, start));
-      }
-      
-      // Create styled segment for this annotation
-      const segmentText = text.substring(start, Math.min(end, textLength));
-      segments.push(createStyledSegment(segmentText, annotation));
-      
-      lastEnd = Math.min(end, textLength);
-    }
-    
-    // Add any remaining text after the last annotation
-    if (lastEnd < textLength) {
-      segments.push(text.substring(lastEnd));
-    }
-
-    return segments.length > 0 ? <>{segments}</> : text;
+    return applyPositionalAnnotations(text, annotations);
   }
   
-  // Legacy format - whole text has the same annotations
+  // Legacy format - whole text has specific annotations
   return annotations.map((annotation, index) => {
     const { bold, italic, underline, strikethrough, code, color, text: annotationText, href } = annotation;
     
@@ -118,30 +71,132 @@ const renderAnnotatedTextSegment = (text: string, annotations?: NotionAnnotation
   });
 };
 
-// Helper function to create a styled segment based on a single annotation
-const createStyledSegment = (text: string, annotation: NotionAnnotation): React.ReactNode => {
-  const { bold, italic, underline, strikethrough, code, color, href } = annotation;
+// New function to apply positional annotations correctly
+const applyPositionalAnnotations = (text: string, annotations: NotionAnnotation[]): React.ReactNode[] => {
+  // Filter for valid positional annotations
+  const validAnnotations = annotations.filter(
+    a => typeof a.start === 'number' && 
+         typeof a.end === 'number' && 
+         a.start >= 0 && 
+         a.end <= text.length && 
+         a.start < a.end
+  );
   
+  if (validAnnotations.length === 0) return [text];
+  
+  // Create a map of character positions to track where annotations start and end
+  const positions: {[position: number]: {starts: NotionAnnotation[], ends: NotionAnnotation[]}} = {};
+  
+  // Initialize the positions map
+  for (let i = 0; i <= text.length; i++) {
+    positions[i] = { starts: [], ends: [] };
+  }
+  
+  // Register all annotation start and end positions
+  validAnnotations.forEach(annotation => {
+    if (annotation.start !== undefined && annotation.end !== undefined) {
+      positions[annotation.start].starts.push(annotation);
+      positions[annotation.end].ends.push(annotation);
+    }
+  });
+  
+  // Process the text character by character
+  const result: React.ReactNode[] = [];
+  let activeAnnotations: NotionAnnotation[] = [];
+  let currentSegment = '';
+  let lastPos = 0;
+  
+  // Process each position in the text
+  for (let i = 0; i <= text.length; i++) {
+    // Process annotation endings first (to ensure correct nesting)
+    if (positions[i].ends.length > 0) {
+      // Add the current segment with current active annotations
+      if (currentSegment) {
+        result.push(createStyledSegment(currentSegment, activeAnnotations));
+        currentSegment = '';
+      }
+      
+      // Remove ended annotations from active set
+      positions[i].ends.forEach(endedAnno => {
+        activeAnnotations = activeAnnotations.filter(a => a !== endedAnno);
+      });
+    }
+    
+    // Process annotation starts
+    if (positions[i].starts.length > 0) {
+      // Add any text segment before this with previous active annotations
+      if (currentSegment) {
+        result.push(createStyledSegment(currentSegment, activeAnnotations));
+        currentSegment = '';
+      }
+      
+      // Add new annotations to active set
+      activeAnnotations = [...activeAnnotations, ...positions[i].starts];
+    }
+    
+    // Add the current character to the current segment (if not at the end)
+    if (i < text.length) {
+      currentSegment += text[i];
+    }
+    
+    lastPos = i;
+  }
+  
+  // Add any remaining text
+  if (currentSegment) {
+    result.push(createStyledSegment(currentSegment, activeAnnotations));
+  }
+  
+  return result;
+};
+
+// Helper function to create a styled segment based on multiple annotations
+const createStyledSegment = (text: string, annotations: NotionAnnotation[]): React.ReactNode => {
+  if (!annotations.length) return text;
+  
+  // Merge annotation styles
+  let isBold = false;
+  let isItalic = false;
+  let isUnderline = false;
+  let isStrikethrough = false;
+  let isCode = false;
+  let hasHref = false;
+  let href = '';
+  let color: string | undefined;
+  
+  annotations.forEach(anno => {
+    if (anno.bold) isBold = true;
+    if (anno.italic) isItalic = true;
+    if (anno.underline) isUnderline = true;
+    if (anno.strikethrough) isStrikethrough = true;
+    if (anno.code) isCode = true;
+    if (anno.color) color = anno.color;
+    if (anno.href) {
+      hasHref = true;
+      href = anno.href;
+    }
+  });
+
   const colorClass = getColorClass(color);
   const bgColorClass = getBackgroundColorClass(color);
-
+  
   const styles = cn(
-    bold && "font-bold",
-    italic && "italic",
-    underline && "underline",
-    strikethrough && "line-through",
-    code && "font-mono bg-muted rounded px-1 py-0.5",
+    isBold && "font-bold",
+    isItalic && "italic",
+    isUnderline && "underline",
+    isStrikethrough && "line-through",
+    isCode && "font-mono bg-muted rounded px-1 py-0.5",
     colorClass,
     bgColorClass
   );
-
+  
   const content = (
     <span className={styles} key={`segment-${text}-${Date.now()}`}>
       {text}
     </span>
   );
-
-  return href ? (
+  
+  return hasHref ? (
     <a href={href} className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer" key={`link-${text}-${href}-${Date.now()}`}>
       {content}
     </a>

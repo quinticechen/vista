@@ -75,6 +75,41 @@ export const processNotionContent = (contentItem: ContentItemFromDB): ExtendedCo
         // Deep clone to avoid modifying the original
         const processedBlock = JSON.parse(JSON.stringify(block));
         
+        // Process annotations to ensure they're valid
+        if (processedBlock.annotations && Array.isArray(processedBlock.annotations)) {
+          // Make sure annotations have valid start/end values relative to the text
+          const textLength = processedBlock.text?.length || 0;
+          
+          // Filter out invalid annotations and fix any issues
+          processedBlock.annotations = processedBlock.annotations
+            .filter((anno: any) => {
+              // Skip annotations without proper formatting properties
+              return anno && typeof anno === 'object';
+            })
+            .map((anno: any) => {
+              // Create a clean copy of the annotation
+              const cleanAnno = { ...anno };
+              
+              // Fix color properties
+              if (cleanAnno.color && cleanAnno.color.includes("background") && !cleanAnno.color.includes("_background")) {
+                cleanAnno.color = cleanAnno.color.replace("background", "_background");
+              }
+              
+              // Check if this is a positional annotation (has start/end)
+              if (cleanAnno.start !== undefined && cleanAnno.end !== undefined) {
+                // Ensure start/end are valid numbers and within the text bounds
+                if (typeof cleanAnno.start !== 'number' || cleanAnno.start < 0) {
+                  cleanAnno.start = 0;
+                }
+                if (typeof cleanAnno.end !== 'number' || cleanAnno.end > textLength || cleanAnno.end <= cleanAnno.start) {
+                  cleanAnno.end = Math.max(textLength, cleanAnno.start + 1);
+                }
+              }
+              
+              return cleanAnno;
+            });
+        }
+        
         // Process line breaks in text
         if (processedBlock.text && typeof processedBlock.text === 'string') {
           // Keep line breaks intact for proper rendering
@@ -127,17 +162,6 @@ export const processNotionContent = (contentItem: ContentItemFromDB): ExtendedCo
           processedBlock.children = [];
         }
         
-        // Ensure text annotations are properly processed
-        if (processedBlock.annotations && processedBlock.annotations.length > 0) {
-          processedBlock.annotations = processedBlock.annotations.map((ann: any) => {
-            // Fix background colors by ensuring proper format
-            if (ann.color && ann.color.includes("background") && !ann.color.includes("_background")) {
-              ann.color = ann.color.replace("background", "_background");
-            }
-            return ann;
-          });
-        }
-
         // Detect and mark HEIC images for better error handling
         if ((processedBlock.type === 'image' || processedBlock.media_type === 'image') && 
             (processedBlock.media_url || processedBlock.url)) {
@@ -182,14 +206,33 @@ export const processNotionContent = (contentItem: ContentItemFromDB): ExtendedCo
               processedChild.is_list_item = true;
             }
             
-            // Handle nested annotations
-            if (processedChild.annotations && processedChild.annotations.length > 0) {
-              processedChild.annotations = processedChild.annotations.map((ann: any) => {
-                if (ann.color && ann.color.includes("background") && !ann.color.includes("_background")) {
-                  ann.color = ann.color.replace("background", "_background");
-                }
-                return ann;
-              });
+            // Process child annotations 
+            if (processedChild.annotations && Array.isArray(processedChild.annotations)) {
+              // Apply the same annotation processing to children
+              const childTextLength = processedChild.text?.length || 0;
+              
+              processedChild.annotations = processedChild.annotations
+                .filter((anno: any) => anno && typeof anno === 'object')
+                .map((anno: any) => {
+                  const cleanAnno = { ...anno };
+                  
+                  // Fix color properties
+                  if (cleanAnno.color && cleanAnno.color.includes("background") && !cleanAnno.color.includes("_background")) {
+                    cleanAnno.color = cleanAnno.color.replace("background", "_background");
+                  }
+                  
+                  // Fix start/end positions
+                  if (cleanAnno.start !== undefined && cleanAnno.end !== undefined) {
+                    if (typeof cleanAnno.start !== 'number' || cleanAnno.start < 0) {
+                      cleanAnno.start = 0;
+                    }
+                    if (typeof cleanAnno.end !== 'number' || cleanAnno.end > childTextLength || cleanAnno.end <= cleanAnno.start) {
+                      cleanAnno.end = Math.max(childTextLength, cleanAnno.start + 1);
+                    }
+                  }
+                  
+                  return cleanAnno;
+                });
             }
 
             // Detect and mark HEIC images in children
