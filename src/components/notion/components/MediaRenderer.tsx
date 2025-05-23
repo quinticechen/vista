@@ -183,4 +183,5 @@ export const EmbedRenderer: React.FC<MediaProps> = ({
   );
 };
 
-export { ImageRenderer, VideoRenderer, EmbedRenderer };
+// Remove the duplicate export line that was causing the errors
+// export { ImageRenderer, VideoRenderer, EmbedRenderer };
