@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,41 +27,43 @@ const Vista = () => {
   const searchPurpose = location.state?.purpose as string | undefined;
   const searchTimestamp = location.state?.searchQuery; // Used to force re-render
 
-  // Function to normalize content - ensure arrays and parsed JSON
-  const normalizeContent = (item: ContentItem): ContentItem => {
-    const normalized = { ...item };
+  // Centralized content processing function to ensure consistency with UrlParamVista
+  const processContentItem = (item: ContentItem): ContentItem => {
+    console.log(`Processing content item ${item.id}: ${item.title}`);
     
-    // If content is a string, try to parse it
-    if (normalized.content && typeof normalized.content === 'string') {
+    // Use the standard processor to handle orientation, images, etc.
+    const processed = processNotionContent(item);
+    
+    // Ensure content is properly structured as an array
+    if (processed.content && typeof processed.content === 'string') {
       try {
-        normalized.content = JSON.parse(normalized.content);
+        processed.content = JSON.parse(processed.content);
       } catch (e) {
         console.error(`Error parsing content for ${item.id}:`, e);
+        processed.content = [];
       }
     }
     
-    // If it's not an array at this point, make it an empty array
-    if (!Array.isArray(normalized.content)) {
-      normalized.content = [];
+    if (!Array.isArray(processed.content)) {
+      processed.content = [];
     }
     
-    return normalized;
+    console.log(`After processing: orientation=${processed.orientation}, cover_image=${!!processed.cover_image}, preview_image=${!!processed.preview_image}`);
+    return processed;
   };
 
-  // Function to thoroughly process content to ensure all properties are detected
-  const deepProcessContent = (item: ContentItem): ContentItem => {
-    console.log(`Deep processing content for ${item.id}: ${item.title}`);
-    
-    // First process with the standard processor
-    const processed = processNotionContent(item);
-    
-    // Then normalize to ensure proper structure
-    const normalized = normalizeContent(processed);
-    
-    // Log after normalization
-    console.log(`Content structure after processing:`, normalized.content);
-    
-    return normalized;
+  // Centralized content filtering function
+  const filterActiveContent = (items: ContentItem[]): ContentItem[] => {
+    return items.filter(item => item.notion_page_status !== 'removed');
+  };
+
+  // Centralized content processing pipeline
+  const processContentItems = (items: ContentItem[]): ContentItem[] => {
+    console.log(`Processing ${items.length} content items`);
+    const filtered = filterActiveContent(items);
+    const processed = filtered.map(processContentItem);
+    console.log(`Processed ${processed.length} items after filtering`);
+    return processed;
   };
 
   useEffect(() => {
@@ -88,9 +89,8 @@ const Vista = () => {
           ...item,
         })) as ContentItem[];
         
-        // Process each item to ensure orientation and image properties are set
-        processedData = processedData.map(item => deepProcessContent(item));
-        
+        // Apply consistent processing pipeline
+        processedData = processContentItems(processedData);
         setAllContentItems(processedData);
         
         // Check for URL search parameter
@@ -105,19 +105,14 @@ const Vista = () => {
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
           
-          // Process search results to ensure orientation and image properties are set
-          const processedSearchResults = searchResults.map(item => deepProcessContent(item));
+          // Apply same processing pipeline to search results
+          const processedSearchResults = processContentItems(searchResults);
           
-          // Filter out any removed items
-          const activeSearchResults = processedSearchResults.filter(
-            item => item.notion_page_status !== 'removed'
-          );
-          
-          setContentItems(activeSearchResults);
+          setContentItems(processedSearchResults);
           setShowingSearchResults(true);
     
           toast.success(
-            `Found ${activeSearchResults.length} relevant items based on your search`,
+            `Found ${processedSearchResults.length} relevant items based on your search`,
             { duration: 5000 }
           );
         } else if (searchPurpose) {
@@ -213,11 +208,8 @@ const Vista = () => {
       console.log(`Performing semantic search with term: "${term}"`);
       let results = await semanticSearch(term.trim());
       
-      // Process search results to ensure orientation and image properties are set
-      results = results.map(item => deepProcessContent(item));
-      
-      // Filter out any removed items
-      results = results.filter(item => item.notion_page_status !== 'removed');
+      // Apply consistent processing pipeline to search results
+      results = processContentItems(results);
       
       if (results && results.length > 0) {
         console.log(`Found ${results.length} results for search: "${term}"`);

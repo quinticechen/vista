@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -31,41 +30,43 @@ const UrlParamVista = () => {
   const searchPurpose = location.state?.purpose as string | undefined;
   const searchTimestamp = location.state?.searchQuery;
 
-  // Function to normalize content - ensure arrays and parsed JSON
-  const normalizeContent = (item: ContentItem): ContentItem => {
-    const normalized = { ...item };
+  // Centralized content processing function to ensure consistency
+  const processContentItem = (item: ContentItem): ContentItem => {
+    console.log(`Processing content item ${item.id}: ${item.title}`);
     
-    // If content is a string, try to parse it
-    if (normalized.content && typeof normalized.content === 'string') {
+    // Use the standard processor to handle orientation, images, etc.
+    const processed = processNotionContent(item);
+    
+    // Ensure content is properly structured as an array
+    if (processed.content && typeof processed.content === 'string') {
       try {
-        normalized.content = JSON.parse(normalized.content);
+        processed.content = JSON.parse(processed.content);
       } catch (e) {
         console.error(`Error parsing content for ${item.id}:`, e);
+        processed.content = [];
       }
     }
     
-    // If it's not an array at this point, make it an empty array
-    if (!Array.isArray(normalized.content)) {
-      normalized.content = [];
+    if (!Array.isArray(processed.content)) {
+      processed.content = [];
     }
     
-    return normalized;
+    console.log(`After processing: orientation=${processed.orientation}, cover_image=${!!processed.cover_image}, preview_image=${!!processed.preview_image}`);
+    return processed;
   };
 
-  // Function to thoroughly process content to ensure all properties are detected
-  const deepProcessContent = (item: ContentItem): ContentItem => {
-    console.log(`Deep processing content for ${item.id}: ${item.title}`);
-    
-    // First process with the standard processor
-    const processed = processNotionContent(item);
-    
-    // Then normalize to ensure proper structure
-    const normalized = normalizeContent(processed);
-    
-    // Log after processing
-    console.log(`Content structure after processing:`, normalized.content);
-    
-    return normalized;
+  // Centralized content filtering function
+  const filterActiveContent = (items: ContentItem[]): ContentItem[] => {
+    return items.filter(item => item.notion_page_status !== 'removed');
+  };
+
+  // Centralized content processing pipeline
+  const processContentItems = (items: ContentItem[]): ContentItem[] => {
+    console.log(`Processing ${items.length} content items`);
+    const filtered = filterActiveContent(items);
+    const processed = filtered.map(processContentItem);
+    console.log(`Processed ${processed.length} items after filtering`);
+    return processed;
   };
   
   // Get initial search term from URL or navigation state
@@ -96,42 +97,22 @@ const UrlParamVista = () => {
         const userId = profile.id;
         console.log(`Loading all content items for user ID: ${userId}`);
         let userContent = await getUserContentItems(userId);
-        console.log('Content loaded:', userContent);
+        console.log('Raw content loaded:', userContent);
         
-        // Process each content item to ensure proper orientation detection and media
-        userContent = userContent.map((item: ContentItem) => {
-          console.log(`Processing item ${item.id}: ${item.title}`);
-          const processed = deepProcessContent(item);
-          console.log(`After processing: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
-          return processed;
-        });
-        
-        // Filter out any removed items - only show active content
-        userContent = userContent.filter(item => 
-          item.notion_page_status !== 'removed'
-        );
-        
+        // Apply consistent processing pipeline
+        userContent = processContentItems(userContent);
         setAllContentItems(userContent);
         
         // Check if we have search results from PurposeInput
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
           
+          // Apply same processing pipeline to search results
+          const processedSearchResults = processContentItems(searchResults);
+          
           // Filter search results to only include items from this user
           const userIdsSet = new Set(userContent.map((item: ContentItem) => item.id));
-          let filteredResults = searchResults.filter((item: ContentItem) => userIdsSet.has(item.id));
-          
-          // Filter out any removed items
-          filteredResults = filteredResults.filter(item => item.notion_page_status !== 'removed');
-          
-          // Process each search result to ensure proper orientation detection and media
-          filteredResults = filteredResults.map((item: ContentItem) => {
-            console.log(`Processing search result ${item.id}: ${item.title}`);
-            // Use deep processing for search results
-            const processed = deepProcessContent(item);
-            console.log(`After processing search result: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
-            return processed;
-          });
+          const filteredResults = processedSearchResults.filter((item: ContentItem) => userIdsSet.has(item.id));
           
           // Set items state for display
           setItems(filteredResults);
@@ -149,7 +130,7 @@ const UrlParamVista = () => {
           // If we have a search term in URL params
           await performSearch(searchParams.get("search") || "");
         } else {
-          // Default: show only active content
+          // Default: show all processed content
           setItems(userContent);
           setShowingSearchResults(false);
         }
@@ -250,10 +231,8 @@ const UrlParamVista = () => {
       // First get all content for this user if we don't have it yet
       if (allContentItems.length === 0) {
         let userContent = await getUserContentItems(userId);
-        // Filter out removed items
-        userContent = userContent.filter(item => item.notion_page_status !== 'removed');
-        // Process content items for proper orientation detection
-        userContent = userContent.map((item: ContentItem) => deepProcessContent(item));
+        // Apply consistent processing pipeline
+        userContent = processContentItems(userContent);
         setAllContentItems(userContent);
       }
       
@@ -266,21 +245,12 @@ const UrlParamVista = () => {
           // Log search results for debugging
           console.log(`Search returned ${searchResults.length} results (before filtering)`, searchResults);
           
-          // Process search results for proper orientation detection and media detection
-          searchResults = searchResults.map((item: ContentItem) => {
-            console.log(`Processing search result ${item.id}: ${item.title}`);
-            const processed = deepProcessContent(item);
-            console.log(`After processing search result: orientation=${processed.orientation}, has cover image=${!!processed.cover_image}`);
-            return processed;
-          });
+          // Apply consistent processing pipeline to search results
+          searchResults = processContentItems(searchResults);
           
-          // Filter search results to only include items from this user and only active items
+          // Filter search results to only include items from this user
           const userIdsSet = new Set(allContentItems.map(item => item.id));
-          const filteredResults = searchResults.filter(item => {
-            const isUserItem = userIdsSet.has(item.id);
-            const isActive = item.notion_page_status !== 'removed';
-            return isUserItem && isActive;
-          });
+          const filteredResults = searchResults.filter(item => userIdsSet.has(item.id));
           
           console.log(`Found ${filteredResults.length} matching results from user's content`);
           setItems(filteredResults);
