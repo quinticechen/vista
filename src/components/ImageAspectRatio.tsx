@@ -10,6 +10,8 @@ interface ImageAspectRatioProps {
   className?: string;
   size?: 'landscape' | 'portrait' | 'square';
   isHeic?: boolean;
+  onError?: () => void;
+  fallback?: React.ReactNode;
 }
 
 export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({ 
@@ -17,7 +19,9 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
   alt, 
   className,
   size = 'landscape',
-  isHeic: propIsHeic
+  isHeic: propIsHeic,
+  onError,
+  fallback
 }) => {
   const [error, setError] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -58,6 +62,14 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
   }
   
   if (error) {
+    if (onError && !loaded) {
+      onError();
+    }
+    
+    if (fallback) {
+      return <>{fallback}</>;
+    }
+    
     return (
       <AspectRatio 
         ratio={aspectRatio} 
@@ -90,7 +102,10 @@ export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
           "object-cover w-full h-full transition-opacity duration-300",
           loaded ? "opacity-100" : "opacity-0"
         )}
-        onError={() => setError(true)}
+        onError={() => {
+          setError(true);
+          if (onError) onError();
+        }}
         onLoad={() => setLoaded(true)}
         loading="lazy"
       />

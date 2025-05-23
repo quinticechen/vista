@@ -12,6 +12,15 @@ import { ContentMetadata } from "@/components/content/ContentMetadata";
 import { ContentCoverImage } from "@/components/content/ContentCoverImage";
 import { ContentBody } from "@/components/content/ContentBody";
 
+// Type to represent a block in the content array
+interface ContentBlock {
+  type?: string;
+  media_type?: string;
+  url?: string;
+  media_url?: string;
+  [key: string]: any;
+}
+
 const UrlParamContentDetail = () => {
   const { urlParam, contentId } = useParams<{ urlParam: string, contentId: string }>();
   const navigate = useNavigate();
@@ -62,10 +71,13 @@ const UrlParamContentDetail = () => {
         // to prevent duplicate display
         if (processedContent.cover_image && processedContent.content && Array.isArray(processedContent.content)) {
           const filteredContent = processedContent.content.filter((block, index) => {
+            // Cast the block to ContentBlock to access the properties safely
+            const typedBlock = block as ContentBlock;
+            
             // Skip the first image block if it matches the cover image
             if (index === 0 && 
-                (block.type === 'image' || block.media_type === 'image') && 
-                (block.url === processedContent.cover_image || block.media_url === processedContent.cover_image)) {
+                (typedBlock.type === 'image' || typedBlock.media_type === 'image') && 
+                (typedBlock.url === processedContent.cover_image || typedBlock.media_url === processedContent.cover_image)) {
               return false;
             }
             return true;
