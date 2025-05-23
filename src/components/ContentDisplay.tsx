@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/hooks/use-i18n";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
@@ -126,6 +127,7 @@ export const ContentDisplayItem = ({
 }: ContentDisplayItemProps) => {
   const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
+  const [imageError, setImageError] = useState(false);
   
   // Deep check content's structure to find images
   const normalizedContent = { ...content };
@@ -150,7 +152,7 @@ export const ContentDisplayItem = ({
   console.log(`ContentDisplay - Media block found:`, mediaBlock);
   console.log(`ContentDisplay - Final mediaUrl: ${mediaUrl}`);
   
-  const hasMedia = !!mediaUrl;
+  const hasMedia = !!mediaUrl && !imageError;
   const isMediaRight = index % 2 === 0;
   
   // Determine orientation - check from content property first, then from mediaBlock
@@ -163,6 +165,10 @@ export const ContentDisplayItem = ({
       return `${urlPrefix}/vista/${normalizedContent.id}`;
     }
     return `/vista/${normalizedContent.id}`;
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
   };
 
   return (
@@ -245,7 +251,7 @@ export const ContentDisplayItem = ({
         </CardFooter>
       </div>
 
-      {/* Media Section - Only show if we have media */}
+      {/* Media Section - Only show if we have media and no error */}
       {hasMedia && (
         <div className={`w-1/2 relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100`}>
           {hasCoverImage || (mediaBlock?.media_type === 'image') ? (
@@ -255,6 +261,8 @@ export const ContentDisplayItem = ({
               className="h-full"
               size={isPortrait ? 'portrait' : 'landscape'}
               isHeic={normalizedContent.is_heic_cover}
+              onError={handleImageError}
+              fallback={null}
             />
           ) : mediaBlock?.media_type === 'video' ? (
             <div className="w-full h-full">
@@ -267,6 +275,7 @@ export const ContentDisplayItem = ({
                 style={{
                   aspectRatio: isPortrait ? '3/4' : '16/9'
                 }}
+                onError={handleImageError}
               >
                 Your browser does not support the video tag.
               </video>

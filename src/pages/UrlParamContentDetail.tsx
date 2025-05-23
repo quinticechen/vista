@@ -57,6 +57,22 @@ const UrlParamContentDetail = () => {
         
         // Process content for rendering
         const processedContent = processNotionContent(contentItem);
+        
+        // Remove the first image from content if it matches the cover image
+        // to prevent duplicate display
+        if (processedContent.cover_image && processedContent.content && Array.isArray(processedContent.content)) {
+          const filteredContent = processedContent.content.filter((block, index) => {
+            // Skip the first image block if it matches the cover image
+            if (index === 0 && 
+                (block.type === 'image' || block.media_type === 'image') && 
+                (block.url === processedContent.cover_image || block.media_url === processedContent.cover_image)) {
+              return false;
+            }
+            return true;
+          });
+          processedContent.content = filteredContent;
+        }
+        
         setContent(processedContent);
       } catch (error) {
         console.error("Error loading content:", error);

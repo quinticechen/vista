@@ -29,59 +29,9 @@ const renderAnnotatedTextSegment = (text: string, annotations?: NotionAnnotation
     return text;
   }
 
-  // Filter valid annotations based on text property first
-  const textBasedAnnotations = annotations.filter(annotation => {
-    return annotation.text && typeof annotation.text === 'string';
-  });
-  
-  // If we have text-based annotations, apply them
-  if (textBasedAnnotations.length > 0) {
-    // Process text matching annotations
-    let result = text;
-    const segments: React.ReactNode[] = [];
-    
-    // For each annotation, find and replace its text with styled version
-    for (const annotation of textBasedAnnotations) {
-      const annotationText = annotation.text || "";
-      
-      // Skip if no text to match
-      if (!annotationText) continue;
-      
-      // Find all occurrences of this text
-      let lastIndex = 0;
-      let index = result.indexOf(annotationText, lastIndex);
-      
-      while (index !== -1) {
-        // Add text before this occurrence
-        if (index > lastIndex) {
-          segments.push(result.substring(lastIndex, index));
-        }
-        
-        // Add styled text
-        segments.push(
-          createStyledNode(annotationText, annotation, segments.length)
-        );
-        
-        // Update indices
-        lastIndex = index + annotationText.length;
-        index = result.indexOf(annotationText, lastIndex);
-      }
-      
-      // Add any remaining text
-      if (lastIndex < result.length) {
-        segments.push(result.substring(lastIndex));
-      }
-      
-      // Update result for next annotation
-      result = segments.join("");
-      segments.length = 0;
-    }
-    
-    return result;
-  }
-  
-  // If no text-based annotations, try positional annotations
-  const positionalAnnotations = annotations.filter(annotation => {
+  // Filter and validate annotations
+  const validAnnotations = annotations.filter(annotation => {
+    // Check if annotation has valid start/end positions
     return typeof annotation.start === 'number' && 
            typeof annotation.end === 'number' &&
            annotation.start >= 0 && 
@@ -89,17 +39,28 @@ const renderAnnotatedTextSegment = (text: string, annotations?: NotionAnnotation
            annotation.start < annotation.end;
   });
   
-  if (positionalAnnotations.length === 0) return text;
+  if (validAnnotations.length === 0) {
+    // If no valid positional annotations, try text-based matching
+    const textBasedAnnotations = annotations.filter(annotation => {
+      return annotation.text && typeof annotation.text === 'string' && text.includes(annotation.text);
+    });
+    
+    if (textBasedAnnotations.length > 0) {
+      return renderTextBasedAnnotations(text, textBasedAnnotations);
+    }
+    
+    return text;
+  }
   
-  // Sort annotations by start position
-  positionalAnnotations.sort((a, b) => (a.start || 0) - (b.start || 0));
+  // Sort annotations by start position to handle overlapping correctly
+  validAnnotations.sort((a, b) => (a.start || 0) - (b.start || 0));
   
   // Build segments based on positional annotations
   const segments: React.ReactNode[] = [];
   let currentPosition = 0;
   
-  for (let i = 0; i < positionalAnnotations.length; i++) {
-    const ann = positionalAnnotations[i];
+  for (let i = 0; i < validAnnotations.length; i++) {
+    const ann = validAnnotations[i];
     const start = ann.start || 0;
     const end = ann.end || 0;
     
@@ -113,12 +74,12 @@ const renderAnnotatedTextSegment = (text: string, annotations?: NotionAnnotation
       createStyledNode(
         text.substring(start, end), 
         ann,
-        i
+        `pos-${i}-${start}-${end}`
       )
     );
     
     // Update current position
-    currentPosition = end;
+    currentPosition = Math.max(currentPosition, end);
   }
   
   // Add any remaining unstyled text
@@ -129,10 +90,47 @@ const renderAnnotatedTextSegment = (text: string, annotations?: NotionAnnotation
   return segments;
 };
 
+// Helper function for text-based annotation matching
+const renderTextBasedAnnotations = (text: string, annotations: NotionAnnotation[]) => {
+  let result = text;
+  let offset = 0;
+  const segments: React.ReactNode[] = [];
+  
+  // Process each annotation
+  for (let i = 0; i < annotations.length; i++) {
+    const annotation = annotations[i];
+    const annotationText = annotation.text || "";
+    
+    if (!annotationText) continue;
+    
+    const index = result.indexOf(annotationText);
+    if (index === -1) continue;
+    
+    // Add text before annotation
+    if (index > 0) {
+      segments.push(result.substring(0, index));
+    }
+    
+    // Add styled annotation
+    segments.push(
+      createStyledNode(annotationText, annotation, `text-${i}-${Date.now()}`)
+    );
+    
+    // Update result for next iteration
+    result = result.substring(index + annotationText.length);
+  }
+  
+  // Add remaining text
+  if (result.length > 0) {
+    segments.push(result);
+  }
+  
+  return segments.length > 0 ? segments : text;
+};
+
 // Create a styled React node for a text segment based on its annotation
-const createStyledNode = (text: string, annotation: NotionAnnotation, index: number): React.ReactNode => {
+const createStyledNode = (text: string, annotation: NotionAnnotation, key: string): React.ReactNode => {
   const { bold, italic, underline, strikethrough, code, color, href } = annotation;
-  const uniqueKey = `styled-${text}-${index}-${Date.now()}`;
   
   // Get style classes
   const colorClass = getColorClass(color);
@@ -149,7 +147,7 @@ const createStyledNode = (text: string, annotation: NotionAnnotation, index: num
   );
   
   const content = (
-    <span key={uniqueKey} className={styles}>
+    <span key={key} className={styles}>
       {text}
     </span>
   );
@@ -160,7 +158,7 @@ const createStyledNode = (text: string, annotation: NotionAnnotation, index: num
     const cleanHref = href.replace(/^<|>$/g, '');
     return (
       <a 
-        key={`link-${uniqueKey}`} 
+        key={`link-${key}`} 
         href={cleanHref} 
         className="text-blue-500 hover:underline" 
         target="_blank" 
