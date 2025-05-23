@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import WaveTransition from "./WaveTransition";
 import FloatingShapes from "./FloatingShapes";
 import { semanticSearch } from "@/services/adminService";
+import { SearchCache } from "@/utils/searchCache";
 
 interface PurposeOption {
   id: string;
@@ -79,7 +80,24 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress, placeholder }: PurposeI
         // Perform semantic search with the user's purpose
         const searchResults = await semanticSearch(purpose.trim());
 
-        console.log(`Search completed. Found ${searchResults.length} results`);
+        console.log(`Search completed. Found ${searchResults.length} results (50%+ similarity)`);
+
+        if (searchResults.length === 0) {
+          toast({
+            title: "No matches found",
+            description: "No content found with sufficient relevance (50%+). Try different keywords.",
+            variant: "destructive"
+          });
+        }
+
+        // Save search results to cache
+        SearchCache.save({
+          results: searchResults,
+          query: purpose.trim(),
+          timestamp: Date.now(),
+          showingSearchResults: true,
+          purpose: purpose.trim()
+        }, urlParam);
 
         // Determine the correct navigation path based on whether we're on a URL parameter page
         const targetRoute = urlParam ? `/${urlParam}/vista` : "/vista";

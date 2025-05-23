@@ -12,6 +12,7 @@ import { semanticSearch } from "@/services/adminService";
 import { ContentItem } from "@/services/adminService";
 import { processNotionContent } from "@/utils/notionContentProcessor";
 import { Loader2 } from "lucide-react";
+import { SearchCache } from "@/utils/searchCache";
 
 const UrlParamVista = () => {
   const { urlParam } = useParams();
@@ -103,8 +104,23 @@ const UrlParamVista = () => {
         userContent = processContentItems(userContent);
         setAllContentItems(userContent);
         
-        // Check if we have search results from PurposeInput
-        if (searchResults && searchResults.length > 0) {
+        // Check for cached search results first
+        const cachedSearch = SearchCache.load(urlParam);
+        if (cachedSearch && SearchCache.isValid(cachedSearch)) {
+          console.log(`UrlParamVista - Restoring cached search: ${cachedSearch.results.length} results for "${cachedSearch.query}"`);
+          
+          // Filter cached results to only include items from this user
+          const userIdsSet = new Set(userContent.map((item: ContentItem) => item.id));
+          const filteredCachedResults = cachedSearch.results.filter((item: ContentItem) => userIdsSet.has(item.id));
+          
+          setItems(filteredCachedResults);
+          setShowingSearchResults(true);
+          setSearchQuery(cachedSearch.query);
+          
+          if (cachedSearch.purpose) {
+            toast.success(`Restored search results for: "${cachedSearch.purpose}"`, { duration: 3000 });
+          }
+        } else if (searchResults && searchResults.length > 0) {
           console.log(`UrlParamVista - Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
           
           // Apply same processing pipeline to search results
@@ -119,13 +135,21 @@ const UrlParamVista = () => {
           setShowingSearchResults(true);
           
           if (searchPurpose) {
-            toast.success(`Found ${filteredResults.length} relevant items based on your search`, { duration: 5000 });
+            // Save to cache for future navigation
+            SearchCache.save({
+              results: filteredResults,
+              query: searchPurpose,
+              timestamp: Date.now(),
+              showingSearchResults: true,
+              purpose: searchPurpose
+            }, urlParam);
+            
+            if (filteredResults.length === 0) {
+              toast.warning(`No content found with 50%+ relevance for "${searchPurpose}". Try different keywords.`, { duration: 5000 });
+            } else {
+              toast.success(`Found ${filteredResults.length} relevant items (50%+ similarity)`, { duration: 5000 });
+            }
           }
-        } else if (searchPurpose) {
-          // If we had a search but it returned no results
-          toast.warning(`No matches found for "${searchPurpose}". Showing all content instead.`, { duration: 5000 });
-          setItems(userContent);
-          setShowingSearchResults(false);
         } else if (searchParams.get("search")) {
           // If we have a search term in URL params
           await performSearch(searchParams.get("search") || "");
@@ -236,11 +260,11 @@ const UrlParamVista = () => {
         setAllContentItems(userContent);
       }
       
-      // Perform semantic search - this now returns properly processed items with images
+      // Perform semantic search - this now returns items with 50%+ similarity
       console.log(`UrlParamVista - Performing semantic search with term: "${term}"`);
       let searchResults = await semanticSearch(term);
       
-      console.log(`UrlParamVista - Search returned ${searchResults.length} results (already processed)`, searchResults);
+      console.log(`UrlParamVista - Search returned ${searchResults.length} results (50%+ similarity)`, searchResults);
       
       // Filter search results to only include items from this user
       const userIdsSet = new Set(allContentItems.map(item => item.id));
@@ -250,17 +274,18 @@ const UrlParamVista = () => {
       setItems(filteredResults);
       setShowingSearchResults(true);
       
-      if (filteredResults.length === 0) {
-        toast.warning(`No matches found for "${term}". Try different keywords.`, { duration: 5000 });
-      }
+      // Save search results to cache
+      SearchCache.save({
+        results: filteredResults,
+        query: term,
+        timestamp: Date.now(),
+        showingSearchResults: true
+      }, urlParam);
       
-      // Store the search state in session storage
-      try {
-        sessionStorage.setItem(`vista-${urlParam}-items`, JSON.stringify(filteredResults));
-        sessionStorage.setItem(`vista-${urlParam}-showing-search`, 'true');
-        sessionStorage.setItem(`vista-${urlParam}-search-query`, term);
-      } catch (e) {
-        console.error("UrlParamVista - Error saving search state to sessionStorage:", e);
+      if (filteredResults.length === 0) {
+        toast.warning(`No content found with 50%+ relevance for "${term}". Try different keywords.`, { duration: 5000 });
+      } else {
+        toast.success(`Found ${filteredResults.length} relevant items (50%+ similarity)`, { duration: 3000 });
       }
     } catch (error) {
       console.error("UrlParamVista - Search error:", error);
@@ -281,14 +306,8 @@ const UrlParamVista = () => {
     setSearchQuery("");
     navigate(`/${urlParam}/vista`, { replace: true });
     
-    // Clear search-specific session storage
-    try {
-      sessionStorage.setItem(`vista-${urlParam}-showing-search`, 'false');
-      sessionStorage.setItem(`vista-${urlParam}-search-query`, '');
-      sessionStorage.setItem(`vista-${urlParam}-search-purpose`, '');
-    } catch (e) {
-      console.error("UrlParamVista - Error clearing search state in sessionStorage:", e);
-    }
+    // Clear search cache when viewing all content
+    SearchCache.clear(urlParam);
   };
 
   const handleSearch = (e: React.FormEvent) => {

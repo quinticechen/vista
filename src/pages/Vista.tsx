@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { processNotionContent } from "@/utils/notionContentProcessor";
+import { SearchCache } from "@/utils/searchCache";
 
 const Vista = () => {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -93,6 +94,22 @@ const Vista = () => {
         processedData = processContentItems(processedData);
         setAllContentItems(processedData);
         
+        // Check for cached search results first
+        const cachedSearch = SearchCache.load();
+        if (cachedSearch && SearchCache.isValid(cachedSearch)) {
+          console.log(`Vista - Restoring cached search: ${cachedSearch.results.length} results for "${cachedSearch.query}"`);
+          
+          const processedCachedResults = processContentItems(cachedSearch.results);
+          setContentItems(processedCachedResults);
+          setShowingSearchResults(true);
+          setSearchQuery(cachedSearch.query);
+          
+          if (cachedSearch.purpose) {
+            toast.success(`Restored search results for: "${cachedSearch.purpose}"`, { duration: 3000 });
+          }
+          return;
+        }
+        
         // Check for URL search parameter
         const urlSearchParam = searchParams.get("search");
         if (urlSearchParam) {
@@ -110,20 +127,27 @@ const Vista = () => {
           
           setContentItems(processedSearchResults);
           setShowingSearchResults(true);
+
+          // Save to cache for future navigation
+          SearchCache.save({
+            results: processedSearchResults,
+            query: searchPurpose || '',
+            timestamp: Date.now(),
+            showingSearchResults: true,
+            purpose: searchPurpose
+          });
     
-          toast.success(
-            `Found ${processedSearchResults.length} relevant items based on your search`,
-            { duration: 5000 }
-          );
+          if (processedSearchResults.length === 0) {
+            toast.warning(`No content found with 50%+ relevance for "${searchPurpose}". Try different keywords.`, { duration: 5000 });
+          } else {
+            toast.success(`Found ${processedSearchResults.length} relevant items (50%+ similarity)`, { duration: 5000 });
+          }
         } else if (searchPurpose) {
           // If we had a search but it returned no results, show a message and empty content
           setContentItems([]);
           setShowingSearchResults(true);
           
-          toast.warning(
-            `No matches found for "${searchPurpose}". Try a different search.`,
-            { duration: 5000 }
-          );
+          toast.warning(`No content found with 50%+ relevance for "${searchPurpose}". Try different keywords.`, { duration: 5000 });
         } else {
           // If no search results, use all content items
           setContentItems(processedData);
@@ -140,60 +164,6 @@ const Vista = () => {
     };
     
     fetchContentItems();
-    
-    // Save/restore state to sessionStorage for page refreshes
-    const saveViewState = () => {
-      if (contentItems.length > 0) {
-        try {
-          sessionStorage.setItem('vista-items', JSON.stringify(contentItems));
-          sessionStorage.setItem('vista-showing-search', String(showingSearchResults));
-          sessionStorage.setItem('vista-search-query', searchQuery);
-          sessionStorage.setItem('vista-search-purpose', searchPurpose || '');
-        } catch (e) {
-          console.error("Error saving view state to sessionStorage:", e);
-        }
-      }
-    };
-    
-    const loadViewState = () => {
-      try {
-        const savedItems = sessionStorage.getItem('vista-items');
-        const savedShowingSearch = sessionStorage.getItem('vista-showing-search');
-        const savedSearchQuery = sessionStorage.getItem('vista-search-query');
-        const savedSearchPurpose = sessionStorage.getItem('vista-search-purpose');
-        
-        if (savedItems) {
-          const parsedItems = JSON.parse(savedItems);
-          if (parsedItems.length > 0) {
-            console.log("Restored items from session storage:", parsedItems.length);
-            setContentItems(parsedItems);
-            
-            if (savedShowingSearch === 'true') {
-              setShowingSearchResults(true);
-              console.log(`Restored search results view with query: ${savedSearchQuery || savedSearchPurpose}`);
-            }
-            
-            if (savedSearchQuery) {
-              setSearchQuery(savedSearchQuery);
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Error loading view state from sessionStorage:", e);
-      }
-    };
-    
-    // Initialize from session storage if we have it
-    window.addEventListener('beforeunload', saveViewState);
-    
-    // Only load from session storage if we're not already getting results from location state or URL params
-    if (!searchResults && !searchParams.get("search")) {
-      loadViewState();
-    }
-    
-    return () => {
-      window.removeEventListener('beforeunload', saveViewState);
-    };
   }, [searchResults, searchPurpose, searchTimestamp, searchParams]);
 
   // Perform search using semantic search
@@ -206,28 +176,28 @@ const Vista = () => {
     setLoading(true);
     try {
       console.log(`Vista - Performing semantic search with term: "${term}"`);
-      // semanticSearch now returns properly processed items with images
+      // semanticSearch now returns items with 50%+ similarity and properly processed images
       let results = await semanticSearch(term.trim());
       
       if (results && results.length > 0) {
-        console.log(`Vista - Found ${results.length} results for search: "${term}"`);
+        console.log(`Vista - Found ${results.length} results for search: "${term}" (50%+ similarity)`);
         setContentItems(results);
         setShowingSearchResults(true);
-        toast.success(`Found ${results.length} relevant items`);
         
-        // Store search state
-        try {
-          sessionStorage.setItem('vista-items', JSON.stringify(results));
-          sessionStorage.setItem('vista-showing-search', 'true');
-          sessionStorage.setItem('vista-search-query', term);
-        } catch (e) {
-          console.error("Error saving search state to sessionStorage:", e);
-        }
+        // Save search results to cache
+        SearchCache.save({
+          results,
+          query: term,
+          timestamp: Date.now(),
+          showingSearchResults: true
+        });
+        
+        toast.success(`Found ${results.length} relevant items (50%+ similarity)`, { duration: 3000 });
       } else {
         console.log(`Vista - No results found for search: "${term}"`);
         setContentItems([]);
         setShowingSearchResults(true);
-        toast.warning(`No matches found for "${term}". Try different keywords.`);
+        toast.warning(`No content found with 50%+ relevance for "${term}". Try different keywords.`, { duration: 5000 });
       }
     } catch (error) {
       console.error("Vista - Search error:", error);
@@ -253,14 +223,8 @@ const Vista = () => {
     // Clear the search state but keep on same page
     navigate('/vista', { replace: true });
     
-    // Clear search-specific session storage
-    try {
-      sessionStorage.setItem('vista-showing-search', 'false');
-      sessionStorage.setItem('vista-search-query', '');
-      sessionStorage.setItem('vista-search-purpose', '');
-    } catch (e) {
-      console.error("Error clearing search state in sessionStorage:", e);
-    }
+    // Clear search cache when viewing all content
+    SearchCache.clear();
   };
 
   // Get sorted content items - make sure the sort is applied directly before rendering

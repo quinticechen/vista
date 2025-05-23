@@ -60,7 +60,7 @@ export const semanticSearch = async (query: string): Promise<ContentItem[]> => {
       'match_content_items',
       {
         query_embedding: queryEmbedding,
-        match_threshold: 0.1,
+        match_threshold: 0.1, // Keep low threshold for initial search
         match_count: 50
       }
     );
@@ -76,8 +76,17 @@ export const semanticSearch = async (query: string): Promise<ContentItem[]> => {
       return [];
     }
 
+    // Filter results with similarity >= 50% (0.5)
+    const filteredResults = results.filter(result => result.similarity >= 0.5);
+    console.log(`Filtered to ${filteredResults.length} results with similarity >= 50%`);
+
+    if (filteredResults.length === 0) {
+      console.log('No results met the 50% similarity threshold');
+      return [];
+    }
+
     // Get full content items with all fields including content and cover_image
-    const contentIds = results.map(result => result.id);
+    const contentIds = filteredResults.map(result => result.id);
     const { data: fullContentItems, error: contentError } = await supabase
       .from('content_items')
       .select('*')
@@ -94,7 +103,7 @@ export const semanticSearch = async (query: string): Promise<ContentItem[]> => {
     
     const processedItems = fullContentItems.map(item => {
       // Add similarity from search results
-      const searchResult = results.find(r => r.id === item.id);
+      const searchResult = filteredResults.find(r => r.id === item.id);
       const processed = processNotionContent(item);
       
       return {
@@ -108,7 +117,7 @@ export const semanticSearch = async (query: string): Promise<ContentItem[]> => {
     // Sort by similarity (highest first)
     const sortedResults = processedItems.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
     
-    console.log(`Returning ${sortedResults.length} semantic search results`);
+    console.log(`Returning ${sortedResults.length} semantic search results (filtered for 50%+ similarity)`);
     return sortedResults;
   } catch (error) {
     console.error('Semantic search error:', error);
