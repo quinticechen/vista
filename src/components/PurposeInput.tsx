@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -78,11 +77,7 @@ const PurposeInput = ({ onPurposeSubmit, scrollProgress, placeholder }: PurposeI
         console.log("Starting search with query:", purpose.trim());
         
         // Perform semantic search with the user's purpose
-        const searchResults = await semanticSearch(
-          purpose.trim(),
-          20,       // Request more results for better coverage
-          0.5       // Use threshold of 0.5 to filter relevant content
-        );
+        const searchResults = await semanticSearch(purpose.trim());
 
         console.log(`Search completed. Found ${searchResults.length} results`);
 

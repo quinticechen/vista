@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 
@@ -25,6 +26,17 @@ export interface ContentItem {
   orientation?: 'portrait' | 'landscape' | 'square';
   preview_image?: string;
   preview_is_heic?: boolean;
+}
+
+export interface EmbeddingJob {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'error' | 'partial_success';
+  started_at: string;
+  completed_at: string | null;
+  items_processed: number;
+  total_items: number;
+  created_by: string | null;
+  error: string | null;
 }
 
 export const semanticSearch = async (query: string): Promise<ContentItem[]> => {
@@ -123,3 +135,124 @@ export const getContentItem = async (id: string): Promise<ContentItem | null> =>
     return null;
   }
 };
+
+// Check if a user is an admin
+export const checkAdminStatus = async (userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+
+    return data?.is_admin === true;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+};
+
+// Fetch embedding jobs
+export const fetchEmbeddingJobs = async (): Promise<EmbeddingJob[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('embedding_jobs')
+      .select('*')
+      .order('started_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching embedding jobs:', error);
+      throw new Error('Failed to fetch embedding jobs');
+    }
+
+    return data as EmbeddingJob[];
+  } catch (error) {
+    console.error('Error fetching embedding jobs:', error);
+    return [];
+  }
+};
+
+// Get a single embedding job by ID
+export const getEmbeddingJob = async (jobId: string): Promise<EmbeddingJob | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('embedding_jobs')
+      .select('*')
+      .eq('id', jobId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching embedding job:', error);
+      return null;
+    }
+
+    return data as EmbeddingJob;
+  } catch (error) {
+    console.error('Error fetching embedding job:', error);
+    return null;
+  }
+};
+
+// Create a new embedding job
+export const createEmbeddingJob = async (userId: string): Promise<EmbeddingJob | null> => {
+  try {
+    const { data: contentCount, error: countError } = await supabase
+      .from('content_items')
+      .select('id', { count: 'exact', head: true });
+
+    if (countError) {
+      console.error('Error counting content items:', countError);
+      throw new Error('Failed to count content items');
+    }
+
+    const total = contentCount?.length || 0;
+
+    const { data, error } = await supabase
+      .from('embedding_jobs')
+      .insert([
+        { 
+          status: 'pending',
+          items_processed: 0,
+          total_items: total,
+          created_by: userId
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating embedding job:', error);
+      throw new Error('Failed to create embedding job');
+    }
+
+    return data as EmbeddingJob;
+  } catch (error) {
+    console.error('Error creating embedding job:', error);
+    return null;
+  }
+};
+
+// Start the embedding process
+export const startEmbeddingProcess = async (jobId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.functions.invoke('generate-embeddings', {
+      body: { jobId }
+    });
+
+    if (error) {
+      console.error('Error starting embedding process:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error starting embedding process:', error);
+    return false;
+  }
+};
+
