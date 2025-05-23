@@ -32,7 +32,7 @@ const UrlParamVista = () => {
 
   // Centralized content processing function to ensure consistency
   const processContentItem = (item: ContentItem): ContentItem => {
-    console.log(`Processing content item ${item.id}: ${item.title}`);
+    console.log(`UrlParamVista - Processing content item ${item.id}: ${item.title}`);
     
     // Use the standard processor to handle orientation, images, etc.
     const processed = processNotionContent(item);
@@ -51,7 +51,7 @@ const UrlParamVista = () => {
       processed.content = [];
     }
     
-    console.log(`After processing: orientation=${processed.orientation}, cover_image=${!!processed.cover_image}, preview_image=${!!processed.preview_image}`);
+    console.log(`UrlParamVista - After processing: orientation=${processed.orientation}, cover_image=${!!processed.cover_image}, preview_image=${!!processed.preview_image}`);
     return processed;
   };
 
@@ -62,10 +62,10 @@ const UrlParamVista = () => {
 
   // Centralized content processing pipeline
   const processContentItems = (items: ContentItem[]): ContentItem[] => {
-    console.log(`Processing ${items.length} content items`);
+    console.log(`UrlParamVista - Processing ${items.length} content items`);
     const filtered = filterActiveContent(items);
     const processed = filtered.map(processContentItem);
-    console.log(`Processed ${processed.length} items after filtering`);
+    console.log(`UrlParamVista - Processed ${processed.length} items after filtering`);
     return processed;
   };
   
@@ -74,7 +74,7 @@ const UrlParamVista = () => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        console.log("Loading data for UrlParamVista - Start");
+        console.log("UrlParamVista - Loading data for UrlParamVista - Start");
         
         // Load owner profile first
         if (!urlParam) {
@@ -82,7 +82,7 @@ const UrlParamVista = () => {
           return;
         }
         
-        console.log(`Loading owner profile for URL parameter: ${urlParam}`);
+        console.log(`UrlParamVista - Loading owner profile for URL parameter: ${urlParam}`);
         const profile = await getProfileByUrlParam(urlParam);
         
         if (!profile) {
@@ -95,7 +95,7 @@ const UrlParamVista = () => {
         
         // Load all content items for this user (for "View All" functionality)
         const userId = profile.id;
-        console.log(`Loading all content items for user ID: ${userId}`);
+        console.log(`UrlParamVista - Loading all content items for user ID: ${userId}`);
         let userContent = await getUserContentItems(userId);
         console.log('Raw content loaded:', userContent);
         
@@ -105,7 +105,7 @@ const UrlParamVista = () => {
         
         // Check if we have search results from PurposeInput
         if (searchResults && searchResults.length > 0) {
-          console.log(`Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
+          console.log(`UrlParamVista - Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
           
           // Apply same processing pipeline to search results
           const processedSearchResults = processContentItems(searchResults);
@@ -135,9 +135,9 @@ const UrlParamVista = () => {
           setShowingSearchResults(false);
         }
         
-        console.log("Loading data for UrlParamVista - Complete");
+        console.log("UrlParamVista - Loading data for UrlParamVista - Complete");
       } catch (error) {
-        console.error("Error loading data:", error);
+        console.error("UrlParamVista - Error loading data:", error);
         toast.error("Error loading content");
       } finally {
         setIsLoading(false);
@@ -155,7 +155,7 @@ const UrlParamVista = () => {
           sessionStorage.setItem(`vista-${urlParam}-search-query`, searchQuery);
           sessionStorage.setItem(`vista-${urlParam}-search-purpose`, searchPurpose || '');
         } catch (e) {
-          console.error("Error saving view state to sessionStorage:", e);
+          console.error("UrlParamVista - Error saving view state to sessionStorage:", e);
         }
       }
     };
@@ -171,12 +171,12 @@ const UrlParamVista = () => {
         if (savedItems) {
           const parsedItems = JSON.parse(savedItems);
           if (parsedItems.length > 0) {
-            console.log("Restored items from session storage:", parsedItems.length);
+            console.log("UrlParamVista - Restored items from session storage:", parsedItems.length);
             setItems(parsedItems);
             
             if (savedShowingSearch === 'true') {
               setShowingSearchResults(true);
-              console.log(`Restored search results view with query: ${savedSearchQuery || savedSearchPurpose}`);
+              console.log(`UrlParamVista - Restored search results view with query: ${savedSearchQuery || savedSearchPurpose}`);
             }
             
             if (savedSearchQuery) {
@@ -185,7 +185,7 @@ const UrlParamVista = () => {
           }
         }
       } catch (e) {
-        console.error("Error loading view state from sessionStorage:", e);
+        console.error("UrlParamVista - Error loading view state from sessionStorage:", e);
       }
     };
     
@@ -209,7 +209,7 @@ const UrlParamVista = () => {
     }
 
     setIsLoading(true);
-    console.log("Starting search on UrlParamVista page");
+    console.log("UrlParamVista - Starting search on UrlParamVista page");
     try {
       if (!ownerProfile) {
         const profile = await getProfileByUrlParam(urlParam || "");
@@ -236,60 +236,46 @@ const UrlParamVista = () => {
         setAllContentItems(userContent);
       }
       
-      // If we have user content, perform a semantic search
-      if (allContentItems.length > 0) {
-        try {
-          console.log(`Performing semantic search with term: "${term}"`);
-          let searchResults = await semanticSearch(term);
-          
-          // Log search results for debugging
-          console.log(`Search returned ${searchResults.length} results (before filtering)`, searchResults);
-          
-          // Apply consistent processing pipeline to search results
-          searchResults = processContentItems(searchResults);
-          
-          // Filter search results to only include items from this user
-          const userIdsSet = new Set(allContentItems.map(item => item.id));
-          const filteredResults = searchResults.filter(item => userIdsSet.has(item.id));
-          
-          console.log(`Found ${filteredResults.length} matching results from user's content`);
-          setItems(filteredResults);
-          setShowingSearchResults(true);
-          
-          if (filteredResults.length === 0) {
-            toast.warning(`No matches found for "${term}". Try different keywords.`, { duration: 5000 });
-          }
-          
-          // Store the search state in session storage
-          try {
-            sessionStorage.setItem(`vista-${urlParam}-items`, JSON.stringify(filteredResults));
-            sessionStorage.setItem(`vista-${urlParam}-showing-search`, 'true');
-            sessionStorage.setItem(`vista-${urlParam}-search-query`, term);
-          } catch (e) {
-            console.error("Error saving search state to sessionStorage:", e);
-          }
-        } catch (error) {
-          console.error("Semantic search error:", error);
-          toast.error("Error performing semantic search");
-          
-          // Fall back to showing all user content if search fails
-          loadAllItems();
-        }
-      } else {
-        setItems([]);
-        setShowingSearchResults(true);
+      // Perform semantic search - this now returns properly processed items with images
+      console.log(`UrlParamVista - Performing semantic search with term: "${term}"`);
+      let searchResults = await semanticSearch(term);
+      
+      console.log(`UrlParamVista - Search returned ${searchResults.length} results (already processed)`, searchResults);
+      
+      // Filter search results to only include items from this user
+      const userIdsSet = new Set(allContentItems.map(item => item.id));
+      const filteredResults = searchResults.filter(item => userIdsSet.has(item.id));
+      
+      console.log(`UrlParamVista - Found ${filteredResults.length} matching results from user's content`);
+      setItems(filteredResults);
+      setShowingSearchResults(true);
+      
+      if (filteredResults.length === 0) {
+        toast.warning(`No matches found for "${term}". Try different keywords.`, { duration: 5000 });
+      }
+      
+      // Store the search state in session storage
+      try {
+        sessionStorage.setItem(`vista-${urlParam}-items`, JSON.stringify(filteredResults));
+        sessionStorage.setItem(`vista-${urlParam}-showing-search`, 'true');
+        sessionStorage.setItem(`vista-${urlParam}-search-query`, term);
+      } catch (e) {
+        console.error("UrlParamVista - Error saving search state to sessionStorage:", e);
       }
     } catch (error) {
-      console.error("Search error:", error);
+      console.error("UrlParamVista - Search error:", error);
       toast.error("Error performing search");
+      
+      // Fall back to showing all user content if search fails
+      loadAllItems();
     } finally {
       setIsLoading(false);
-      console.log("Search complete on UrlParamVista page");
+      console.log("UrlParamVista - Search complete on UrlParamVista page");
     }
   };
 
   const loadAllItems = () => {
-    console.log("Loading all items in UrlParamVista");
+    console.log("UrlParamVista - Loading all items in UrlParamVista");
     setItems(allContentItems);
     setShowingSearchResults(false);
     setSearchQuery("");
@@ -301,7 +287,7 @@ const UrlParamVista = () => {
       sessionStorage.setItem(`vista-${urlParam}-search-query`, '');
       sessionStorage.setItem(`vista-${urlParam}-search-purpose`, '');
     } catch (e) {
-      console.error("Error clearing search state in sessionStorage:", e);
+      console.error("UrlParamVista - Error clearing search state in sessionStorage:", e);
     }
   };
 

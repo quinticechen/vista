@@ -127,63 +127,58 @@ sequenceDiagram
     Note over Webhook,Storage: Maintains content freshness<br/>and media availability
 ```
 
-## 3. Semantic Search and Content Discovery
+## 3. Semantic Search Flow
 
-```mermaid
-sequenceDiagram
-    participant User as End User
-    participant UI as Vista Interface
-    participant SearchService as Semantic Search Service
-    participant EmbedAPI as generate-query-embedding Function
-    participant AI as OpenAI/VertexAI
-    participant DB as Supabase Database
-    participant Processor as Content Processor
-    participant Media as Media Handler
+### Updated Search Processing (Fixed Image Issue)
+```
+1. User Input → Search Query
+2. semanticSearch() → Generate Embedding
+3. Vector Search → Raw Results
+4. Fetch Full Content Items → Include content field
+5. **NEW**: processNotionContent() → Extract images, orientation
+6. Add Similarity Scores → Final Results
+7. Filter by User (if applicable)
+8. Display → ContentDisplay component
+```
 
-    User->>UI: Enter search query or purpose
-    UI->>UI: Validate and clean query input
-    
-    UI->>SearchService: semanticSearch(query)
-    SearchService->>EmbedAPI: Generate embedding for query
-    
-    EmbedAPI->>AI: Request embedding vector
-    Note over EmbedAPI,AI: Using text-embedding-ada-002 or equivalent
-    
-    AI-->>EmbedAPI: Return query embedding vector
-    EmbedAPI-->>SearchService: Return query embedding
-    
-    SearchService->>DB: Execute match_content_items function
-    Note over SearchService,DB: Vector similarity search with cosine distance
-    
-    DB-->>SearchService: Return matching content with similarity scores
-    
-    SearchService->>SearchService: Filter by similarity threshold (>0.7)
-    SearchService->>SearchService: Sort by relevance score
-    
-    SearchService-->>UI: Return search results
-    
-    UI->>Processor: Process each result for display
-    loop For each search result
-        Processor->>Processor: Ensure proper content structure
-        Processor->>Processor: Extract first image for preview
-        Processor->>Media: Detect image format (HEIC, etc.)
-        Processor->>Media: Determine image orientation
-        Processor->>Processor: Set appropriate aspect ratio
-        Processor->>Processor: Process annotations and formatting
-    end
-    
-    Processor-->>UI: Return processed results with preview images
-    
-    UI->>UI: Render search results with images and similarity indicators
-    UI-->>User: Display personalized, relevant content with proper media
-    
-    alt No results found
-        UI->>UI: Show "no results" with suggestions
-        UI->>UI: Offer to browse all content
-        UI-->>User: Display fallback options
-    end
-    
-    Note over User,DB: Privacy-first: no tracking,<br/>only explicit user preferences
+### Image Extraction in Search Results
+```
+semanticSearch():
+1. Get search results with IDs only
+2. Fetch full content_items with content field
+3. FOR EACH item:
+   - processNotionContent(item)
+   - Extract preview_image from content blocks
+   - Set cover_image if not present
+   - Detect orientation and HEIC format
+4. Return processed items with images
+```
+
+### Three Search Use Cases - Now Consistent
+
+#### Use Case 1: PurposeInput Search
+```
+PurposeInput → semanticSearch() → [PROCESSED RESULTS] → Navigate to UrlParamVista
+                     ↓
+               processNotionContent() applied
+                     ↓
+               Images extracted and available
+```
+
+#### Use Case 2: Vista "View All"
+```
+UrlParamVista → getUserContentItems() → processNotionContent() → Display
+                                              ↓
+                                    Images extracted and available
+```
+
+#### Use Case 3: Vista Search
+```
+UrlParamVista → semanticSearch() → [PROCESSED RESULTS] → Filter by user → Display
+                        ↓
+               processNotionContent() applied
+                        ↓
+               Images extracted and available
 ```
 
 ## 4. Content Personalization and Recommendation Engine

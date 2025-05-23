@@ -199,6 +199,31 @@ Key tables (inferred from codebase):
 - `pgvector` - Vector similarity search
 - Standard PostgreSQL features for JSONB storage
 
+## Content Processing Pipeline
+
+### Image Extraction and Processing
+- **Location**: `src/utils/notionContentProcessor.ts`
+- **Purpose**: Consistent processing of content items to extract preview images, detect orientation, and handle HEIC formats
+- **Key Functions**:
+  - `processNotionContent()`: Main processing function that handles all content transformation
+  - `extractFirstImageUrl()`: Recursively searches content blocks for first image
+  - `isHeicImage()`: Detects HEIC image format for proper fallback handling
+
+### Search Result Processing
+- **Updated Flow**: `semanticSearch()` now automatically processes all results through `processNotionContent()`
+- **Consistency**: All three search use cases now use the same processing pipeline:
+  1. **PurposeInput → Vista**: Results processed in `semanticSearch()`
+  2. **Vista "View All"**: Results processed via `getUserContentItems()` → `processNotionContent()`
+  3. **Vista Search**: Results processed in `semanticSearch()` → filtered by user
+
+### Image Display Logic
+```typescript
+// Centralized image detection in ContentDisplay.tsx
+const mediaUrl = hasCoverImage ? 
+  normalizedContent.cover_image : 
+  (mediaBlock?.media_url || null);
+```
+
 ## External Dependencies
 
 ### Core Framework Dependencies

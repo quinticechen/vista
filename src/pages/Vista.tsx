@@ -205,14 +205,12 @@ const Vista = () => {
     
     setLoading(true);
     try {
-      console.log(`Performing semantic search with term: "${term}"`);
+      console.log(`Vista - Performing semantic search with term: "${term}"`);
+      // semanticSearch now returns properly processed items with images
       let results = await semanticSearch(term.trim());
       
-      // Apply consistent processing pipeline to search results
-      results = processContentItems(results);
-      
       if (results && results.length > 0) {
-        console.log(`Found ${results.length} results for search: "${term}"`);
+        console.log(`Vista - Found ${results.length} results for search: "${term}"`);
         setContentItems(results);
         setShowingSearchResults(true);
         toast.success(`Found ${results.length} relevant items`);
@@ -226,13 +224,13 @@ const Vista = () => {
           console.error("Error saving search state to sessionStorage:", e);
         }
       } else {
-        console.log(`No results found for search: "${term}"`);
+        console.log(`Vista - No results found for search: "${term}"`);
         setContentItems([]);
         setShowingSearchResults(true);
         toast.warning(`No matches found for "${term}". Try different keywords.`);
       }
     } catch (error) {
-      console.error("Search error:", error);
+      console.error("Vista - Search error:", error);
       toast.error("Error performing search");
     } finally {
       setLoading(false);
