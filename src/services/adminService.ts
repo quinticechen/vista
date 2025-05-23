@@ -44,7 +44,7 @@ export const semanticSearch = async (query: string): Promise<ContentItem[]> => {
   
   try {
     const { data, error } = await supabase.functions.invoke('generate-query-embedding', {
-      body: { query }
+      body: { text: query }  // Changed from 'query' to 'text' to match edge function expectations
     });
 
     if (error) {
