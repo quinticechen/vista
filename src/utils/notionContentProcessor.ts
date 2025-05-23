@@ -29,6 +29,8 @@ export interface ContentItemFromDB {
 export interface ExtendedContentItem extends ContentItemFromDB {
   similarity?: number;
   orientation?: 'portrait' | 'landscape' | 'square';
+  preview_image?: string; // Add preview_image property for first image in content
+  preview_is_heic?: boolean; // Flag for preview image format
 }
 
 // Helper function to check if an image URL is a HEIC format
@@ -54,6 +56,38 @@ export const detectImageOrientation = (width?: number, height?: number): 'portra
   }
 };
 
+// Extract first image from content blocks for preview
+export const extractFirstImageUrl = (blocks: any[]): { url: string | undefined, isHeic: boolean } => {
+  if (!Array.isArray(blocks)) {
+    return { url: undefined, isHeic: false };
+  }
+  
+  // Helper recursive function to check blocks and their children
+  const findFirstImage = (blocks: any[]): { url: string | undefined, isHeic: boolean } => {
+    for (const block of blocks) {
+      // Check if the block is an image type
+      if ((block.type === 'image' || block.media_type === 'image') && 
+          (block.media_url || block.url)) {
+        const imageUrl = block.media_url || block.url;
+        const isHeic = block.is_heic || isHeicImage(imageUrl);
+        return { url: imageUrl, isHeic };
+      }
+      
+      // If this block has children, recursively check them
+      if (block.children && Array.isArray(block.children)) {
+        const imageFromChildren = findFirstImage(block.children);
+        if (imageFromChildren.url) {
+          return imageFromChildren;
+        }
+      }
+    }
+    
+    return { url: undefined, isHeic: false };
+  };
+  
+  return findFirstImage(blocks);
+};
+
 // Process Notion blocks for rendering
 export const processNotionContent = (contentItem: ContentItemFromDB): ExtendedContentItem => {
   try {
@@ -69,6 +103,15 @@ export const processNotionContent = (contentItem: ContentItemFromDB): ExtendedCo
       
       // Look for the first image in the content to determine orientation
       let foundFirstImage = false;
+      
+      // Extract the first image for preview
+      const { url: previewImageUrl, isHeic: previewIsHeic } = extractFirstImageUrl(processed.content as any[]);
+      
+      if (previewImageUrl) {
+        processed.preview_image = previewImageUrl;
+        processed.preview_is_heic = previewIsHeic;
+        console.log("Found preview image:", previewImageUrl, "Is HEIC:", previewIsHeic);
+      }
       
       // Process the content to properly handle all elements
       processed.content = (processed.content as any[]).map((block: any) => {
@@ -274,6 +317,13 @@ export const processNotionContent = (contentItem: ContentItemFromDB): ExtendedCo
     if (processed.cover_image && isHeicImage(processed.cover_image)) {
       processed.is_heic_cover = true;
       console.warn("HEIC cover image detected:", processed.cover_image);
+    }
+    
+    // If we have no cover image but found a preview image, use it as cover
+    if (!processed.cover_image && processed.preview_image) {
+      processed.cover_image = processed.preview_image;
+      processed.is_heic_cover = processed.preview_is_heic || false;
+      console.log("Using preview image as cover:", processed.cover_image);
     }
     
     return processed;

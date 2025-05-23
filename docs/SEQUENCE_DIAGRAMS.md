@@ -1,4 +1,3 @@
-
 # Vista Platform - Sequence Diagrams
 
 This document contains detailed sequence diagrams for the main functional flows in the Vista platform, supporting the Document-driven Test-driven Development (DTDD) approach.
@@ -139,6 +138,7 @@ sequenceDiagram
     participant AI as OpenAI/VertexAI
     participant DB as Supabase Database
     participant Processor as Content Processor
+    participant Media as Media Handler
 
     User->>UI: Enter search query or purpose
     UI->>UI: Validate and clean query input
@@ -165,14 +165,17 @@ sequenceDiagram
     UI->>Processor: Process each result for display
     loop For each search result
         Processor->>Processor: Ensure proper content structure
-        Processor->>Processor: Detect image orientations
+        Processor->>Processor: Extract first image for preview
+        Processor->>Media: Detect image format (HEIC, etc.)
+        Processor->>Media: Determine image orientation
+        Processor->>Processor: Set appropriate aspect ratio
         Processor->>Processor: Process annotations and formatting
     end
     
-    Processor-->>UI: Return processed results
+    Processor-->>UI: Return processed results with preview images
     
-    UI->>UI: Render search results with similarity indicators
-    UI-->>User: Display personalized, relevant content
+    UI->>UI: Render search results with images and similarity indicators
+    UI-->>User: Display personalized, relevant content with proper media
     
     alt No results found
         UI->>UI: Show "no results" with suggestions
@@ -344,6 +347,70 @@ sequenceDiagram
     Dashboard-->>Creator: Display A/B test results
     
     Note over User,Creator: Privacy-compliant analytics<br/>with explicit user consent
+```
+
+## 7. Media Processing and Display
+
+```mermaid
+sequenceDiagram
+    participant Creator as Content Creator
+    participant Notion as Notion Platform
+    participant Sync as Notion Sync Process
+    participant Storage as Supabase Storage
+    participant DB as Supabase Database
+    participant Processor as Content Processor
+    participant UI as Vista Interface
+    participant User as End User
+
+    Creator->>Notion: Create content with images
+    Notion->>Notion: Store content with expiring URLs
+    
+    Sync->>Notion: Request content blocks
+    Notion-->>Sync: Return blocks with image URLs
+    
+    loop For each image block
+        Sync->>Sync: Detect image format
+        alt Is HEIC format
+            Sync->>Sync: Flag as HEIC image
+            Sync->>Storage: Backup image to permanent storage
+            Storage-->>Sync: Return permanent URL
+        else Is standard format
+            Sync->>Sync: Process normally
+            Sync->>Storage: Backup if URL is expiring
+            Storage-->>Sync: Return permanent URL
+        end
+        
+        Sync->>Sync: Extract image dimensions
+        Sync->>Sync: Calculate aspect ratio
+        Sync->>Sync: Determine orientation (portrait/landscape)
+    end
+    
+    Sync->>DB: Store processed content with image metadata
+    
+    User->>UI: Request content
+    UI->>DB: Fetch content
+    DB-->>UI: Return content with image data
+    
+    UI->>Processor: Process content for display
+    Processor->>Processor: Extract first image for preview
+    Processor->>Processor: Apply orientation and format detection
+    
+    alt Image is cover image
+        Processor->>UI: Use as primary visual
+    else No cover but has preview
+        Processor->>UI: Use first content image as cover
+    end
+    
+    alt Image is HEIC format
+        UI->>UI: Show HEIC format warning
+        UI->>UI: Provide direct link to image
+    else Image loads normally
+        UI->>UI: Display with proper aspect ratio
+    end
+    
+    UI-->>User: Show content with properly formatted images
+    
+    Note over Creator,User: All media is properly processed,<br/>backed up, and displayed correctly
 ```
 
 ## Key Design Principles

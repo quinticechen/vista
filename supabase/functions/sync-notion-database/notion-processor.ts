@@ -106,6 +106,13 @@ export async function processBlockWithImageBackup(
         baseBlock.is_heic = true;
       }
       
+      // Try to extract image dimensions if available
+      if (block.image.width && block.image.height) {
+        baseBlock.width = block.image.width;
+        baseBlock.height = block.image.height;
+        baseBlock.aspect_ratio = block.image.width / block.image.height;
+      }
+      
       // Backup the image if it's an expiring URL, using the image index
       if (imageUrl) {
         baseBlock.media_url = await backupImageToStorage(

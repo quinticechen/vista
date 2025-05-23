@@ -1,4 +1,3 @@
-
 # Vista Platform - Project Architecture Documentation
 
 This document provides a comprehensive overview of the Vista platform's architecture, codebase organization, and design decisions.
@@ -12,6 +11,7 @@ This document provides a comprehensive overview of the Vista platform's architec
 6. [External Dependencies](#external-dependencies)
 7. [Design Patterns](#design-patterns)
 8. [Integration Points](#integration-points)
+9. [Media Handling Architecture](#media-handling-architecture)
 
 ## Project Structure
 
@@ -395,5 +395,48 @@ async function getContentItems(userId: string)
 - Error tracking via console logs
 - Performance metrics collection
 - Real-time status monitoring
+
+## Media Handling Architecture
+
+### 1. Image Processing Flow
+**Purpose**: Correctly handle and display various image formats across the platform
+
+#### Key Components:
+- `ImageAspectRatio`: Core component for responsive image rendering with proper aspect ratios
+- `isHeicImage()`: Utility for detecting HEIC format images that need special handling
+- `extractFirstImageUrl()`: Helper function to find preview images in content
+- `ContentCoverImage`: Component that renders cover images with proper orientation
+
+#### Image Data Flow:
+1. Notion API returns image URLs during content sync
+2. Images are backed up to Supabase Storage if they're expiring Notion URLs
+3. Format detection identifies HEIC and other specialized image types
+4. Dimension analysis determines proper orientation (portrait/landscape)
+5. Preview images are extracted from content blocks if no cover image exists
+6. UI components render with appropriate aspect ratios and fallbacks
+
+#### Image Error Recovery:
+- HEIC detection prevents browser rendering errors
+- Image loading errors provide graceful fallbacks
+- Backup URLs ensure long-term image availability
+
+### 2. Image Orientation Management 
+**Purpose**: Ensure visually appealing presentation of images with diverse aspect ratios
+
+#### Orientation Detection Logic:
+- Default: 16:9 landscape aspect ratio when dimensions are unknown
+- Portrait detection: height > width (3:4 aspect ratio)
+- Landscape detection: width > height (16:9 aspect ratio) 
+- Square detection: width = height (1:1 aspect ratio)
+
+#### Responsive Behavior:
+- Fluid container widths with fixed aspect ratios
+- Proper object-fit properties for different content types
+- Loading states and smooth transitions
+
+#### First Image Priority:
+- Content processing extracts the first image found in content
+- First image orientation influences content card presentation
+- Preview images serve as fallback cover images when needed
 
 This architecture documentation serves as a foundation for the DTDD approach, providing clear understanding of system boundaries, responsibilities, and integration points for effective testing and development.
