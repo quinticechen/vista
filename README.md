@@ -1,73 +1,215 @@
-# Welcome to your Lovable project
 
-## Project info
+# Vista - AI-Powered Content Experience Platform
 
-**URL**: https://lovable.dev/projects/54734869-ba66-426b-88b8-5912e00d52f6
+Vista is an AI-powered content experience platform that enables businesses and creators to personalize, manage, and optimize content for any audience—across platforms, languages, and formats. Built with privacy-first design principles, Vista offers effective content personalization without relying on third-party tracking.
 
-## How can I edit this code?
+## 🎯 Core Features
 
-There are several ways of editing your application.
+- **Privacy-First Personalization**: Content recommendations based on explicit user preferences only
+- **Notion Integration**: Seamless synchronization with Notion databases
+- **Semantic Search**: AI-powered natural language search capabilities
+- **Multi-language Support**: Automated content translation with context preservation
+- **Real-time Analytics**: Performance tracking and engagement metrics
+- **Rich Media Support**: Advanced handling of images, videos, and embeds including HEIC format
 
-**Use Lovable**
+## 🏗️ Architecture
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/54734869-ba66-426b-88b8-5912e00d52f6) and start prompting.
+Vista follows a modern JAMstack architecture:
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18 with TypeScript and Tailwind CSS
+- **Backend**: Supabase with PostgreSQL and pgvector for semantic search
+- **AI Services**: OpenAI/VertexAI for embeddings and Google Translate for localization
+- **Storage**: Supabase Storage for media backup and CDN delivery
 
-**Use your preferred IDE**
+## 📋 Documentation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Core Documentation
+- [**Product Requirements Document (PRD)**](./docs/PRD.md) - Complete product specification and requirements
+- [**Sequence Diagrams**](./docs/SEQUENCE_DIAGRAMS.md) - Detailed system interaction flows
+- [**Class Diagrams**](./docs/CLASS_DIAGRAMS.md) - System architecture and component relationships
+- [**Development Guide**](./docs/DEVELOPMENT_GUIDE.md) - DTDD workflow and implementation guidelines
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Development Approach
 
-Follow these steps:
+This project follows **Document-driven Test-driven Development (DTDD)**:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. **Documentation First**: All features are specified in detailed documentation
+2. **Test-Driven**: Tests are written based on documented requirements
+3. **Implementation**: Code is written to satisfy tests and documentation
+4. **Iteration**: Continuous refinement based on feedback and testing
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🚀 Getting Started
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Prerequisites
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+- Node.js 18+ 
+- Supabase account
+- Notion API access (optional, for content sync)
+- OpenAI or VertexAI API key (for semantic search)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/your-org/vista.git
+cd vista
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+# Configure your Supabase and API keys
+```
+
+4. Run the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Supabase Setup
 
-**Use GitHub Codespaces**
+1. Create a new Supabase project
+2. Run the database migrations from `supabase/migrations/`
+3. Configure authentication providers
+4. Set up storage buckets for media files
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🧪 Testing
 
-## What technologies are used for this project?
+Vista uses a comprehensive testing strategy:
 
-This project is built with:
+```bash
+# Run all tests
+npm test
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Run tests with coverage
+npm run test:coverage
 
-## How can I deploy this project?
+# Run e2e tests
+npm run test:e2e
 
-Simply open [Lovable](https://lovable.dev/projects/54734869-ba66-426b-88b8-5912e00d52f6) and click on Share -> Publish.
+# Run specific test suite
+npm run test -- --testNamePattern="Notion sync"
+```
 
-## Can I connect a custom domain to my Lovable project?
+### Test Structure
+- **Unit Tests**: Component and utility function testing
+- **Integration Tests**: API and service integration testing  
+- **E2E Tests**: Full user journey testing with Playwright
 
-Yes, you can!
+## 📊 Key Metrics & Success Criteria
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Business Metrics
+- **30% increase** in customer engagement rates
+- **40% reduction** in content operations cost and time
+- **80% of content** served with AI-based personalization
+- **25% of visitors** sign up and declare preferences
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Technical Metrics
+- **99.9% uptime** for content display
+- **<2 seconds** average search response time
+- **≤1% failure rate** for Notion synchronization
+
+## 🔒 Privacy & Compliance
+
+Vista is built with privacy-first principles:
+
+- **No third-party tracking** or cookies
+- **Explicit user consent** for all data collection
+- **GDPR and CCPA compliant** from day one
+- **Data minimization** - only collect what's explicitly provided
+- **User control** over personalization preferences
+
+## 🛠️ Development Workflow
+
+### Adding New Features
+
+1. **Update Documentation**: Add requirements to PRD and update sequence/class diagrams
+2. **Write Tests**: Create tests based on documented behavior
+3. **Implement**: Write minimal code to pass tests
+4. **Review**: Ensure compliance with documentation and test coverage
+5. **Deploy**: Use staging environment for validation
+
+### Code Quality Standards
+
+- **TypeScript**: Strict type checking enabled
+- **80%+ test coverage** required for new features
+- **ESLint + Prettier**: Automated code quality and formatting
+- **Pre-commit hooks**: Quality gates before commits
+
+## 🚢 Deployment
+
+Vista supports multiple deployment options:
+
+### Lovable Platform (Recommended)
+- One-click deployment with built-in Supabase integration
+- Automatic HTTPS and CDN configuration
+- Environment variable management
+
+### Manual Deployment
+```bash
+# Build for production
+npm run build
+
+# Deploy to your preferred platform
+# (Vercel, Netlify, AWS, etc.)
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Follow the DTDD workflow (document → test → implement)
+4. Commit your changes: `git commit -m 'Add amazing feature'`
+5. Push to the branch: `git push origin feature/amazing-feature`
+6. Open a Pull Request
+
+### Contribution Guidelines
+
+- All features must be documented before implementation
+- Maintain or improve test coverage
+- Follow existing code style and patterns
+- Update documentation for any API changes
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: Check the [docs](./docs/) directory for detailed guides
+- **Issues**: Report bugs and feature requests via GitHub Issues
+- **Discussions**: Join community discussions in GitHub Discussions
+- **Security**: Report security issues privately to security@vista.ai
+
+## 🗺️ Roadmap
+
+### Current Version (v1.0)
+- ✅ Core content management and synchronization
+- ✅ Basic semantic search functionality
+- ✅ Notion integration with webhook support
+- ✅ Multi-language content support
+
+### Upcoming (v1.1)
+- 🔄 Advanced personalization algorithms
+- 🔄 Real-time analytics dashboard
+- 🔄 A/B testing framework
+- 🔄 Enhanced user segmentation
+
+### Future (v2.0)
+- 📋 Advanced content authoring tools
+- 📋 Third-party CMS integrations
+- 📋 Advanced analytics and reporting
+- 📋 Enterprise SSO and security features
+
+---
+
+**Built with ❤️ for content creators and their audiences**
+
+For more information, visit our [documentation](./docs/) or check out the [live demo](https://vista-demo.lovable.app).
