@@ -9,7 +9,6 @@ import { toast } from "@/components/ui/sonner";
 import { getProfileByUrlParam, getContentItemById } from "@/services/urlParamService";
 import { processNotionContent, ContentItemFromDB, ExtendedContentItem } from "@/utils/notionContentProcessor";
 import { ContentMetadata } from "@/components/content/ContentMetadata";
-import { ContentCoverImage } from "@/components/content/ContentCoverImage";
 import { ContentBody } from "@/components/content/ContentBody";
 
 // Type to represent a block in the content array
@@ -130,8 +129,6 @@ const UrlParamContentDetail = () => {
         <h1 className="text-3xl font-bold mb-2">{content?.title}</h1>
         
         {content && <ContentMetadata content={content} />}
-        
-        {content && <ContentCoverImage content={content} />}
         
         {content && <ContentBody content={content} />}
       </main>
