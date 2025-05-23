@@ -29,110 +29,104 @@ const renderAnnotatedTextSegment = (text: string, annotations?: NotionAnnotation
     return text;
   }
 
-  // Filter valid annotations
-  const validAnnotations = annotations.filter(annotation => {
-    // Check if this annotation has valid positional data
-    const hasValidPositions = 
-      typeof annotation.start === 'number' && 
-      typeof annotation.end === 'number' &&
-      annotation.start >= 0 && 
-      annotation.end <= text.length && 
-      annotation.start < annotation.end;
-      
-    // Check if this is a legacy annotation with text property
-    const isLegacyValid = annotation.text && typeof annotation.text === 'string';
-    
-    return hasValidPositions || isLegacyValid;
+  // Filter valid annotations based on text property first
+  const textBasedAnnotations = annotations.filter(annotation => {
+    return annotation.text && typeof annotation.text === 'string';
   });
-
-  if (validAnnotations.length === 0) return text;
-
-  // Create a mapping of positions to style changes
-  const positions: { [position: number]: React.ReactNode[] } = {};
   
-  // Initialize all positions
-  for (let i = 0; i <= text.length; i++) {
-    positions[i] = [];
+  // If we have text-based annotations, apply them
+  if (textBasedAnnotations.length > 0) {
+    // Process text matching annotations
+    let result = text;
+    const segments: React.ReactNode[] = [];
+    
+    // For each annotation, find and replace its text with styled version
+    for (const annotation of textBasedAnnotations) {
+      const annotationText = annotation.text || "";
+      
+      // Skip if no text to match
+      if (!annotationText) continue;
+      
+      // Find all occurrences of this text
+      let lastIndex = 0;
+      let index = result.indexOf(annotationText, lastIndex);
+      
+      while (index !== -1) {
+        // Add text before this occurrence
+        if (index > lastIndex) {
+          segments.push(result.substring(lastIndex, index));
+        }
+        
+        // Add styled text
+        segments.push(
+          createStyledNode(annotationText, annotation, segments.length)
+        );
+        
+        // Update indices
+        lastIndex = index + annotationText.length;
+        index = result.indexOf(annotationText, lastIndex);
+      }
+      
+      // Add any remaining text
+      if (lastIndex < result.length) {
+        segments.push(result.substring(lastIndex));
+      }
+      
+      // Update result for next annotation
+      result = segments.join("");
+      segments.length = 0;
+    }
+    
+    return result;
   }
   
-  // Process annotations
-  validAnnotations.forEach((annotation, annotationIndex) => {
-    // Determine annotation boundaries
-    let start = 0;
-    let end = text.length;
-    
-    // Use positional data if available
-    if (typeof annotation.start === 'number' && typeof annotation.end === 'number') {
-      start = Math.max(0, Math.min(text.length, annotation.start));
-      end = Math.max(start, Math.min(text.length, annotation.end));
-    } 
-    // Use text search as fallback
-    else if (annotation.text) {
-      const annotationText = annotation.text;
-      const textIndex = text.indexOf(annotationText);
-      if (textIndex >= 0) {
-        start = textIndex;
-        end = textIndex + annotationText.length;
-      }
-    }
-
-    // Create styled segment for this annotation
-    const segment = text.substring(start, end);
-    if (segment) {
-      const styledSegment = createStyledNode(segment, annotation, annotationIndex);
-      // Add this segment to the position map
-      positions[start].push(styledSegment);
-    }
+  // If no text-based annotations, try positional annotations
+  const positionalAnnotations = annotations.filter(annotation => {
+    return typeof annotation.start === 'number' && 
+           typeof annotation.end === 'number' &&
+           annotation.start >= 0 && 
+           annotation.end <= text.length && 
+           annotation.start < annotation.end;
   });
-
-  // Build final result by traversing the positions
-  const result: React.ReactNode[] = [];
+  
+  if (positionalAnnotations.length === 0) return text;
+  
+  // Sort annotations by start position
+  positionalAnnotations.sort((a, b) => (a.start || 0) - (b.start || 0));
+  
+  // Build segments based on positional annotations
+  const segments: React.ReactNode[] = [];
   let currentPosition = 0;
-  let plainTextBuffer = '';
-
-  while (currentPosition <= text.length) {
-    if (positions[currentPosition].length > 0) {
-      // If we have a styled segment at this position
-      
-      // First flush any plain text buffer
-      if (plainTextBuffer) {
-        result.push(plainTextBuffer);
-        plainTextBuffer = '';
-      }
-      
-      // Add all styled segments at this position
-      positions[currentPosition].forEach(styledSegment => {
-        result.push(styledSegment);
-      });
-      
-      // Move position past this segment
-      // We need to find the next position after all segments
-      const nextPositions = Object.keys(positions)
-        .map(Number)
-        .filter(pos => pos > currentPosition)
-        .sort((a, b) => a - b);
-      
-      if (nextPositions.length > 0) {
-        currentPosition = nextPositions[0];
-      } else {
-        // No more positions, exit loop
-        break;
-      }
-    } else {
-      // No styled segments at this position, add to plain text buffer
-      if (currentPosition < text.length) {
-        plainTextBuffer += text[currentPosition];
-      }
-      currentPosition++;
+  
+  for (let i = 0; i < positionalAnnotations.length; i++) {
+    const ann = positionalAnnotations[i];
+    const start = ann.start || 0;
+    const end = ann.end || 0;
+    
+    // Add unstyled text before this annotation
+    if (start > currentPosition) {
+      segments.push(text.substring(currentPosition, start));
     }
+    
+    // Add the styled segment
+    segments.push(
+      createStyledNode(
+        text.substring(start, end), 
+        ann,
+        i
+      )
+    );
+    
+    // Update current position
+    currentPosition = end;
   }
   
-  // Add any remaining plain text
-  if (plainTextBuffer) {
-    result.push(plainTextBuffer);
+  // Add any remaining unstyled text
+  if (currentPosition < text.length) {
+    segments.push(text.substring(currentPosition));
   }
   
-  return result;
+  return segments;
 };
 
 // Create a styled React node for a text segment based on its annotation

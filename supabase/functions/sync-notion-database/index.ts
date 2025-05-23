@@ -1,3 +1,4 @@
+
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -365,7 +366,7 @@ function isExpiringAssetUrl(url: string): boolean {
 }
 
 // Generate a filename for storage from an image URL
-function generateImageFilename(imageUrl: string, pageId: string): string {
+function generateImageFilename(imageUrl: string, pageId: string, index: number): string {
   // Extract original filename if available
   let filename = '';
   try {
@@ -383,13 +384,13 @@ function generateImageFilename(imageUrl: string, pageId: string): string {
       throw new Error('Invalid filename');
     }
   } catch (error) {
-    // Generate a filename with page ID and timestamp
+    // Generate a filename with page ID, timestamp, and image index
     const timestamp = Date.now();
     const extension = imageUrl.match(/\.(jpe?g|png|gif|webp)/i) 
       ? imageUrl.match(/\.(jpe?g|png|gif|webp)/i)![0]
       : '.jpg';
     
-    filename = `notion-${pageId.substring(0, 8)}-${timestamp}${extension}`;
+    filename = `notion-${pageId.substring(0, 8)}-${timestamp}-${index}${extension}`;
   }
   
   return filename;
@@ -401,7 +402,8 @@ async function backupImageToStorage(
   supabase: any,
   bucketName: string,
   userId: string,
-  pageId: string
+  pageId: string,
+  imageIndex: number
 ): Promise<string | null> {
   try {
     // Skip if not an expiring asset URL
@@ -409,23 +411,24 @@ async function backupImageToStorage(
       return imageUrl;
     }
     
-    // Generate a unique filename for storage
-    const filename = generateImageFilename(imageUrl, pageId);
+    // Generate a unique filename for storage that includes the image index
+    const filename = generateImageFilename(imageUrl, pageId, imageIndex);
     const filePath = `${userId}/${pageId}/${filename}`;
     
-    // Check if file already exists in storage
-    const { data: existingFile } = await supabase.storage
+    // Check if file already exists in storage - using more specific search
+    const { data: existingFiles } = await supabase.storage
       .from(bucketName)
       .list(`${userId}/${pageId}`, {
         search: filename
       });
     
-    if (existingFile && existingFile.length > 0) {
+    if (existingFiles && existingFiles.length > 0) {
       // File exists, return the public URL
       const { data: publicUrl } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
       
+      console.log(`Using existing image file: ${filename}`);
       return publicUrl.publicUrl;
     }
     
@@ -467,6 +470,9 @@ async function backupImageToStorage(
   }
 }
 
+// Track image counts per page
+const pageImageCounts = new Map<string, number>();
+
 // Process blocks recursively with image backup
 async function processBlocksSimplifiedWithImageBackup(
   blocks: any[],
@@ -477,6 +483,11 @@ async function processBlocksSimplifiedWithImageBackup(
   pageId?: string
 ): Promise<any[]> {
   const processedBlocks = []
+  
+  // Initialize image count for this page if not already done
+  if (pageId && !pageImageCounts.has(pageId)) {
+    pageImageCounts.set(pageId, 0);
+  }
   
   for (const block of blocks) {
     // Use block ID as pageId if not provided
@@ -613,14 +624,19 @@ async function processBlockWithImageBackup(
         block.image.external.url : 
         block.image.type === 'file' ? block.image.file.url : null
       
-      // Backup the image if it's an expiring URL
+      // Increment the image counter for this page before processing
+      const imageIndex = pageImageCounts.get(pageId) || 0;
+      pageImageCounts.set(pageId, imageIndex + 1);
+      
+      // Backup the image if it's an expiring URL, using the image index
       if (imageUrl) {
         baseBlock.media_url = await backupImageToStorage(
           imageUrl, 
           supabase, 
           bucketName, 
           userId, 
-          pageId
+          pageId,
+          imageIndex
         )
       } else {
         baseBlock.media_url = null
