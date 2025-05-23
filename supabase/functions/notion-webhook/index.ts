@@ -1,4 +1,3 @@
-
 // Notion Webhook handler for receiving updates from Notion
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.5.0'
@@ -111,13 +110,47 @@ Deno.serve(async (req) => {
     // Extract properties from the page
     const props = page.properties
     
+    // Process blocks recursively to include children
+    const processBlocks = async function(blocks, notionClient) {
+      const processedBlocks = [];
+      
+      for (const block of blocks) {
+        // Process the current block based on its type
+        const processedBlock = processBlock(block);
+        
+        // Check if block has children
+        if (block.has_children) {
+          try {
+            // Fetch child blocks
+            const { results: childBlocks } = await notionClient.blocks.children.list({
+              block_id: block.id,
+              page_size: 100,
+            });
+            
+            // Process child blocks recursively
+            const processedChildren = await processBlocks(childBlocks, notionClient);
+            
+            // Add children to the processed block
+            processedBlock.children = processedChildren;
+          } catch (error) {
+            console.error(`Error fetching children for block ${block.id}:`, error);
+            processedBlock.children = [];
+          }
+        }
+        
+        processedBlocks.push(processedBlock);
+      }
+      
+      return processedBlocks;
+    };
+    
     // Fetch the page blocks (content)
     const { results: blocks } = await notion.blocks.children.list({
       block_id: pageId,
       page_size: 100, // Fetch up to 100 blocks
     })
     
-    // Process blocks recursively to include children
+    // Process blocks recursively to capture nested structure
     const processedBlocks = await processBlocks(blocks, notion)
     
     // Update the content item in our database
@@ -205,49 +238,15 @@ function extractProperty(props: Record<string, any>, propertyName: string, prope
   }
 }
 
-// Process blocks recursively to capture nested structure
-async function processBlocks(blocks: any[], notionClient: Client): Promise<any[]> {
-  const processedBlocks = []
-  
-  for (const block of blocks) {
-    // Process the current block based on its type
-    const processedBlock = processBlock(block)
-    
-    // Check if block has children
-    if (block.has_children) {
-      try {
-        // Fetch child blocks
-        const { results: childBlocks } = await notionClient.blocks.children.list({
-          block_id: block.id,
-          page_size: 100,
-        })
-        
-        // Process child blocks recursively
-        const processedChildren = await processBlocks(childBlocks, notionClient)
-        
-        // Add children to the processed block
-        processedBlock.children = processedChildren
-      } catch (error) {
-        console.error(`Error fetching children for block ${block.id}:`, error)
-        processedBlock.children = []
-      }
-    }
-    
-    processedBlocks.push(processedBlock)
-  }
-  
-  return processedBlocks
-}
-
 // Process a single block
-function processBlock(block: any): any {
+function processBlock(block) {
   // Basic block data
   const baseBlock = {
     id: block.id,
     type: block.type,
     created_time: block.created_time,
     last_edited_time: block.last_edited_time,
-  }
+  };
   
   // Process the block content based on its type
   switch (block.type) {
@@ -321,10 +320,20 @@ function processBlock(block: any): any {
         annotations: extractAnnotations(block.code.rich_text),
       }
     case 'image':
+      const imageUrl = block.image.type === 'external' ? block.image.external.url : 
+                     block.image.type === 'file' ? block.image.file.url : null;
+      
+      // Check if it's a HEIC image by examining the URL
+      const isHeic = imageUrl && (
+        imageUrl.toLowerCase().endsWith('.heic') || 
+        imageUrl.toLowerCase().includes('/heic') || 
+        imageUrl.toLowerCase().includes('heic.')
+      );
+      
       return {
         ...baseBlock,
-        url: block.image.type === 'external' ? block.image.external.url : 
-             block.image.type === 'file' ? block.image.file.url : null,
+        url: imageUrl,
+        is_heic: isHeic, // Mark HEIC images
         caption: block.image.caption ? extractRichText(block.image.caption) : null,
       }
     case 'video':

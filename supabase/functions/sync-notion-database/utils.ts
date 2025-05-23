@@ -1,4 +1,3 @@
-
 import { Client } from 'https://deno.land/x/notion_sdk/src/mod.ts';
 import { ImageBackupOptions } from './types.ts';
 
@@ -34,7 +33,7 @@ export function extractProperty(props: Record<string, any>, propertyName: string
   }
 }
 
-// Function to check if a URL is a Notion asset URL that might expire
+// Helper function to check if a URL is a Notion asset URL that might expire
 export function isExpiringAssetUrl(url: string): boolean {
   if (!url) return false;
   

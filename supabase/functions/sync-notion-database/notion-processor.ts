@@ -1,3 +1,4 @@
+
 import { Client } from 'https://deno.land/x/notion_sdk/src/mod.ts';
 import { backupImageToStorage, extractAnnotationsSimplified, extractRichText, getAndIncrementImageIndex } from './utils.ts';
 
@@ -92,6 +93,18 @@ export async function processBlockWithImageBackup(
       
       // Get the image counter for this page for generating unique filenames
       const imageIndex = getAndIncrementImageIndex(pageId);
+      
+      // Check if it's a HEIC image by examining the URL
+      const isHeic = imageUrl && (
+        imageUrl.toLowerCase().endsWith('.heic') || 
+        imageUrl.toLowerCase().includes('/heic') || 
+        imageUrl.toLowerCase().includes('heic.')
+      );
+      
+      // Mark HEIC images
+      if (isHeic) {
+        baseBlock.is_heic = true;
+      }
       
       // Backup the image if it's an expiring URL, using the image index
       if (imageUrl) {

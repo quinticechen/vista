@@ -1,110 +1,90 @@
 
+import React, { useState } from 'react';
 import { cn } from "@/lib/utils";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { useState, useEffect } from "react";
-import { isHeicImage as checkIsHeicImage } from "@/components/notion/utils/image-utils";
+import { isHeicImage } from './notion/utils/image-utils';
 
-interface ImageAspectRatioProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-  aspectRatio?: number;
-  size?: "portrait" | "landscape" | "square";
+interface ImageAspectRatioProps {
+  src: string;
+  alt: string;
+  className?: string;
+  size?: 'landscape' | 'portrait' | 'square';
   isHeic?: boolean;
 }
 
-export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({
-  aspectRatio,
+export const ImageAspectRatio: React.FC<ImageAspectRatioProps> = ({ 
+  src, 
+  alt, 
   className,
-  src,
-  alt,
-  size = "landscape",
-  isHeic: initialIsHeic = false,
-  ...props
+  size = 'landscape',
+  isHeic: propIsHeic
 }) => {
   const [error, setError] = useState(false);
-  const [isHeic, setIsHeic] = useState(initialIsHeic);
-
-  // Check if the image is a HEIC file on mount or when src changes
-  useEffect(() => {
-    if (initialIsHeic || (src && checkIsHeicImage(src.toString()))) {
-      setIsHeic(true);
-      setError(true);
-    }
-  }, [src, initialIsHeic]);
-
-  // Default aspect ratios
-  const getAspectRatio = () => {
-    if (aspectRatio) return aspectRatio;
-    
-    switch (size) {
-      case "portrait":
-        return 8/9; // Portrait ratio for media display
-      case "square":
-        return 1;
-      case "landscape":
-      default:
-        return 16/9; // Landscape ratio for media display
-    }
-  };
-
-  const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    setError(true);
-    
-    // Check if the image is a HEIC file
-    const imgSrc = src?.toString().toLowerCase() || '';
-    if (imgSrc.endsWith('.heic') || imgSrc.includes('heic')) {
-      setIsHeic(true);
-      console.warn("HEIC image format detected:", imgSrc);
-    }
-    
-    // Call the original onError handler if provided
-    if (props.onError) {
-      props.onError(e);
-    }
-  };
-
+  
+  // Calculate aspect ratio based on size prop
+  const aspectRatio = size === 'portrait' ? 3/4 : size === 'square' ? 1 : 16/9;
+  
+  // Check if this is a HEIC image
+  const isHeic = propIsHeic || isHeicImage(src);
+  
+  if (isHeic) {
+    return (
+      <div className={cn(
+        "bg-muted flex items-center justify-center", 
+        className
+      )}>
+        <div className="p-4 text-center flex items-center justify-center flex-col h-full">
+          <p className="text-sm text-muted-foreground mb-2">
+            HEIC image format not supported in browser
+          </p>
+          <a 
+            href={src} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm text-blue-500 hover:underline"
+          >
+            Open original image
+          </a>
+        </div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className={cn(
+        "bg-muted flex items-center justify-center", 
+        className
+      )}>
+        <div className="p-4 text-center">
+          <p className="text-sm text-muted-foreground">Failed to load image</p>
+          <a 
+            href={src} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm text-blue-500 hover:underline mt-2"
+          >
+            Open image in new tab
+          </a>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <AspectRatio 
-      ratio={getAspectRatio()} 
-      className={cn(
-        "overflow-hidden rounded-md border", 
-        error ? "bg-muted" : "",
-        className
-      )}
+      ratio={aspectRatio} 
+      className={cn("bg-muted overflow-hidden", className)}
     >
-      {error ? (
-        <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-10 w-10 mb-2 text-muted"
-          >
-            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-            <circle cx="9" cy="9" r="2" />
-            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-          </svg>
-          <span className="text-sm font-medium">
-            {isHeic ? "HEIC format not supported by browser" : "Failed to load image"}
-          </span>
-          {isHeic && (
-            <>
-              <span className="text-xs mt-1 text-center">This image format requires conversion to be displayed</span>
-              <span className="text-xs mt-1 text-center text-amber-500">Try using PNG or JPEG formats instead</span>
-            </>
-          )}
-        </div>
-      ) : (
-        <img
-          src={src}
-          alt={alt || "Image"}
-          className={cn("object-cover w-full h-full", error ? "opacity-0" : "opacity-100")}
-          onError={handleError}
-          {...props}
-        />
-      )}
+      <img 
+        src={src} 
+        alt={alt} 
+        className="object-cover w-full h-full"
+        onError={() => setError(true)}
+        loading="lazy"
+      />
     </AspectRatio>
   );
 };
+
+export default ImageAspectRatio;
