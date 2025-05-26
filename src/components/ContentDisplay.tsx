@@ -149,14 +149,6 @@ export const ContentDisplayItem = ({
   const hasMedia = !!mediaUrl && !imageError && mediaLoaded;
   const isMediaRight = index % 2 === 0;
   
-  // Determine orientation
-  const orientation = normalizedContent.orientation || mediaBlock?.orientation || 'landscape';
-  const isPortrait = orientation === 'portrait';
-  
-  // Calculate width based on orientation for fixed 400px height
-  // For 400px height: landscape (16:9) = 711px width, portrait (8:9) = 356px width
-  const mediaWidth = isPortrait ? '356px' : '711px';
-  
   // Function to get the correct detail route
   const getDetailRoute = () => {
     if (urlPrefix) {
@@ -265,7 +257,7 @@ export const ContentDisplayItem = ({
       {mediaUrl && (
         <div 
           className={`relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100 h-[400px]`}
-          style={{ width: mediaWidth, flexShrink: 0 }}
+          style={{ flexShrink: 0 }}
         >
           {hasCoverImage || (mediaBlock?.media_type === 'image') ? (
             <img 
