@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { Client } from 'https://deno.land/x/notion_sdk/src/mod.ts';
 
@@ -231,12 +230,11 @@ Deno.serve(async (req) => {
     }
 
     // Handle page events
-    if (payload.entity?.type === 'page' && payload.data?.parent?.type === 'database') {
+    if (payload.entity?.type === 'page') {
       const pageId = payload.entity.id;
-      const databaseId = payload.data.parent.id;
       const eventType = payload.type;
       
-      console.log('Processing page event:', eventType, 'for page:', pageId, 'in database:', databaseId);
+      console.log('Processing page event:', eventType, 'for page:', pageId);
       
       let userId = userIdParam;
       let userProfile = null;
@@ -262,31 +260,34 @@ Deno.serve(async (req) => {
         
         userProfile = profile;
       } else {
-        // Legacy support: lookup user by database ID
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('id, notion_api_key, notion_database_id')
-          .eq('notion_database_id', databaseId)
-          .single();
-        
-        if (error || !profile) {
-          console.log('No user found for database:', databaseId);
-          return new Response(
-            JSON.stringify({ status: 'success', message: 'No user configuration found for database' }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            }
-          );
+        // Legacy support: lookup user by database ID if parent is database
+        if (payload.data?.parent?.type === 'database') {
+          const databaseId = payload.data.parent.id;
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('id, notion_api_key, notion_database_id')
+            .eq('notion_database_id', databaseId)
+            .single();
+          
+          if (error || !profile) {
+            console.log('No user found for database:', databaseId);
+            return new Response(
+              JSON.stringify({ status: 'success', message: 'No user configuration found for database' }),
+              {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+              }
+            );
+          }
+          
+          userId = profile.id;
+          userProfile = profile;
         }
-        
-        userId = profile.id;
-        userProfile = profile;
       }
 
-      // Handle page deletion, removal, or restoration events
-      if (eventType === 'page.deleted' || eventType === 'page.moved') {
-        console.log('Handling page deletion/removal event for page:', pageId);
+      // Handle page deletion events
+      if (eventType === 'page.deleted') {
+        console.log('Handling page deletion event for page:', pageId);
         
         try {
           // Update the content item status to 'removed' without fetching page details
@@ -321,7 +322,59 @@ Deno.serve(async (req) => {
           );
           
         } catch (error) {
-          console.error('Error handling page deletion/removal:', error);
+          console.error('Error handling page deletion:', error);
+          return new Response(
+            JSON.stringify({ 
+              status: 'error', 
+              message: 'Failed to mark page as removed',
+              error: error.message 
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500,
+            }
+          );
+        }
+      }
+
+      // Handle page moved events (when page is moved out of database)
+      if (eventType === 'page.moved') {
+        console.log('Handling page moved event for page:', pageId);
+        
+        try {
+          // Update the content item status to 'removed' since page moved out of database
+          const { error: updateError } = await supabase
+            .from('content_items')
+            .update({
+              notion_page_status: 'removed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('notion_page_id', pageId)
+            .eq('user_id', userId);
+          
+          if (updateError) {
+            console.error('Error updating content item status to removed:', updateError);
+            throw updateError;
+          }
+          
+          console.log('Content item marked as removed successfully for moved page:', pageId);
+          
+          return new Response(
+            JSON.stringify({ 
+              status: 'success', 
+              message: `Page marked as removed successfully`,
+              page_id: pageId,
+              user_id: userId,
+              operation: 'removed'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          );
+          
+        } catch (error) {
+          console.error('Error handling page move:', error);
           return new Response(
             JSON.stringify({ 
               status: 'error', 
