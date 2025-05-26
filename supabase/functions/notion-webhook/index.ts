@@ -1,5 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Client } from 'https://deno.land/x/notion_sdk/src/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,21 +11,138 @@ interface NotionWebhookPayload {
   type?: string;
   challenge?: string;
   verification_token?: string;
-  object?: string;
-  event_type?: string;
-  page?: {
+  entity?: {
     id: string;
-    created_time: string;
-    last_edited_time: string;
-    url: string;
-    properties?: any;
+    type: string;
+  };
+  data?: {
     parent?: {
-      database_id?: string;
+      id: string;
+      type: string;
     };
+    updated_properties?: string[];
+    updated_blocks?: Array<{ id: string; type: string }>;
   };
   workspace?: {
     id: string;
   };
+}
+
+// Helper function to extract property values (copied from sync-notion-database)
+function extractProperty(properties: any, propertyName: string, propertyType: string): any {
+  const property = properties[propertyName];
+  if (!property) return null;
+
+  switch (propertyType) {
+    case 'title':
+      return property.title?.[0]?.plain_text || null;
+    case 'rich_text':
+      return property.rich_text?.[0]?.plain_text || null;
+    case 'select':
+      return property.select?.name || null;
+    case 'multi_select':
+      return property.multi_select?.map((item: any) => item.name) || [];
+    case 'date':
+      return property.date?.start || null;
+    default:
+      return null;
+  }
+}
+
+// Helper function to extract rich text (copied from sync-notion-database)
+function extractRichText(richTextArray: any[]): string {
+  if (!richTextArray || !Array.isArray(richTextArray)) return '';
+  return richTextArray.map(item => item.plain_text || '').join('');
+}
+
+// Helper function to extract annotations (simplified version)
+function extractAnnotationsSimplified(richTextArray: any[]): any[] {
+  if (!richTextArray || !Array.isArray(richTextArray)) return [];
+  
+  return richTextArray
+    .filter(item => item.annotations && Object.values(item.annotations).some(val => val === true))
+    .map(item => ({
+      text: item.plain_text,
+      ...item.annotations
+    }));
+}
+
+// Helper function to process blocks (simplified version for webhook)
+async function processBlocksForWebhook(blocks: any[], notionClient: Client): Promise<any[]> {
+  const processedBlocks = [];
+  
+  for (const block of blocks) {
+    const blockType = block.type;
+    const baseBlock: any = { type: blockType };
+    
+    // Process specific block types
+    switch (blockType) {
+      case 'paragraph':
+        baseBlock.text = extractRichText(block.paragraph?.rich_text || []);
+        baseBlock.annotations = extractAnnotationsSimplified(block.paragraph?.rich_text || []);
+        break;
+      case 'heading_1':
+        baseBlock.text = extractRichText(block.heading_1?.rich_text || []);
+        baseBlock.annotations = extractAnnotationsSimplified(block.heading_1?.rich_text || []);
+        break;
+      case 'heading_2':
+        baseBlock.text = extractRichText(block.heading_2?.rich_text || []);
+        baseBlock.annotations = extractAnnotationsSimplified(block.heading_2?.rich_text || []);
+        break;
+      case 'heading_3':
+        baseBlock.text = extractRichText(block.heading_3?.rich_text || []);
+        baseBlock.annotations = extractAnnotationsSimplified(block.heading_3?.rich_text || []);
+        break;
+      case 'bulleted_list_item':
+        baseBlock.text = extractRichText(block.bulleted_list_item?.rich_text || []);
+        baseBlock.is_list_item = true;
+        baseBlock.list_type = 'bulleted_list';
+        baseBlock.annotations = extractAnnotationsSimplified(block.bulleted_list_item?.rich_text || []);
+        break;
+      case 'numbered_list_item':
+        baseBlock.text = extractRichText(block.numbered_list_item?.rich_text || []);
+        baseBlock.is_list_item = true;
+        baseBlock.list_type = 'numbered_list';
+        baseBlock.annotations = extractAnnotationsSimplified(block.numbered_list_item?.rich_text || []);
+        break;
+      case 'to_do':
+        baseBlock.text = extractRichText(block.to_do?.rich_text || []);
+        baseBlock.checked = block.to_do?.checked;
+        baseBlock.annotations = extractAnnotationsSimplified(block.to_do?.rich_text || []);
+        break;
+      case 'image':
+        baseBlock.media_type = 'image';
+        baseBlock.media_url = block.image?.type === 'external' ? 
+          block.image.external?.url : 
+          block.image?.type === 'file' ? block.image.file?.url : null;
+        baseBlock.caption = block.image?.caption ? extractRichText(block.image.caption) : null;
+        break;
+      default:
+        if (block[blockType]?.rich_text) {
+          baseBlock.text = extractRichText(block[blockType].rich_text);
+          baseBlock.annotations = extractAnnotationsSimplified(block[blockType].rich_text);
+        }
+        break;
+    }
+    
+    // Handle child blocks
+    if (block.has_children) {
+      try {
+        const { results: childBlocks } = await notionClient.blocks.children.list({
+          block_id: block.id,
+          page_size: 50,
+        });
+        baseBlock.children = await processBlocksForWebhook(childBlocks, notionClient);
+      } catch (error) {
+        console.error(`Error fetching children for block ${block.id}:`, error);
+        baseBlock.children = [];
+      }
+    }
+    
+    processedBlocks.push(baseBlock);
+  }
+  
+  return processedBlocks;
 }
 
 Deno.serve(async (req) => {
@@ -70,21 +188,6 @@ Deno.serve(async (req) => {
         } else {
           console.log('Verification token updated in profile for user:', userIdParam);
         }
-      } else {
-        // Legacy support: store in separate table
-        const { error: insertError } = await supabase
-          .from('notion_webhook_verifications')
-          .insert({
-            verification_token: payload.challenge,
-            challenge_type: 'url_verification',
-            user_id: null
-          });
-        
-        if (insertError) {
-          console.error('Error storing verification token:', insertError);
-        } else {
-          console.log('Verification token stored in legacy table');
-        }
       }
       
       // Return the challenge as required by Notion
@@ -115,21 +218,6 @@ Deno.serve(async (req) => {
         } else {
           console.log('Verification token updated in profile for user:', userIdParam);
         }
-      } else {
-        // Legacy support: store in separate table
-        const { error: insertError } = await supabase
-          .from('notion_webhook_verifications')
-          .insert({
-            verification_token: payload.verification_token,
-            challenge_type: 'verification_token',
-            user_id: null
-          });
-        
-        if (insertError) {
-          console.error('Error storing verification token:', insertError);
-        } else {
-          console.log('Verification token stored in legacy table');
-        }
       }
       
       // Return success response
@@ -142,53 +230,179 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Handle page updates
-    if (payload.object === 'event' && payload.page) {
-      console.log('Processing page update for page:', payload.page.id);
+    // Handle page events that require content synchronization
+    if (payload.entity?.type === 'page' && payload.data?.parent?.type === 'database') {
+      const pageId = payload.entity.id;
+      const databaseId = payload.data.parent.id;
       
-      let userId = userIdParam; // Use user_id from URL if available
+      console.log('Processing page event for page:', pageId, 'in database:', databaseId);
       
-      // If no user_id in URL, try legacy database lookup
-      if (!userId) {
-        const databaseId = payload.page.parent?.database_id;
-        if (databaseId) {
-          console.log('Page belongs to database:', databaseId);
-          
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, notion_database_id')
-            .eq('notion_database_id', databaseId)
-            .single();
-          
-          if (profile) {
-            userId = profile.id;
-            console.log('Found user for database:', userId);
-          }
+      let userId = userIdParam;
+      let userProfile = null;
+      
+      // Get user profile and API key
+      if (userId) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('notion_api_key, notion_database_id')
+          .eq('id', userId)
+          .single();
+        
+        if (error || !profile) {
+          console.error('Error fetching user profile:', error);
+          return new Response(
+            JSON.stringify({ status: 'error', message: 'User profile not found' }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 404,
+            }
+          );
         }
+        
+        userProfile = profile;
+      } else {
+        // Legacy support: lookup user by database ID
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('id, notion_api_key, notion_database_id')
+          .eq('notion_database_id', databaseId)
+          .single();
+        
+        if (error || !profile) {
+          console.log('No user found for database:', databaseId);
+          return new Response(
+            JSON.stringify({ status: 'success', message: 'No user configuration found for database' }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          );
+        }
+        
+        userId = profile.id;
+        userProfile = profile;
       }
       
-      // Process the page update
-      const pageData = {
-        notion_page_id: payload.page.id,
-        notion_created_time: payload.page.created_time,
-        notion_last_edited_time: payload.page.last_edited_time,
-        notion_url: payload.page.url,
-        user_id: userId,
-        updated_at: new Date().toISOString()
-      };
-
-      console.log('Page data to process:', pageData);
+      if (!userProfile.notion_api_key) {
+        console.error('No Notion API key configured for user:', userId);
+        return new Response(
+          JSON.stringify({ status: 'error', message: 'Notion API key not configured' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        );
+      }
       
-      return new Response(
-        JSON.stringify({ status: 'success', message: 'Page update processed', user_id: userId }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
+      try {
+        // Initialize Notion client with user's API key
+        const notion = new Client({ auth: userProfile.notion_api_key });
+        
+        // Fetch the updated page details
+        console.log('Fetching page details for:', pageId);
+        const page = await notion.pages.retrieve({ page_id: pageId });
+        
+        // Fetch page blocks
+        console.log('Fetching page blocks for:', pageId);
+        const { results: blocks } = await notion.blocks.children.list({
+          block_id: pageId,
+          page_size: 100,
+        });
+        
+        // Process blocks using simplified processing for webhook
+        const processedBlocks = await processBlocksForWebhook(blocks, notion);
+        
+        // Extract page properties
+        const props = (page as any).properties || {};
+        
+        // Prepare content item data (matching sync-notion-database format)
+        const contentItem = {
+          title: extractProperty(props, 'Name', 'title') || extractProperty(props, 'Title', 'title') || 'Untitled',
+          description: extractProperty(props, 'Description', 'rich_text'),
+          category: extractProperty(props, 'Category', 'select'),
+          tags: extractProperty(props, 'Tags', 'multi_select'),
+          created_at: (page as any).created_time,
+          updated_at: (page as any).last_edited_time,
+          start_date: extractProperty(props, 'Start date', 'date'),
+          end_date: extractProperty(props, 'End date', 'date'),
+          notion_url: (page as any).url,
+          user_id: userId,
+          content: processedBlocks,
+          notion_page_id: pageId,
+          notion_created_time: (page as any).created_time,
+          notion_last_edited_time: (page as any).last_edited_time,
+          notion_page_status: 'active'
+        };
+        
+        console.log('Prepared content item:', JSON.stringify(contentItem, null, 2));
+        
+        // Check if content item already exists
+        const { data: existingItem } = await supabase
+          .from('content_items')
+          .select('id')
+          .eq('notion_page_id', pageId)
+          .eq('user_id', userId)
+          .single();
+        
+        let operation = '';
+        if (existingItem) {
+          // Update existing item
+          const { error: updateError } = await supabase
+            .from('content_items')
+            .update(contentItem)
+            .eq('id', existingItem.id);
+          
+          if (updateError) {
+            console.error('Error updating content item:', updateError);
+            throw updateError;
+          }
+          operation = 'updated';
+          console.log('Content item updated successfully:', existingItem.id);
+        } else {
+          // Insert new item
+          const { error: insertError } = await supabase
+            .from('content_items')
+            .insert(contentItem);
+          
+          if (insertError) {
+            console.error('Error inserting content item:', insertError);
+            throw insertError;
+          }
+          operation = 'inserted';
+          console.log('Content item inserted successfully');
         }
-      );
+        
+        return new Response(
+          JSON.stringify({ 
+            status: 'success', 
+            message: `Page ${operation} successfully`,
+            page_id: pageId,
+            user_id: userId,
+            operation: operation
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+        
+      } catch (notionError) {
+        console.error('Error processing Notion page:', notionError);
+        return new Response(
+          JSON.stringify({ 
+            status: 'error', 
+            message: 'Failed to sync Notion content',
+            error: notionError.message 
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          }
+        );
+      }
     }
 
-    // Unknown webhook type
+    // Unknown webhook type - log but don't error
     console.log('Unknown webhook payload type:', payload.type || 'undefined');
     return new Response(
       JSON.stringify({ status: 'success', message: 'Webhook received but not processed' }),
