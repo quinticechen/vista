@@ -49,7 +49,6 @@ const Content = () => {
       } catch (error) {
         console.error("Error fetching profile data:", error);
         toast({
-          title: "Error",
           description: "Failed to load profile data",
           variant: "destructive",
         });
@@ -103,7 +102,6 @@ const Content = () => {
           setLatestVerificationToken(payload.new.verification_token);
           setVerificationTokenTimestamp(payload.new.received_at);
           toast({
-            title: "New Verification Token",
             description: "New verification token received from Notion!",
           });
         }
@@ -118,7 +116,6 @@ const Content = () => {
   const saveUrlParam = async () => {
     if (!urlParam) {
       toast({
-        title: "Error",
         description: "Please enter a URL parameter first",
         variant: "destructive",
       });
@@ -131,7 +128,6 @@ const Content = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast({
-          title: "Error",
           description: "You must be logged in to save settings",
           variant: "destructive",
         });
@@ -146,13 +142,11 @@ const Content = () => {
       if (error) throw error;
       
       toast({
-        title: "Success",
         description: "URL parameter saved successfully!",
       });
     } catch (error) {
       console.error("Error saving URL parameter:", error);
       toast({
-        title: "Error",
         description: "Failed to save URL parameter",
         variant: "destructive",
       });
@@ -164,7 +158,6 @@ const Content = () => {
   const saveNotionSettings = async () => {
     if (!notionDatabaseId || !notionApiKey) {
       toast({
-        title: "Error",
         description: "Please enter both Notion Database ID and API Key",
         variant: "destructive",
       });
@@ -177,7 +170,6 @@ const Content = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast({
-          title: "Error",
           description: "You must be logged in to save settings",
           variant: "destructive",
         });
@@ -195,13 +187,11 @@ const Content = () => {
       if (error) throw error;
       
       toast({
-        title: "Success",
         description: "Notion settings saved successfully!",
       });
     } catch (error) {
       console.error("Error saving Notion settings:", error);
       toast({
-        title: "Error",
         description: "Failed to save Notion settings",
         variant: "destructive",
       });
@@ -213,7 +203,6 @@ const Content = () => {
   const syncNotionContent = async () => {
     if (!notionDatabaseId || !notionApiKey) {
       toast({
-        title: "Error",
         description: "Please save your Notion settings first",
         variant: "destructive",
       });
@@ -226,7 +215,6 @@ const Content = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast({
-          title: "Error",
           description: "You must be logged in to sync content",
           variant: "destructive",
         });
@@ -247,14 +235,12 @@ const Content = () => {
       if (error) throw error;
       
       toast({
-        title: "Success",
         description: "Content synced successfully!",
       });
       
     } catch (error) {
       console.error("Error syncing Notion content:", error);
       toast({
-        title: "Error",
         description: `Failed to sync Notion content: ${error.message || error}`,
         variant: "destructive",
       });
@@ -267,13 +253,11 @@ const Content = () => {
     navigator.clipboard.writeText(text)
       .then(() => {
         toast({
-          title: "Success",
           description: successMessage,
         });
       })
       .catch((err) => {
         toast({
-          title: "Error",
           description: "Failed to copy: " + err,
           variant: "destructive",
         });
@@ -283,7 +267,6 @@ const Content = () => {
   const viewPreview = () => {
     if (!urlParam) {
       toast({
-        title: "Error",
         description: "Please enter a URL parameter first",
         variant: "destructive",
       });
