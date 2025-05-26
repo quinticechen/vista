@@ -49,9 +49,33 @@ Deno.serve(async (req) => {
     const payload = await req.json()
     console.log("Received webhook from Notion:", JSON.stringify(payload))
     
+    // Get the Supabase credentials from environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
+    
+    // Create a Supabase client with the service role key
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    
     // Handle verification challenge
     if (payload.type === 'url_verification') {
-      console.log("Handling verification challenge")
+      console.log("Handling verification challenge:", payload.challenge)
+      
+      // Store the verification token for all users (since we don't know which user is setting up the webhook)
+      // We'll store it with a generic identifier and let the frontend filter by user context
+      const { error: insertError } = await supabase
+        .from('notion_webhook_verifications')
+        .insert({
+          verification_token: payload.challenge,
+          challenge_type: 'url_verification',
+          received_at: new Date().toISOString()
+        })
+      
+      if (insertError) {
+        console.error("Error storing verification token:", insertError)
+      } else {
+        console.log("Verification token stored successfully")
+      }
+      
       return new Response(
         JSON.stringify({ challenge: payload.challenge }),
         { 
@@ -78,13 +102,6 @@ Deno.serve(async (req) => {
         }
       )
     }
-    
-    // Get the Supabase credentials from environment variables
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
-    
-    // Create a Supabase client with the service role key
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     // Get the page ID from the webhook payload
     const pageId = payload.page.id

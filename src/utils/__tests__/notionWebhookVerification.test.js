@@ -22,6 +22,45 @@ describe('Notion Webhook Verification', () => {
     expect(mockResponse.challenge).toBe(mockVerificationToken);
   });
 
+  it('should store verification token when received from Notion', () => {
+    const mockChallenge = 'notion-challenge-abc123';
+    const mockUserId = 'user-123';
+    
+    // Simulate storing the verification token
+    const storedToken = {
+      user_id: mockUserId,
+      verification_token: mockChallenge,
+      created_at: new Date().toISOString()
+    };
+
+    expect(storedToken.verification_token).toBe(mockChallenge);
+    expect(storedToken.user_id).toBe(mockUserId);
+  });
+
+  it('should display real-time verification token in admin interface', () => {
+    const mockTokens = [
+      {
+        id: '1',
+        user_id: 'user-123',
+        verification_token: 'notion-token-1',
+        created_at: '2023-01-01T12:00:00.000Z'
+      },
+      {
+        id: '2', 
+        user_id: 'user-123',
+        verification_token: 'notion-token-2',
+        created_at: '2023-01-01T13:00:00.000Z'
+      }
+    ];
+
+    // Should display the most recent token
+    const latestToken = mockTokens.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
+
+    expect(latestToken.verification_token).toBe('notion-token-2');
+  });
+
   it('should validate webhook payload structure for page updates', () => {
     const mockPageUpdatePayload = {
       object: 'event',

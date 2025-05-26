@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import TranslatedText from "@/components/TranslatedText";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, ExternalLink, Clock } from "lucide-react";
 
 const Content = () => {
   const [urlParam, setUrlParam] = useState("");
@@ -19,21 +20,11 @@ const Content = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [verificationToken, setVerificationToken] = useState("");
+  const [latestVerificationToken, setLatestVerificationToken] = useState("");
+  const [verificationTokenTimestamp, setVerificationTokenTimestamp] = useState("");
   const navigate = useNavigate();
   
-  // Generate verification token on component mount
-  useEffect(() => {
-    const generateVerificationToken = () => {
-      const timestamp = Date.now();
-      const randomString = Math.random().toString(36).substring(2, 15);
-      return `notion_verify_${timestamp}_${randomString}`;
-    };
-    
-    setVerificationToken(generateVerificationToken());
-  }, []);
-  
-  // Fetch user's profile data on component mount
+  // Fetch user's profile data and latest verification token
   useEffect(() => {
     const fetchProfileData = async () => {
       setIsLoading(true);
@@ -64,6 +55,57 @@ const Content = () => {
     };
     
     fetchProfileData();
+  }, []);
+
+  // Fetch latest verification token
+  useEffect(() => {
+    const fetchLatestVerificationToken = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notion_webhook_verifications')
+          .select('verification_token, received_at')
+          .order('received_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+          console.error("Error fetching verification token:", error);
+          return;
+        }
+        
+        if (data) {
+          setLatestVerificationToken(data.verification_token);
+          setVerificationTokenTimestamp(data.received_at);
+        }
+      } catch (error) {
+        console.error("Error fetching verification token:", error);
+      }
+    };
+
+    fetchLatestVerificationToken();
+
+    // Set up real-time subscription for verification tokens
+    const channel = supabase
+      .channel('notion-webhook-verifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notion_webhook_verifications'
+        },
+        (payload) => {
+          console.log('New verification token received:', payload.new);
+          setLatestVerificationToken(payload.new.verification_token);
+          setVerificationTokenTimestamp(payload.new.received_at);
+          toast.success("New verification token received from Notion!");
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
   
   const saveUrlParam = async () => {
@@ -192,6 +234,11 @@ const Content = () => {
   const getWebhookUrl = () => {
     const baseUrl = window.location.origin;
     return `${baseUrl.replace('https://', 'https://oyvbdbajqsqzafpuahvz.supabase.co')}/functions/v1/notion-webhook`;
+  };
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "";
+    return new Date(timestamp).toLocaleString();
   };
   
   return (
@@ -386,23 +433,41 @@ const Content = () => {
                         <Label>
                           <TranslatedText>Verification Token</TranslatedText>
                         </Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={verificationToken}
-                            readOnly
-                            className="bg-gray-50 font-mono text-sm"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyToClipboard(verificationToken, "Verification token copied to clipboard!")}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
+                        <div className="space-y-2">
+                          {latestVerificationToken ? (
+                            <>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={latestVerificationToken}
+                                  readOnly
+                                  className="bg-green-50 border-green-200 font-mono text-sm"
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(latestVerificationToken, "Verification token copied to clipboard!")}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-green-600">
+                                <Clock className="h-3 w-3" />
+                                <span>
+                                  <TranslatedText>Received:</TranslatedText> {formatTimestamp(verificationTokenTimestamp)}
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="p-3 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600">
+                              <TranslatedText>
+                                No verification token received yet. The token will appear here automatically when Notion sends the verification challenge.
+                              </TranslatedText>
+                            </div>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           <TranslatedText>
-                            Notion will require this token for webhook verification during setup. Keep this token secure.
+                            This token is automatically received from Notion during webhook setup. Use it for webhook verification.
                           </TranslatedText>
                         </p>
                       </div>
@@ -424,7 +489,7 @@ const Content = () => {
                           </p>
                           <p>
                             <TranslatedText>
-                              3. When prompted for verification, use the token shown above
+                              3. When prompted for verification, use the token shown above (it will appear automatically)
                             </TranslatedText>
                           </p>
                           <p>
