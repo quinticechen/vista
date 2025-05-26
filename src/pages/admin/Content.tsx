@@ -292,10 +292,9 @@ const Content = () => {
     navigate(`/${urlParam}`);
   };
   
-  // Get the webhook URL based on current domain
+  // Get the webhook URL - using the correct Supabase edge function URL
   const getWebhookUrl = () => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl.replace('https://', 'https://oyvbdbajqsqzafpuahvz.supabase.co')}/functions/v1/notion-webhook`;
+    return `https://oyvbdbajqsqzafpuahvz.supabase.co/functions/v1/notion-webhook`;
   };
 
   const formatTimestamp = (timestamp) => {
