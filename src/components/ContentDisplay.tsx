@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/hooks/use-i18n";
@@ -8,7 +9,6 @@ import { formatDate } from "@/lib/utils";
 import { ContentItem } from "@/services/adminService";
 import { Badge } from "@/components/ui/badge";
 import { Json } from "@/integrations/supabase/types";
-import { ImageAspectRatio } from "@/components/ImageAspectRatio";
 
 export interface ContentDisplayItemProps {
   content: ContentItem;
@@ -67,7 +67,6 @@ const findMediaBlock = (content: Json | any[] | undefined): any => {
       return null;
     }
   } else if (content && typeof content === 'object') {
-    // Try to handle if it's already a JSON object but not an array
     return null;
   }
 
@@ -81,16 +80,13 @@ const findMediaBlock = (content: Json | any[] | undefined): any => {
   if (!mediaBlock) {
     for (const block of contentArray) {
       if (block.children && Array.isArray(block.children)) {
-        // Search in direct children first
         mediaBlock = block.children.find((child: any) => 
           (child?.media_type === 'image' && child?.media_url) || 
           (child?.type === 'image' && child?.url) ||
           (child?.media_type === 'video' && child?.media_url));
         
-        // If found, stop searching
         if (mediaBlock) break;
         
-        // If columns, search in each column's children
         if (block.type === 'column_list') {
           for (const column of block.children) {
             if (column.children && Array.isArray(column.children)) {
@@ -99,7 +95,6 @@ const findMediaBlock = (content: Json | any[] | undefined): any => {
                 (child?.type === 'image' && child?.url) ||
                 (child?.media_type === 'video' && child?.media_url));
               
-              // If found, stop searching
               if (mediaBlock) break;
             }
           }
@@ -108,7 +103,7 @@ const findMediaBlock = (content: Json | any[] | undefined): any => {
     }
   }
   
-  // Normalize the media URL (handle different property names)
+  // Normalize the media URL
   if (mediaBlock) {
     if (!mediaBlock.media_url && mediaBlock.url) {
       mediaBlock.media_url = mediaBlock.url;
@@ -127,6 +122,7 @@ export const ContentDisplayItem = ({
   const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
   const [imageError, setImageError] = useState(false);
+  const [mediaLoaded, setMediaLoaded] = useState(false);
   
   // Deep check content's structure to find images
   const normalizedContent = { ...content };
@@ -145,18 +141,21 @@ export const ContentDisplayItem = ({
   const mediaBlock = !hasCoverImage ? findMediaBlock(normalizedContent.content) : null;
   const mediaUrl = hasCoverImage ? normalizedContent.cover_image : (mediaBlock?.media_url || null);
   
-  // Enhanced logging for debugging media detection
   console.log(`ContentDisplay - Content ID: ${normalizedContent.id}, Title: ${normalizedContent.title}`);
   console.log(`ContentDisplay - Has cover image: ${hasCoverImage}, Cover image URL: ${normalizedContent.cover_image}`);
   console.log(`ContentDisplay - Media block found:`, mediaBlock);
   console.log(`ContentDisplay - Final mediaUrl: ${mediaUrl}`);
   
-  const hasMedia = !!mediaUrl && !imageError;
+  const hasMedia = !!mediaUrl && !imageError && mediaLoaded;
   const isMediaRight = index % 2 === 0;
   
-  // Determine orientation - check from content property first, then from mediaBlock
+  // Determine orientation
   const orientation = normalizedContent.orientation || mediaBlock?.orientation || 'landscape';
   const isPortrait = orientation === 'portrait';
+  
+  // Calculate width based on orientation for fixed 400px height
+  // For 400px height: landscape (16:9) = 711px width, portrait (8:9) = 356px width
+  const mediaWidth = isPortrait ? '356px' : '711px';
   
   // Function to get the correct detail route
   const getDetailRoute = () => {
@@ -167,7 +166,20 @@ export const ContentDisplayItem = ({
   };
 
   const handleImageError = () => {
+    console.log('Image failed to load, switching to text-only layout');
     setImageError(true);
+    setMediaLoaded(false);
+  };
+
+  const handleImageLoad = () => {
+    console.log('Image loaded successfully');
+    setMediaLoaded(true);
+  };
+
+  const handleVideoError = () => {
+    console.log('Video failed to load, switching to text-only layout');
+    setImageError(true);
+    setMediaLoaded(false);
   };
 
   return (
@@ -175,7 +187,7 @@ export const ContentDisplayItem = ({
       className={`group ${hasMedia ? 'h-[400px]' : 'h-auto'} overflow-hidden flex flex-row hover:shadow-md transition-shadow duration-200`}
     > 
       {/* Text Content Section - Always present */}
-      <div className={`${hasMedia ? 'w-1/2' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'} justify-center`}>
+      <div className={`${hasMedia ? 'flex-1' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'} justify-center`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-2 mb-1">
             {normalizedContent.category && (
@@ -202,7 +214,6 @@ export const ContentDisplayItem = ({
         </CardHeader>
         
         <CardContent className="pb-2 flex-grow">
-          {/* Description display */}
           {normalizedContent.description && (
             <p className="text-sm text-muted-foreground line-clamp-4">
               {normalizedContent.description}
@@ -250,35 +261,33 @@ export const ContentDisplayItem = ({
         </CardFooter>
       </div>
 
-      {/* Media Section - Only show if we have media and no error */}
-      {hasMedia && (
-        <div className={`relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100`}>
+      {/* Media Section - Only show if we have media URL and it loaded successfully */}
+      {mediaUrl && (
+        <div 
+          className={`relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100 h-[400px]`}
+          style={{ width: mediaWidth, flexShrink: 0 }}
+        >
           {hasCoverImage || (mediaBlock?.media_type === 'image') ? (
-            <ImageAspectRatio
-              src={mediaUrl}
+            <img 
+              src={mediaUrl} 
               alt={hasCoverImage ? normalizedContent.title : (mediaBlock?.caption || normalizedContent.title)}
-              className="h-full"
-              size={isPortrait ? 'portrait' : 'landscape'}
-              isHeic={normalizedContent.is_heic_cover}
+              className="object-cover w-full h-full"
               onError={handleImageError}
-              fallback={null}
+              onLoad={handleImageLoad}
+              loading="lazy"
             />
           ) : mediaBlock?.media_type === 'video' ? (
-            <div className="w-full h-full">
-              <video 
-                src={mediaUrl} 
-                controls 
-                className="object-cover w-full h-full"
-                playsInline
-                preload="metadata"
-                style={{
-                  aspectRatio: isPortrait ? '3/4' : '16/9'
-                }}
-                onError={handleImageError}
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
+            <video 
+              src={mediaUrl} 
+              controls 
+              className="object-cover w-full h-full"
+              playsInline
+              preload="metadata"
+              onError={handleVideoError}
+              onLoadedData={handleImageLoad}
+            >
+              Your browser does not support the video tag.
+            </video>
           ) : null}
         </div>
       )}
