@@ -9,6 +9,7 @@ const corsHeaders = {
 interface NotionWebhookPayload {
   type?: string;
   challenge?: string;
+  verification_token?: string;
   object?: string;
   event_type?: string;
   page?: {
@@ -45,18 +46,16 @@ Deno.serve(async (req) => {
     const payload: NotionWebhookPayload = await req.json();
     console.log('Webhook payload:', JSON.stringify(payload, null, 2));
 
-    // Handle Notion verification challenge
+    // Handle Notion verification challenge (standard format)
     if (payload.type === 'url_verification' && payload.challenge) {
       console.log('Handling verification challenge:', payload.challenge);
       
-      // Store verification token without user_id initially
-      // User association will happen through profiles lookup when needed
       const { error: insertError } = await supabase
         .from('notion_webhook_verifications')
         .insert({
           verification_token: payload.challenge,
           challenge_type: 'url_verification',
-          user_id: null // Will be associated via profiles lookup
+          user_id: null // Will be claimed by user later
         });
       
       if (insertError) {
@@ -68,6 +67,34 @@ Deno.serve(async (req) => {
       // Return the challenge as required by Notion
       return new Response(
         JSON.stringify({ challenge: payload.challenge }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
+    // Handle direct verification token (Notion's actual format)
+    if (payload.verification_token) {
+      console.log('Handling direct verification token:', payload.verification_token);
+      
+      const { error: insertError } = await supabase
+        .from('notion_webhook_verifications')
+        .insert({
+          verification_token: payload.verification_token,
+          challenge_type: 'verification_token',
+          user_id: null // Will be claimed by user later
+        });
+      
+      if (insertError) {
+        console.error('Error storing verification token:', insertError);
+      } else {
+        console.log('Verification token stored successfully');
+      }
+      
+      // Return success response
+      return new Response(
+        JSON.stringify({ status: 'success', message: 'Verification token received' }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
