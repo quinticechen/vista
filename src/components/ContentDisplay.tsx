@@ -252,7 +252,7 @@ export const ContentDisplayItem = ({
 
       {/* Media Section - Only show if we have media and no error */}
       {hasMedia && (
-        <div className={`w-1/2 relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100`}>
+        <div className={`relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100`}>
           {hasCoverImage || (mediaBlock?.media_type === 'image') ? (
             <ImageAspectRatio
               src={mediaUrl}
