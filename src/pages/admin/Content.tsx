@@ -60,13 +60,17 @@ const Content = () => {
     fetchProfileData();
   }, []);
 
-  // Fetch latest verification token
+  // Fetch latest verification token for current user
   useEffect(() => {
     const fetchLatestVerificationToken = async () => {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        
         const { data, error } = await supabase
           .from('notion_webhook_verifications')
           .select('verification_token, received_at')
+          .eq('user_id', session.user.id)
           .order('received_at', { ascending: false })
           .limit(1)
           .single();
@@ -87,31 +91,41 @@ const Content = () => {
 
     fetchLatestVerificationToken();
 
-    // Set up real-time subscription for verification tokens
-    const channel = supabase
-      .channel('notion-webhook-verifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notion_webhook_verifications'
-        },
-        (payload) => {
-          console.log('New verification token received:', payload.new);
-          setLatestVerificationToken(payload.new.verification_token);
-          setVerificationTokenTimestamp(payload.new.received_at);
-          toast({
-            title: "New Verification Token",
-            description: "New verification token received from Notion!",
-          });
-        }
-      )
-      .subscribe();
+    // Set up real-time subscription for user-specific verification tokens
+    const setupRealtimeSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const channel = supabase
+        .channel('notion-webhook-verifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notion_webhook_verifications'
+          },
+          (payload) => {
+            console.log('New verification token received:', payload.new);
+            // Only update if this token belongs to the current user or has no user (unclaimed)
+            if (payload.new.user_id === session.user.id || !payload.new.user_id) {
+              setLatestVerificationToken(payload.new.verification_token);
+              setVerificationTokenTimestamp(payload.new.received_at);
+              toast({
+                title: "New Verification Token",
+                description: "New verification token received from Notion!",
+              });
+            }
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
+
+    setupRealtimeSubscription();
   }, []);
   
   const saveUrlParam = async () => {
@@ -300,6 +314,61 @@ const Content = () => {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return "";
     return new Date(timestamp).toLocaleString();
+  };
+  
+  const claimLatestToken = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to claim tokens",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get the latest unclaimed token
+      const { data: unclaimedToken, error: fetchError } = await supabase
+        .from('notion_webhook_verifications')
+        .select('id, verification_token, received_at')
+        .is('user_id', null)
+        .order('received_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (fetchError) {
+        toast({
+          title: "Error",
+          description: "No unclaimed tokens found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Claim the token
+      const { error: updateError } = await supabase
+        .from('notion_webhook_verifications')
+        .update({ user_id: session.user.id })
+        .eq('id', unclaimedToken.id);
+
+      if (updateError) throw updateError;
+
+      setLatestVerificationToken(unclaimedToken.verification_token);
+      setVerificationTokenTimestamp(unclaimedToken.received_at);
+
+      toast({
+        title: "Success",
+        description: "Verification token claimed successfully!",
+      });
+    } catch (error) {
+      console.error("Error claiming token:", error);
+      toast({
+        title: "Error",
+        description: "Failed to claim verification token",
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -519,10 +588,19 @@ const Content = () => {
                               </div>
                             </>
                           ) : (
-                            <div className="p-3 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600">
-                              <TranslatedText>
-                                No verification token received yet. The token will appear here automatically when Notion sends the verification challenge.
-                              </TranslatedText>
+                            <div className="space-y-2">
+                              <div className="p-3 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600">
+                                <TranslatedText>
+                                  No verification token found for your account. If you just set up the webhook, click "Claim Latest Token" below.
+                                </TranslatedText>
+                              </div>
+                              <Button
+                                variant="outline"
+                                onClick={claimLatestToken}
+                                className="w-full"
+                              >
+                                <TranslatedText>Claim Latest Token</TranslatedText>
+                              </Button>
                             </div>
                           )}
                         </div>
@@ -540,22 +618,27 @@ const Content = () => {
                         <AlertDescription className="space-y-2">
                           <p>
                             <TranslatedText>
-                              1. Go to your Notion integration settings
+                              1. Save your Notion settings above first
                             </TranslatedText>
                           </p>
                           <p>
                             <TranslatedText>
-                              2. Add the webhook URL above to your integration
+                              2. Go to your Notion integration settings
                             </TranslatedText>
                           </p>
                           <p>
                             <TranslatedText>
-                              3. When prompted for verification, use the token shown above (it will appear automatically)
+                              3. Add the webhook URL above to your integration
                             </TranslatedText>
                           </p>
                           <p>
                             <TranslatedText>
-                              4. Select "Page content changed" as the event type
+                              4. When prompted for verification, click "Claim Latest Token" to get your verification token
+                            </TranslatedText>
+                          </p>
+                          <p>
+                            <TranslatedText>
+                              5. Select "Page content changed" as the event type
                             </TranslatedText>
                           </p>
                         </AlertDescription>

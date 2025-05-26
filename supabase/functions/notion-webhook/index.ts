@@ -17,6 +17,9 @@ interface NotionWebhookPayload {
     last_edited_time: string;
     url: string;
     properties?: any;
+    parent?: {
+      database_id?: string;
+    };
   };
   workspace?: {
     id: string;
@@ -46,12 +49,15 @@ Deno.serve(async (req) => {
     if (payload.type === 'url_verification' && payload.challenge) {
       console.log('Handling verification challenge:', payload.challenge);
       
-      // Store the verification token in the database
+      // For verification challenges, we need to identify the user
+      // Since verification happens during webhook setup, we'll store without user_id first
+      // and let the user associate it later through the UI
       const { error: insertError } = await supabase
         .from('notion_webhook_verifications')
         .insert({
           verification_token: payload.challenge,
-          challenge_type: 'url_verification'
+          challenge_type: 'url_verification',
+          user_id: null // Will be associated later
         });
       
       if (insertError) {
@@ -70,28 +76,44 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Handle page updates
+    // Handle page updates - try to identify user from database mapping
     if (payload.object === 'event' && payload.page) {
       console.log('Processing page update for page:', payload.page.id);
       
+      let userId = null;
+      
+      // Try to get database_id from page parent
+      const databaseId = payload.page.parent?.database_id;
+      if (databaseId) {
+        console.log('Page belongs to database:', databaseId);
+        
+        // Look up user by database ID
+        const { data: mapping } = await supabase
+          .from('notion_database_user_mapping')
+          .select('user_id')
+          .eq('notion_database_id', databaseId)
+          .single();
+        
+        if (mapping) {
+          userId = mapping.user_id;
+          console.log('Found user for database:', userId);
+        }
+      }
+      
       // Process the page update similar to sync-notion-database
-      // This ensures data format consistency
       const pageData = {
         notion_page_id: payload.page.id,
         notion_created_time: payload.page.created_time,
         notion_last_edited_time: payload.page.last_edited_time,
         notion_url: payload.page.url,
+        user_id: userId,
         updated_at: new Date().toISOString()
       };
 
       console.log('Page data to process:', pageData);
       
-      // Here you would typically fetch the full page content from Notion
-      // and update the content_items table with the same format as sync-notion-database
-      // For now, just log that we received the update
-      
       return new Response(
-        JSON.stringify({ status: 'success', message: 'Page update processed' }),
+        JSON.stringify({ status: 'success', message: 'Page update processed', user_id: userId }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
