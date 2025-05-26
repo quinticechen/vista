@@ -10,34 +10,21 @@ export interface WebhookVerification {
 }
 
 /**
- * Get the latest webhook verification token for the current user
- * Uses profiles table to find user's database and then matches verification tokens
+ * Get the verification token for the current user from their profile
  */
-export const getLatestVerificationToken = async (): Promise<string | null> => {
+export const getUserVerificationToken = async (): Promise<string | null> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Get user's notion database ID from profiles
+    // Get user's verification token from profiles table
     const { data: profile } = await supabase
       .from('profiles')
-      .select('notion_database_id')
+      .select('verification_token')
       .eq('id', user.id)
       .single();
 
-    if (!profile?.notion_database_id) return null;
-
-    // Get the latest verification token
-    // Since verification tokens are stored without user_id initially,
-    // we get the most recent one and assume it's for the current user's setup
-    const { data: verification } = await supabase
-      .from('notion_webhook_verifications')
-      .select('verification_token')
-      .order('received_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    return verification?.verification_token || null;
+    return profile?.verification_token || null;
   } catch (error) {
     console.error('Error fetching verification token:', error);
     return null;
@@ -45,24 +32,41 @@ export const getLatestVerificationToken = async (): Promise<string | null> => {
 };
 
 /**
- * Subscribe to real-time webhook verification updates
+ * Generate user-specific webhook URL
+ */
+export const getUserSpecificWebhookUrl = async (): Promise<string | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const baseUrl = 'https://oyvbdbajqsqzafpuahvz.supabase.co/functions/v1/notion-webhook';
+    return `${baseUrl}?user_id=${user.id}`;
+  } catch (error) {
+    console.error('Error generating webhook URL:', error);
+    return null;
+  }
+};
+
+/**
+ * Subscribe to real-time profile updates for verification token changes
  */
 export const subscribeToVerificationUpdates = (
   callback: (token: string) => void
 ) => {
   const channel = supabase
-    .channel('webhook-verifications')
+    .channel('profile-verification-updates')
     .on(
       'postgres_changes',
       {
-        event: 'INSERT',
+        event: 'UPDATE',
         schema: 'public',
-        table: 'notion_webhook_verifications'
+        table: 'profiles',
+        filter: `verification_token=not.is.null`
       },
       (payload) => {
-        const newVerification = payload.new as WebhookVerification;
-        if (newVerification.verification_token) {
-          callback(newVerification.verification_token);
+        const updatedProfile = payload.new as any;
+        if (updatedProfile.verification_token) {
+          callback(updatedProfile.verification_token);
         }
       }
     )
@@ -93,3 +97,26 @@ export const hasNotionDatabaseConfigured = async (): Promise<boolean> => {
     return false;
   }
 };
+
+/**
+ * Clear verification token for current user
+ */
+export const clearVerificationToken = async (): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ verification_token: null })
+      .eq('id', user.id);
+
+    return !error;
+  } catch (error) {
+    console.error('Error clearing verification token:', error);
+    return false;
+  }
+};
+
+// Legacy function for backward compatibility
+export const getLatestVerificationToken = getUserVerificationToken;

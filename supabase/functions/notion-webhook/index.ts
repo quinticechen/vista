@@ -43,6 +43,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Extract user_id from URL parameters for user-specific webhooks
+    const url = new URL(req.url);
+    const userIdParam = url.searchParams.get('user_id');
+    
+    console.log('User ID from URL:', userIdParam);
+
     const payload: NotionWebhookPayload = await req.json();
     console.log('Webhook payload:', JSON.stringify(payload, null, 2));
 
@@ -50,18 +56,35 @@ Deno.serve(async (req) => {
     if (payload.type === 'url_verification' && payload.challenge) {
       console.log('Handling verification challenge:', payload.challenge);
       
-      const { error: insertError } = await supabase
-        .from('notion_webhook_verifications')
-        .insert({
-          verification_token: payload.challenge,
-          challenge_type: 'url_verification',
-          user_id: null // Will be claimed by user later
-        });
-      
-      if (insertError) {
-        console.error('Error storing verification token:', insertError);
+      if (userIdParam) {
+        // User-specific webhook: update verification token in profiles table
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            verification_token: payload.challenge
+          })
+          .eq('id', userIdParam);
+        
+        if (updateError) {
+          console.error('Error updating verification token in profile:', updateError);
+        } else {
+          console.log('Verification token updated in profile for user:', userIdParam);
+        }
       } else {
-        console.log('Verification token stored successfully');
+        // Legacy support: store in separate table
+        const { error: insertError } = await supabase
+          .from('notion_webhook_verifications')
+          .insert({
+            verification_token: payload.challenge,
+            challenge_type: 'url_verification',
+            user_id: null
+          });
+        
+        if (insertError) {
+          console.error('Error storing verification token:', insertError);
+        } else {
+          console.log('Verification token stored in legacy table');
+        }
       }
       
       // Return the challenge as required by Notion
@@ -78,18 +101,35 @@ Deno.serve(async (req) => {
     if (payload.verification_token) {
       console.log('Handling direct verification token:', payload.verification_token);
       
-      const { error: insertError } = await supabase
-        .from('notion_webhook_verifications')
-        .insert({
-          verification_token: payload.verification_token,
-          challenge_type: 'verification_token',
-          user_id: null // Will be claimed by user later
-        });
-      
-      if (insertError) {
-        console.error('Error storing verification token:', insertError);
+      if (userIdParam) {
+        // User-specific webhook: update verification token in profiles table
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            verification_token: payload.verification_token
+          })
+          .eq('id', userIdParam);
+        
+        if (updateError) {
+          console.error('Error updating verification token in profile:', updateError);
+        } else {
+          console.log('Verification token updated in profile for user:', userIdParam);
+        }
       } else {
-        console.log('Verification token stored successfully');
+        // Legacy support: store in separate table
+        const { error: insertError } = await supabase
+          .from('notion_webhook_verifications')
+          .insert({
+            verification_token: payload.verification_token,
+            challenge_type: 'verification_token',
+            user_id: null
+          });
+        
+        if (insertError) {
+          console.error('Error storing verification token:', insertError);
+        } else {
+          console.log('Verification token stored in legacy table');
+        }
       }
       
       // Return success response
@@ -102,27 +142,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Handle page updates - use profiles table for user lookup
+    // Handle page updates
     if (payload.object === 'event' && payload.page) {
       console.log('Processing page update for page:', payload.page.id);
       
-      let userId = null;
+      let userId = userIdParam; // Use user_id from URL if available
       
-      // Try to get database_id from page parent
-      const databaseId = payload.page.parent?.database_id;
-      if (databaseId) {
-        console.log('Page belongs to database:', databaseId);
-        
-        // Look up user by database ID using profiles table
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, notion_database_id')
-          .eq('notion_database_id', databaseId)
-          .single();
-        
-        if (profile) {
-          userId = profile.id;
-          console.log('Found user for database:', userId);
+      // If no user_id in URL, try legacy database lookup
+      if (!userId) {
+        const databaseId = payload.page.parent?.database_id;
+        if (databaseId) {
+          console.log('Page belongs to database:', databaseId);
+          
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, notion_database_id')
+            .eq('notion_database_id', databaseId)
+            .single();
+          
+          if (profile) {
+            userId = profile.id;
+            console.log('Found user for database:', userId);
+          }
         }
       }
       

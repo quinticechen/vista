@@ -10,17 +10,8 @@ import TranslatedText from "@/components/TranslatedText";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Copy, ExternalLink, Clock } from "lucide-react";
-
-// Define types to work around type definition issues
-interface VerificationToken {
-  id: string;
-  verification_token: string;
-  received_at: string;
-  user_id?: string | null;
-  challenge_type?: string | null;
-  created_at?: string | null;
-}
+import { Copy, ExternalLink, Clock, RefreshCw } from "lucide-react";
+import { getUserVerificationToken, getUserSpecificWebhookUrl, subscribeToVerificationUpdates } from "@/services/webhookVerificationService";
 
 const Content = () => {
   const [urlParam, setUrlParam] = useState("");
@@ -29,8 +20,9 @@ const Content = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [latestVerificationToken, setLatestVerificationToken] = useState("");
+  const [verificationToken, setVerificationToken] = useState("");
   const [verificationTokenTimestamp, setVerificationTokenTimestamp] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
   const navigate = useNavigate();
   
   // Fetch user's profile data
@@ -44,7 +36,7 @@ const Content = () => {
         
         const { data, error } = await supabase
           .from('profiles')
-          .select('url_param, notion_database_id, notion_api_key')
+          .select('url_param, notion_database_id, notion_api_key, verification_token')
           .eq('id', session.user.id)
           .single();
         
@@ -54,6 +46,16 @@ const Content = () => {
           setUrlParam(data.url_param || "");
           setNotionDatabaseId(data.notion_database_id || "");
           setNotionApiKey(data.notion_api_key || "");
+          setVerificationToken(data.verification_token || "");
+          if (data.verification_token) {
+            setVerificationTokenTimestamp(new Date().toISOString());
+          }
+        }
+
+        // Get user-specific webhook URL
+        const userWebhookUrl = await getUserSpecificWebhookUrl();
+        if (userWebhookUrl) {
+          setWebhookUrl(userWebhookUrl);
         }
       } catch (error) {
         console.error("Error fetching profile data:", error);
@@ -70,74 +72,18 @@ const Content = () => {
     fetchProfileData();
   }, []);
 
-  // Fetch latest verification token for current user
+  // Set up real-time subscription for verification token updates
   useEffect(() => {
-    const fetchLatestVerificationToken = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-        
-        // Use raw query to work around type issues
-        const { data, error } = await supabase
-          .from('notion_webhook_verifications')
-          .select('verification_token, received_at, user_id')
-          .eq('user_id', session.user.id)
-          .order('received_at', { ascending: false })
-          .limit(1);
-        
-        if (error && error.code !== 'PGRST116') {
-          console.error("Error fetching verification token:", error);
-          return;
-        }
-        
-        if (data && data.length > 0) {
-          const token = data[0] as any;
-          setLatestVerificationToken(token.verification_token);
-          setVerificationTokenTimestamp(token.received_at);
-        }
-      } catch (error) {
-        console.error("Error fetching verification token:", error);
-      }
-    };
+    const unsubscribe = subscribeToVerificationUpdates((token) => {
+      setVerificationToken(token);
+      setVerificationTokenTimestamp(new Date().toISOString());
+      toast({
+        title: "New Verification Token",
+        description: "New verification token received from Notion!",
+      });
+    });
 
-    fetchLatestVerificationToken();
-
-    // Set up real-time subscription for user-specific verification tokens
-    const setupRealtimeSubscription = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      
-      const channel = supabase
-        .channel('notion-webhook-verifications')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notion_webhook_verifications'
-          },
-          (payload) => {
-            console.log('New verification token received:', payload.new);
-            const newToken = payload.new as any;
-            // Only update if this token belongs to the current user or has no user (unclaimed)
-            if (newToken.user_id === session.user.id || !newToken.user_id) {
-              setLatestVerificationToken(newToken.verification_token);
-              setVerificationTokenTimestamp(newToken.received_at);
-              toast({
-                title: "New Verification Token",
-                description: "New verification token received from Notion!",
-              });
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
-
-    setupRealtimeSubscription();
+    return unsubscribe;
   }, []);
   
   const saveUrlParam = async () => {
@@ -317,68 +263,32 @@ const Content = () => {
     
     navigate(`/${urlParam}`);
   };
-  
-  // Get the webhook URL - using the correct Supabase edge function URL
-  const getWebhookUrl = () => {
-    return `https://oyvbdbajqsqzafpuahvz.supabase.co/functions/v1/notion-webhook`;
-  };
 
   const formatTimestamp = (timestamp: string) => {
     if (!timestamp) return "";
     return new Date(timestamp).toLocaleString();
   };
   
-  const claimLatestToken = async () => {
+  const refreshVerificationToken = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const token = await getUserVerificationToken();
+      if (token) {
+        setVerificationToken(token);
+        setVerificationTokenTimestamp(new Date().toISOString());
         toast({
-          title: "Error",
-          description: "You must be logged in to claim tokens",
-          variant: "destructive",
+          title: "Success",
+          description: "Verification token refreshed!",
         });
-        return;
-      }
-
-      // Get the latest unclaimed token using raw query
-      const { data: unclaimedTokens, error: fetchError } = await supabase
-        .from('notion_webhook_verifications')
-        .select('id, verification_token, received_at, user_id')
-        .is('user_id', null)
-        .order('received_at', { ascending: false })
-        .limit(1);
-
-      if (fetchError || !unclaimedTokens || unclaimedTokens.length === 0) {
+      } else {
         toast({
-          title: "Error",
-          description: "No unclaimed tokens found",
-          variant: "destructive",
+          title: "Info",
+          description: "No verification token found for your account",
         });
-        return;
       }
-
-      const unclaimedToken = unclaimedTokens[0] as any;
-
-      // Claim the token using raw update
-      const { error: updateError } = await supabase
-        .from('notion_webhook_verifications')
-        .update({ user_id: session.user.id } as any)
-        .eq('id', unclaimedToken.id);
-
-      if (updateError) throw updateError;
-
-      setLatestVerificationToken(unclaimedToken.verification_token);
-      setVerificationTokenTimestamp(unclaimedToken.received_at);
-
-      toast({
-        title: "Success",
-        description: "Verification token claimed successfully!",
-      });
     } catch (error) {
-      console.error("Error claiming token:", error);
       toast({
         title: "Error",
-        description: "Failed to claim verification token",
+        description: "Failed to refresh verification token",
         variant: "destructive",
       });
     }
@@ -537,11 +447,11 @@ const Content = () => {
                     
                     <Alert className="mb-4">
                       <AlertTitle>
-                        <TranslatedText>Automatic Updates</TranslatedText>
+                        <TranslatedText>User-Specific Webhook</TranslatedText>
                       </AlertTitle>
                       <AlertDescription>
                         <TranslatedText>
-                          Set up a webhook in Notion to automatically sync changes. When you create or update pages in your Notion database, they will be automatically updated here.
+                          Your webhook URL is unique to your account. This ensures verification tokens are correctly associated with your profile.
                         </TranslatedText>
                       </AlertDescription>
                     </Alert>
@@ -549,46 +459,57 @@ const Content = () => {
                     <div className="space-y-4">
                       <div className="grid gap-2">
                         <Label>
-                          <TranslatedText>Webhook URL</TranslatedText>
+                          <TranslatedText>Your Webhook URL</TranslatedText>
                         </Label>
                         <div className="flex gap-2">
                           <Input
-                            value={getWebhookUrl()}
+                            value={webhookUrl}
                             readOnly
-                            className="bg-gray-50"
+                            className="bg-gray-50 font-mono text-sm"
                           />
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => copyToClipboard(getWebhookUrl(), "Webhook URL copied to clipboard!")}
+                            onClick={() => copyToClipboard(webhookUrl, "Webhook URL copied to clipboard!")}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           <TranslatedText>
-                            Use this URL when setting up the webhook in your Notion integration settings.
+                            Use this unique URL when setting up the webhook in your Notion integration settings.
                           </TranslatedText>
                         </p>
                       </div>
                       
                       <div className="grid gap-2">
-                        <Label>
-                          <TranslatedText>Verification Token</TranslatedText>
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label>
+                            <TranslatedText>Verification Token</TranslatedText>
+                          </Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={refreshVerificationToken}
+                            className="flex items-center gap-1"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            <TranslatedText>Refresh</TranslatedText>
+                          </Button>
+                        </div>
                         <div className="space-y-2">
-                          {latestVerificationToken ? (
+                          {verificationToken ? (
                             <>
                               <div className="flex gap-2">
                                 <Input
-                                  value={latestVerificationToken}
+                                  value={verificationToken}
                                   readOnly
                                   className="bg-green-50 border-green-200 font-mono text-sm"
                                 />
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => copyToClipboard(latestVerificationToken, "Verification token copied to clipboard!")}
+                                  onClick={() => copyToClipboard(verificationToken, "Verification token copied to clipboard!")}
                                 >
                                   <Copy className="h-4 w-4" />
                                 </Button>
@@ -596,30 +517,21 @@ const Content = () => {
                               <div className="flex items-center gap-1 text-xs text-green-600">
                                 <Clock className="h-3 w-3" />
                                 <span>
-                                  <TranslatedText>Received:</TranslatedText> {formatTimestamp(verificationTokenTimestamp)}
+                                  <TranslatedText>Updated:</TranslatedText> {formatTimestamp(verificationTokenTimestamp)}
                                 </span>
                               </div>
                             </>
                           ) : (
-                            <div className="space-y-2">
-                              <div className="p-3 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600">
-                                <TranslatedText>
-                                  No verification token found for your account. If you just set up the webhook, click "Claim Latest Token" below.
-                                </TranslatedText>
-                              </div>
-                              <Button
-                                variant="outline"
-                                onClick={claimLatestToken}
-                                className="w-full"
-                              >
-                                <TranslatedText>Claim Latest Token</TranslatedText>
-                              </Button>
+                            <div className="p-3 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600">
+                              <TranslatedText>
+                                No verification token yet. Set up your webhook in Notion to receive one automatically.
+                              </TranslatedText>
                             </div>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           <TranslatedText>
-                            This token is automatically received from Notion during webhook setup. Use it for webhook verification.
+                            This token is automatically updated when you verify your webhook in Notion.
                           </TranslatedText>
                         </p>
                       </div>
@@ -641,12 +553,12 @@ const Content = () => {
                           </p>
                           <p>
                             <TranslatedText>
-                              3. Add the webhook URL above to your integration
+                              3. Add your unique webhook URL above to your integration
                             </TranslatedText>
                           </p>
                           <p>
                             <TranslatedText>
-                              4. When prompted for verification, click "Claim Latest Token" to get your verification token
+                              4. Click "Verify subscription" in Notion - your token will appear automatically
                             </TranslatedText>
                           </p>
                           <p>
