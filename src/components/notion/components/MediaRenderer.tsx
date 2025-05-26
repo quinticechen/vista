@@ -56,14 +56,14 @@ export const ImageRenderer: React.FC<MediaProps> = ({
         ) : imageError ? (
           <div className="p-4 text-center bg-muted flex items-center justify-center flex-col h-[200px]">
             <p className="text-sm text-muted-foreground">Failed to load image</p>
-            <a 
+{/*             <a 
               href={imageUrl} 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-sm text-blue-500 hover:underline mt-2"
             >
               Open image in new tab
-            </a>
+            </a> */}
           </div>
         ) : (
           <AspectRatio ratio={16/9} className="bg-muted">
