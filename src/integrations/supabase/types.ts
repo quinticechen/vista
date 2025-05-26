@@ -120,6 +120,30 @@ export type Database = {
         }
         Relationships: []
       }
+      notion_webhook_verifications: {
+        Row: {
+          challenge_type: string | null
+          created_at: string | null
+          id: string
+          received_at: string | null
+          verification_token: string
+        }
+        Insert: {
+          challenge_type?: string | null
+          created_at?: string | null
+          id?: string
+          received_at?: string | null
+          verification_token: string
+        }
+        Update: {
+          challenge_type?: string | null
+          created_at?: string | null
+          id?: string
+          received_at?: string | null
+          verification_token?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
