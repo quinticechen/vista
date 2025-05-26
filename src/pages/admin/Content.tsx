@@ -12,6 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, ExternalLink, Clock } from "lucide-react";
 
+// Define types to work around type definition issues
+interface VerificationToken {
+  id: string;
+  verification_token: string;
+  received_at: string;
+  user_id?: string | null;
+  challenge_type?: string | null;
+  created_at?: string | null;
+}
+
 const Content = () => {
   const [urlParam, setUrlParam] = useState("");
   const [notionDatabaseId, setNotionDatabaseId] = useState("");
@@ -23,7 +33,7 @@ const Content = () => {
   const [verificationTokenTimestamp, setVerificationTokenTimestamp] = useState("");
   const navigate = useNavigate();
   
-  // Fetch user's profile data and latest verification token
+  // Fetch user's profile data
   useEffect(() => {
     const fetchProfileData = async () => {
       setIsLoading(true);
@@ -67,22 +77,23 @@ const Content = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
         
+        // Use raw query to work around type issues
         const { data, error } = await supabase
           .from('notion_webhook_verifications')
-          .select('verification_token, received_at')
+          .select('verification_token, received_at, user_id')
           .eq('user_id', session.user.id)
           .order('received_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(1);
         
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        if (error && error.code !== 'PGRST116') {
           console.error("Error fetching verification token:", error);
           return;
         }
         
-        if (data) {
-          setLatestVerificationToken(data.verification_token);
-          setVerificationTokenTimestamp(data.received_at);
+        if (data && data.length > 0) {
+          const token = data[0] as any;
+          setLatestVerificationToken(token.verification_token);
+          setVerificationTokenTimestamp(token.received_at);
         }
       } catch (error) {
         console.error("Error fetching verification token:", error);
@@ -107,10 +118,11 @@ const Content = () => {
           },
           (payload) => {
             console.log('New verification token received:', payload.new);
+            const newToken = payload.new as any;
             // Only update if this token belongs to the current user or has no user (unclaimed)
-            if (payload.new.user_id === session.user.id || !payload.new.user_id) {
-              setLatestVerificationToken(payload.new.verification_token);
-              setVerificationTokenTimestamp(payload.new.received_at);
+            if (newToken.user_id === session.user.id || !newToken.user_id) {
+              setLatestVerificationToken(newToken.verification_token);
+              setVerificationTokenTimestamp(newToken.received_at);
               toast({
                 title: "New Verification Token",
                 description: "New verification token received from Notion!",
@@ -264,7 +276,7 @@ const Content = () => {
         description: "Content synced successfully!",
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error syncing Notion content:", error);
       toast({
         title: "Error",
@@ -276,7 +288,7 @@ const Content = () => {
     }
   };
   
-  const copyToClipboard = (text, successMessage) => {
+  const copyToClipboard = (text: string, successMessage: string) => {
     navigator.clipboard.writeText(text)
       .then(() => {
         toast({
@@ -311,7 +323,7 @@ const Content = () => {
     return `https://oyvbdbajqsqzafpuahvz.supabase.co/functions/v1/notion-webhook`;
   };
 
-  const formatTimestamp = (timestamp) => {
+  const formatTimestamp = (timestamp: string) => {
     if (!timestamp) return "";
     return new Date(timestamp).toLocaleString();
   };
@@ -328,16 +340,15 @@ const Content = () => {
         return;
       }
 
-      // Get the latest unclaimed token
-      const { data: unclaimedToken, error: fetchError } = await supabase
+      // Get the latest unclaimed token using raw query
+      const { data: unclaimedTokens, error: fetchError } = await supabase
         .from('notion_webhook_verifications')
-        .select('id, verification_token, received_at')
+        .select('id, verification_token, received_at, user_id')
         .is('user_id', null)
         .order('received_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (fetchError) {
+      if (fetchError || !unclaimedTokens || unclaimedTokens.length === 0) {
         toast({
           title: "Error",
           description: "No unclaimed tokens found",
@@ -346,10 +357,12 @@ const Content = () => {
         return;
       }
 
-      // Claim the token
+      const unclaimedToken = unclaimedTokens[0] as any;
+
+      // Claim the token using raw update
       const { error: updateError } = await supabase
         .from('notion_webhook_verifications')
-        .update({ user_id: session.user.id })
+        .update({ user_id: session.user.id } as any)
         .eq('id', unclaimedToken.id);
 
       if (updateError) throw updateError;
