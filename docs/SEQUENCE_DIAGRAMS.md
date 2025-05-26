@@ -1,3 +1,4 @@
+
 # Vista Platform - Sequence Diagrams
 
 This document contains detailed sequence diagrams for the main functional flows in the Vista platform, supporting the Document-driven Test-driven Development (DTDD) approach.
@@ -78,14 +79,14 @@ sequenceDiagram
     participant Storage as Supabase Storage
 
     Notion->>Webhook: POST webhook notification
-    Note over Notion,Webhook: Page created/updated/content changed
+    Note over Notion,Webhook: Page created/updated/deleted/moved/undeleted
 
     alt OPTIONS preflight request
         Webhook-->>Notion: 200 OK with CORS headers
     else Verification challenge
         Webhook->>DB: Store verification token in profiles
         Webhook-->>Notion: Return challenge response
-    else Page event (created/updated/content_changed)
+    else Page content event (created/updated/content_changed)
         Webhook->>Webhook: Extract page ID and database ID
         
         alt User-specific webhook URL
@@ -129,12 +130,54 @@ sequenceDiagram
         else User not found or no API key
             Webhook-->>Notion: 200 OK (no action taken)
         end
+    else Page deletion event (deleted/moved)
+        Webhook->>Webhook: Extract page ID and database ID
+        
+        alt User-specific webhook URL
+            Webhook->>DB: Get user profile by user_id param
+        else Legacy webhook
+            Webhook->>DB: Find user by database_id
+        end
+        
+        alt User profile found
+            Webhook->>DB: Update content_item status to 'removed'
+            Note over Webhook,DB: No API call needed - page is gone
+            DB-->>Webhook: Confirm status update
+            Webhook-->>Notion: 200 OK (deletion handled)
+        else User not found
+            Webhook-->>Notion: 200 OK (no action taken)
+        end
+    else Page restoration event (undeleted)
+        Webhook->>Webhook: Extract page ID and database ID
+        
+        alt User-specific webhook URL
+            Webhook->>DB: Get user profile by user_id param
+        else Legacy webhook
+            Webhook->>DB: Find user by database_id
+        end
+        
+        alt User profile found with API key
+            Webhook->>NotionAPI: Initialize with user's API key
+            Webhook->>NotionAPI: Fetch restored page details
+            NotionAPI-->>Webhook: Return page properties
+            
+            Webhook->>NotionAPI: Fetch page blocks
+            NotionAPI-->>Webhook: Return block content
+            
+            Webhook->>Webhook: Process blocks (full sync)
+            Webhook->>DB: Update content_item with restored content
+            Note over Webhook,DB: Status changes to 'active'
+            DB-->>Webhook: Confirm restoration
+            Webhook-->>Notion: 200 OK (restoration successful)
+        else User not found or no API key
+            Webhook-->>Notion: 200 OK (no action taken)
+        end
     end
     
     Note over Webhook,Storage: Real-time sync maintains<br/>content consistency with manual sync
 ```
 
-## 3. Webhook Setup and Verification Flow (New)
+## 3. Webhook Setup and Verification Flow
 
 ```mermaid
 sequenceDiagram
@@ -169,7 +212,46 @@ sequenceDiagram
     Note over User,DB: User-specific webhooks enable<br/>proper multi-tenant webhook handling
 ```
 
-## 4. Content Personalization and Recommendation Engine
+## 4. Content Lifecycle Management Flow (New)
+
+```mermaid
+sequenceDiagram
+    participant User as Content Creator
+    participant Notion as Notion Platform
+    participant Webhook as notion-webhook Function
+    participant DB as Supabase Database
+    participant Vista as Vista Interface
+
+    User->>Notion: Create new page in database
+    Notion->>Webhook: Send page.created event
+    Webhook->>DB: Insert new content_item (status: active)
+    
+    User->>Notion: Edit page content
+    Notion->>Webhook: Send page.properties_updated event
+    Webhook->>DB: Update content_item data
+    
+    User->>Notion: Delete page
+    Notion->>Webhook: Send page.deleted event
+    Webhook->>DB: Update content_item (status: removed)
+    Note over Webhook,DB: Content preserved but marked as removed
+    
+    User->>Notion: Move page out of database
+    Notion->>Webhook: Send page.moved event
+    Webhook->>DB: Update content_item (status: removed)
+    Note over Webhook,DB: Same handling as deletion
+    
+    User->>Notion: Restore deleted page
+    Notion->>Webhook: Send page.undeleted event
+    Webhook->>Notion: Fetch current page content
+    Webhook->>DB: Update content_item (status: active)
+    Note over Webhook,DB: Full content sync on restoration
+    
+    Vista->>DB: Query active content only
+    DB-->>Vista: Return content where status = 'active'
+    Note over Vista,DB: Removed content hidden from users
+```
+
+## 5. Content Personalization and Recommendation Engine
 
 ```mermaid
 sequenceDiagram
@@ -197,6 +279,7 @@ sequenceDiagram
     end
     
     PersonalizationEngine->>DB: Query content based on preferences/purpose
+    Note over PersonalizationEngine,DB: Only active content (status = 'active')
     PersonalizationEngine->>AI: Generate embedding for user intent
     AI-->>PersonalizationEngine: Return intent embedding
     
@@ -226,7 +309,7 @@ sequenceDiagram
     Note over User,Analytics: GDPR/CCPA compliant:<br/>explicit consent for all data usage
 ```
 
-## 5. Multi-language Content Translation Flow
+## 6. Multi-language Content Translation Flow
 
 ```mermaid
 sequenceDiagram
@@ -240,6 +323,7 @@ sequenceDiagram
     Creator->>Admin: Request content translation
     Admin->>Admin: Select target languages
     Admin->>DB: Fetch content items for translation
+    Note over Admin,DB: Only active content (status = 'active')
     DB-->>Admin: Return content with current translations
     
     loop For each content item
@@ -274,7 +358,7 @@ sequenceDiagram
     Note over Creator,DB: Translations maintain<br/>semantic meaning and formatting
 ```
 
-## 6. Real-time Analytics and Performance Tracking
+## 7. Real-time Analytics and Performance Tracking
 
 ```mermaid
 sequenceDiagram
@@ -295,6 +379,7 @@ sequenceDiagram
     
     Creator->>Dashboard: View performance metrics
     Dashboard->>DB: Query analytics data
+    Note over Dashboard,DB: Filter by active content only
     
     loop For each metric request
         alt Real-time metrics
@@ -332,7 +417,7 @@ sequenceDiagram
     Note over User,Creator: Privacy-compliant analytics<br/>with explicit user consent
 ```
 
-## 7. Media Processing and Display
+## 8. Media Processing and Display
 
 ```mermaid
 sequenceDiagram
@@ -369,10 +454,11 @@ sequenceDiagram
     end
     
     Sync->>DB: Store processed content with image metadata
+    Note over Sync,DB: Content status set to 'active'
     
     User->>UI: Request content
-    UI->>DB: Fetch content
-    DB-->>UI: Return content with image data
+    UI->>DB: Fetch content where status = 'active'
+    DB-->>UI: Return active content with image data
     
     UI->>Processor: Process content for display
     Processor->>Processor: Extract first image for preview
@@ -403,12 +489,14 @@ sequenceDiagram
 - Comprehensive logging for debugging and monitoring
 - User-friendly error messages with actionable guidance
 - Automatic retry mechanisms for transient failures
+- Safe handling of deleted/moved pages without API errors
 
 ### Performance Optimization
 - Lazy loading for content and media
 - Efficient vector similarity searches with indexing
 - Caching strategies for frequently accessed content
 - Asynchronous processing for non-critical operations
+- Optimized webhook processing for deletion events
 
 ### Privacy and Compliance
 - Explicit user consent for all data collection
@@ -422,8 +510,9 @@ sequenceDiagram
 - CDN integration for global content delivery
 - Microservice architecture for independent scaling
 
-### Webhook Content Synchronization
+### Content Lifecycle Management
 - Real-time sync maintains same data format as manual sync
 - User-specific webhooks enable proper multi-tenant handling
-- Simplified content processing for webhook performance
-- Consistent error handling across sync methods
+- Graceful handling of page deletion and restoration
+- Status-based content filtering for user-facing interfaces
+- Preserved content history for audit and recovery purposes

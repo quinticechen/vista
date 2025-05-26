@@ -230,12 +230,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Handle page events that require content synchronization
+    // Handle page events
     if (payload.entity?.type === 'page' && payload.data?.parent?.type === 'database') {
       const pageId = payload.entity.id;
       const databaseId = payload.data.parent.id;
+      const eventType = payload.type;
       
-      console.log('Processing page event for page:', pageId, 'in database:', databaseId);
+      console.log('Processing page event:', eventType, 'for page:', pageId, 'in database:', databaseId);
       
       let userId = userIdParam;
       let userProfile = null;
@@ -282,130 +283,286 @@ Deno.serve(async (req) => {
         userId = profile.id;
         userProfile = profile;
       }
-      
-      if (!userProfile.notion_api_key) {
-        console.error('No Notion API key configured for user:', userId);
-        return new Response(
-          JSON.stringify({ status: 'error', message: 'Notion API key not configured' }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
+
+      // Handle page deletion, removal, or restoration events
+      if (eventType === 'page.deleted' || eventType === 'page.moved') {
+        console.log('Handling page deletion/removal event for page:', pageId);
+        
+        try {
+          // Update the content item status to 'removed' without fetching page details
+          const { error: updateError } = await supabase
+            .from('content_items')
+            .update({
+              notion_page_status: 'removed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('notion_page_id', pageId)
+            .eq('user_id', userId);
+          
+          if (updateError) {
+            console.error('Error updating content item status to removed:', updateError);
+            throw updateError;
           }
-        );
+          
+          console.log('Content item marked as removed successfully for page:', pageId);
+          
+          return new Response(
+            JSON.stringify({ 
+              status: 'success', 
+              message: `Page marked as removed successfully`,
+              page_id: pageId,
+              user_id: userId,
+              operation: 'removed'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          );
+          
+        } catch (error) {
+          console.error('Error handling page deletion/removal:', error);
+          return new Response(
+            JSON.stringify({ 
+              status: 'error', 
+              message: 'Failed to mark page as removed',
+              error: error.message 
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500,
+            }
+          );
+        }
       }
-      
-      try {
-        // Initialize Notion client with user's API key
-        const notion = new Client({ auth: userProfile.notion_api_key });
+
+      // Handle page restoration event
+      if (eventType === 'page.undeleted') {
+        console.log('Handling page restoration event for page:', pageId);
         
-        // Fetch the updated page details
-        console.log('Fetching page details for:', pageId);
-        const page = await notion.pages.retrieve({ page_id: pageId });
+        if (!userProfile.notion_api_key) {
+          console.error('No Notion API key configured for user:', userId);
+          return new Response(
+            JSON.stringify({ status: 'error', message: 'Notion API key not configured' }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400,
+            }
+          );
+        }
         
-        // Fetch page blocks
-        console.log('Fetching page blocks for:', pageId);
-        const { results: blocks } = await notion.blocks.children.list({
-          block_id: pageId,
-          page_size: 100,
-        });
-        
-        // Process blocks using simplified processing for webhook
-        const processedBlocks = await processBlocksForWebhook(blocks, notion);
-        
-        // Extract page properties
-        const props = (page as any).properties || {};
-        
-        // Prepare content item data (matching sync-notion-database format)
-        const contentItem = {
-          title: extractProperty(props, 'Name', 'title') || extractProperty(props, 'Title', 'title') || 'Untitled',
-          description: extractProperty(props, 'Description', 'rich_text'),
-          category: extractProperty(props, 'Category', 'select'),
-          tags: extractProperty(props, 'Tags', 'multi_select'),
-          created_at: (page as any).created_time,
-          updated_at: (page as any).last_edited_time,
-          start_date: extractProperty(props, 'Start date', 'date'),
-          end_date: extractProperty(props, 'End date', 'date'),
-          notion_url: (page as any).url,
-          user_id: userId,
-          content: processedBlocks,
-          notion_page_id: pageId,
-          notion_created_time: (page as any).created_time,
-          notion_last_edited_time: (page as any).last_edited_time,
-          notion_page_status: 'active'
-        };
-        
-        console.log('Prepared content item:', JSON.stringify(contentItem, null, 2));
-        
-        // Check if content item already exists
-        const { data: existingItem } = await supabase
-          .from('content_items')
-          .select('id')
-          .eq('notion_page_id', pageId)
-          .eq('user_id', userId)
-          .single();
-        
-        let operation = '';
-        if (existingItem) {
-          // Update existing item
+        try {
+          // Initialize Notion client with user's API key
+          const notion = new Client({ auth: userProfile.notion_api_key });
+          
+          // Fetch the restored page details and process it like a normal content sync
+          console.log('Fetching restored page details for:', pageId);
+          const page = await notion.pages.retrieve({ page_id: pageId });
+          
+          // Fetch page blocks
+          console.log('Fetching page blocks for:', pageId);
+          const { results: blocks } = await notion.blocks.children.list({
+            block_id: pageId,
+            page_size: 100,
+          });
+          
+          // Process blocks using simplified processing for webhook
+          const processedBlocks = await processBlocksForWebhook(blocks, notion);
+          
+          // Extract page properties
+          const props = (page as any).properties || {};
+          
+          // Prepare content item data (matching sync-notion-database format)
+          const contentItem = {
+            title: extractProperty(props, 'Name', 'title') || extractProperty(props, 'Title', 'title') || 'Untitled',
+            description: extractProperty(props, 'Description', 'rich_text'),
+            category: extractProperty(props, 'Category', 'select'),
+            tags: extractProperty(props, 'Tags', 'multi_select'),
+            created_at: (page as any).created_time,
+            updated_at: (page as any).last_edited_time,
+            start_date: extractProperty(props, 'Start date', 'date'),
+            end_date: extractProperty(props, 'End date', 'date'),
+            notion_url: (page as any).url,
+            user_id: userId,
+            content: processedBlocks,
+            notion_page_id: pageId,
+            notion_created_time: (page as any).created_time,
+            notion_last_edited_time: (page as any).last_edited_time,
+            notion_page_status: 'active' // Restore to active status
+          };
+          
+          console.log('Prepared restored content item:', JSON.stringify(contentItem, null, 2));
+          
+          // Update existing item with restored content
           const { error: updateError } = await supabase
             .from('content_items')
             .update(contentItem)
-            .eq('id', existingItem.id);
+            .eq('notion_page_id', pageId)
+            .eq('user_id', userId);
           
           if (updateError) {
-            console.error('Error updating content item:', updateError);
+            console.error('Error updating restored content item:', updateError);
             throw updateError;
           }
-          operation = 'updated';
-          console.log('Content item updated successfully:', existingItem.id);
-        } else {
-          // Insert new item
-          const { error: insertError } = await supabase
-            .from('content_items')
-            .insert(contentItem);
           
-          if (insertError) {
-            console.error('Error inserting content item:', insertError);
-            throw insertError;
-          }
-          operation = 'inserted';
-          console.log('Content item inserted successfully');
+          console.log('Content item restored successfully:', pageId);
+          
+          return new Response(
+            JSON.stringify({ 
+              status: 'success', 
+              message: `Page restored successfully`,
+              page_id: pageId,
+              user_id: userId,
+              operation: 'restored'
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          );
+          
+        } catch (notionError) {
+          console.error('Error processing restored Notion page:', notionError);
+          return new Response(
+            JSON.stringify({ 
+              status: 'error', 
+              message: 'Failed to restore Notion content',
+              error: notionError.message 
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500,
+            }
+          );
+        }
+      }
+
+      // Handle content update events (existing logic)
+      if (eventType === 'page.created' || eventType === 'page.properties_updated' || eventType === 'page.content_updated') {
+        if (!userProfile.notion_api_key) {
+          console.error('No Notion API key configured for user:', userId);
+          return new Response(
+            JSON.stringify({ status: 'error', message: 'Notion API key not configured' }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400,
+            }
+          );
         }
         
-        return new Response(
-          JSON.stringify({ 
-            status: 'success', 
-            message: `Page ${operation} successfully`,
-            page_id: pageId,
+        try {
+          // Initialize Notion client with user's API key
+          const notion = new Client({ auth: userProfile.notion_api_key });
+          
+          // Fetch the updated page details
+          console.log('Fetching page details for:', pageId);
+          const page = await notion.pages.retrieve({ page_id: pageId });
+          
+          // Fetch page blocks
+          console.log('Fetching page blocks for:', pageId);
+          const { results: blocks } = await notion.blocks.children.list({
+            block_id: pageId,
+            page_size: 100,
+          });
+          
+          // Process blocks using simplified processing for webhook
+          const processedBlocks = await processBlocksForWebhook(blocks, notion);
+          
+          // Extract page properties
+          const props = (page as any).properties || {};
+          
+          // Prepare content item data (matching sync-notion-database format)
+          const contentItem = {
+            title: extractProperty(props, 'Name', 'title') || extractProperty(props, 'Title', 'title') || 'Untitled',
+            description: extractProperty(props, 'Description', 'rich_text'),
+            category: extractProperty(props, 'Category', 'select'),
+            tags: extractProperty(props, 'Tags', 'multi_select'),
+            created_at: (page as any).created_time,
+            updated_at: (page as any).last_edited_time,
+            start_date: extractProperty(props, 'Start date', 'date'),
+            end_date: extractProperty(props, 'End date', 'date'),
+            notion_url: (page as any).url,
             user_id: userId,
-            operation: operation
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
+            content: processedBlocks,
+            notion_page_id: pageId,
+            notion_created_time: (page as any).created_time,
+            notion_last_edited_time: (page as any).last_edited_time,
+            notion_page_status: 'active'
+          };
+          
+          console.log('Prepared content item:', JSON.stringify(contentItem, null, 2));
+          
+          // Check if content item already exists
+          const { data: existingItem } = await supabase
+            .from('content_items')
+            .select('id')
+            .eq('notion_page_id', pageId)
+            .eq('user_id', userId)
+            .single();
+          
+          let operation = '';
+          if (existingItem) {
+            // Update existing item
+            const { error: updateError } = await supabase
+              .from('content_items')
+              .update(contentItem)
+              .eq('id', existingItem.id);
+            
+            if (updateError) {
+              console.error('Error updating content item:', updateError);
+              throw updateError;
+            }
+            operation = 'updated';
+            console.log('Content item updated successfully:', existingItem.id);
+          } else {
+            // Insert new item
+            const { error: insertError } = await supabase
+              .from('content_items')
+              .insert(contentItem);
+            
+            if (insertError) {
+              console.error('Error inserting content item:', insertError);
+              throw insertError;
+            }
+            operation = 'inserted';
+            console.log('Content item inserted successfully');
           }
-        );
-        
-      } catch (notionError) {
-        console.error('Error processing Notion page:', notionError);
-        return new Response(
-          JSON.stringify({ 
-            status: 'error', 
-            message: 'Failed to sync Notion content',
-            error: notionError.message 
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500,
-          }
-        );
+          
+          return new Response(
+            JSON.stringify({ 
+              status: 'success', 
+              message: `Page ${operation} successfully`,
+              page_id: pageId,
+              user_id: userId,
+              operation: operation
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            }
+          );
+          
+        } catch (notionError) {
+          console.error('Error processing Notion page:', notionError);
+          return new Response(
+            JSON.stringify({ 
+              status: 'error', 
+              message: 'Failed to sync Notion content',
+              error: notionError.message 
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500,
+            }
+          );
+        }
       }
     }
 
-    // Unknown webhook type - log but don't error
-    console.log('Unknown webhook payload type:', payload.type || 'undefined');
+    // Log webhook type but don't error for unknown types
+    console.log('Webhook payload type:', payload.type || 'undefined');
     return new Response(
-      JSON.stringify({ status: 'success', message: 'Webhook received but not processed' }),
+      JSON.stringify({ status: 'success', message: 'Webhook received and processed' }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
