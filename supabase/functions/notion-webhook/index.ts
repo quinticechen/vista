@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       console.log('Handling verification challenge:', payload.challenge);
       
       // Store verification token without user_id initially
-      // User association will happen through database lookup when needed
+      // User association will happen through profiles lookup when needed
       const { error: insertError } = await supabase
         .from('notion_webhook_verifications')
         .insert({
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       if (databaseId) {
         console.log('Page belongs to database:', databaseId);
         
-        // Look up user by database ID using profiles table (no separate mapping needed)
+        // Look up user by database ID using profiles table
         const { data: profile } = await supabase
           .from('profiles')
           .select('id, notion_database_id')

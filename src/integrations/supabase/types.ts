@@ -120,38 +120,6 @@ export type Database = {
         }
         Relationships: []
       }
-      notion_database_user_mapping: {
-        Row: {
-          created_at: string | null
-          id: string
-          notion_database_id: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          notion_database_id: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          notion_database_id?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notion_database_user_mapping_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       notion_webhook_verifications: {
         Row: {
           challenge_type: string | null

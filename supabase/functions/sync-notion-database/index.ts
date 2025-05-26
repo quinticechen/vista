@@ -1,3 +1,4 @@
+
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -90,10 +91,30 @@ Deno.serve(async (req) => {
       );
     }
     
-    // Verify the user ID matches
+    // Verify the user ID matches and that the user has the notion credentials configured
     if (userId !== user.id) {
       return new Response(
         JSON.stringify({ error: 'User ID mismatch' }),
+        { 
+          status: 403, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
+    }
+
+    // Verify the user's profile has the matching notion credentials
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('notion_database_id, notion_api_key')
+      .eq('id', userId)
+      .single();
+
+    if (!profile || profile.notion_database_id !== notionDatabaseId || profile.notion_api_key !== notionApiKey) {
+      return new Response(
+        JSON.stringify({ error: 'Notion credentials do not match user profile' }),
         { 
           status: 403, 
           headers: { 
