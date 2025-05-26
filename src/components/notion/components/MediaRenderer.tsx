@@ -95,8 +95,6 @@ export const VideoRenderer: React.FC<MediaProps> = ({
   index, 
   listPath 
 }) => {
-  const [videoError, setVideoError] = useState(false);
-  
   // Handle both legacy formats and new format
   const videoUrl = media_url || url;
   const videoCaption = caption || text;
@@ -121,35 +119,6 @@ export const VideoRenderer: React.FC<MediaProps> = ({
     }
   }
   
-  const handleVideoError = () => {
-    setVideoError(true);
-  };
-  
-  if (videoError) {
-    return (
-      <figure key={`video-${listPath}-${index}`} className="my-4">
-        <div className="bg-muted rounded-md overflow-hidden">
-          <div className="p-4 text-center bg-muted flex items-center justify-center flex-col h-[200px]">
-            <p className="text-sm text-muted-foreground">Failed to load video</p>
-            <a 
-              href={videoUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm text-blue-500 hover:underline mt-2"
-            >
-              Open video in new tab
-            </a>
-          </div>
-        </div>
-        {videoCaption && (
-          <figcaption className="text-sm text-center text-muted-foreground mt-2">
-            {videoCaption}
-          </figcaption>
-        )}
-      </figure>
-    );
-  }
-  
   return (
     <figure key={`video-${listPath}-${index}`} className="my-4">
       <div className="bg-muted rounded-md overflow-hidden">
@@ -161,7 +130,6 @@ export const VideoRenderer: React.FC<MediaProps> = ({
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               className="w-full h-full"
-              onError={handleVideoError}
             />
           </AspectRatio>
         ) : (
@@ -171,7 +139,6 @@ export const VideoRenderer: React.FC<MediaProps> = ({
               controls 
               className="w-full h-full" 
               preload="metadata"
-              onError={handleVideoError}
             />
           </AspectRatio>
         )}
@@ -192,39 +159,8 @@ export const EmbedRenderer: React.FC<MediaProps> = ({
   index, 
   listPath 
 }) => {
-  const [embedError, setEmbedError] = useState(false);
-  
   // If there's no URL, don't render anything
   if (!media_url) return null;
-  
-  const handleEmbedError = () => {
-    setEmbedError(true);
-  };
-  
-  if (embedError) {
-    return (
-      <figure key={`embed-${listPath}-${index}`} className="my-4">
-        <div className="bg-muted rounded-md overflow-hidden">
-          <div className="p-4 text-center bg-muted flex items-center justify-center flex-col h-[200px]">
-            <p className="text-sm text-muted-foreground">Failed to load embedded content</p>
-            <a 
-              href={media_url} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm text-blue-500 hover:underline mt-2"
-            >
-              Open content in new tab
-            </a>
-          </div>
-        </div>
-        {caption && (
-          <figcaption className="text-sm text-center text-muted-foreground mt-2">
-            {caption}
-          </figcaption>
-        )}
-      </figure>
-    );
-  }
   
   return (
     <figure key={`embed-${listPath}-${index}`} className="my-4">
@@ -235,7 +171,6 @@ export const EmbedRenderer: React.FC<MediaProps> = ({
             title={caption || "Embedded content"}
             className="w-full h-full"
             allowFullScreen
-            onError={handleEmbedError}
           />
         </AspectRatio>
       </div>
@@ -247,3 +182,6 @@ export const EmbedRenderer: React.FC<MediaProps> = ({
     </figure>
   );
 };
+
+// Remove the duplicate export line that was causing the errors
+// export { ImageRenderer, VideoRenderer, EmbedRenderer };
