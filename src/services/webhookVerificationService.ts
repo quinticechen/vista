@@ -18,11 +18,16 @@ export const getUserVerificationToken = async (): Promise<string | null> => {
     if (!user) return null;
 
     // Get user's verification token from profiles table
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('verification_token')
       .eq('id', user.id)
       .single();
+
+    if (error) {
+      console.error('Error fetching verification token:', error);
+      return null;
+    }
 
     return profile?.verification_token || null;
   } catch (error) {
@@ -85,11 +90,16 @@ export const hasNotionDatabaseConfigured = async (): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('notion_database_id, notion_api_key')
       .eq('id', user.id)
       .single();
+
+    if (error) {
+      console.error('Error checking notion configuration:', error);
+      return false;
+    }
 
     return !!(profile?.notion_database_id && profile?.notion_api_key);
   } catch (error) {

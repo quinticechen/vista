@@ -40,7 +40,15 @@ const Content = () => {
           .eq('id', session.user.id)
           .single();
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching profile data:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load profile data",
+            variant: "destructive",
+          });
+          return;
+        }
         
         if (data) {
           setUrlParam(data.url_param || "");

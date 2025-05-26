@@ -165,6 +165,7 @@ export type Database = {
           notion_database_id: string | null
           supported_ai_languages: string[] | null
           url_param: string | null
+          verification_token: string | null
         }
         Insert: {
           created_at?: string | null
@@ -175,6 +176,7 @@ export type Database = {
           notion_database_id?: string | null
           supported_ai_languages?: string[] | null
           url_param?: string | null
+          verification_token?: string | null
         }
         Update: {
           created_at?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           notion_database_id?: string | null
           supported_ai_languages?: string[] | null
           url_param?: string | null
+          verification_token?: string | null
         }
         Relationships: []
       }
