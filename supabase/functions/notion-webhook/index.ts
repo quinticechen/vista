@@ -49,15 +49,14 @@ Deno.serve(async (req) => {
     if (payload.type === 'url_verification' && payload.challenge) {
       console.log('Handling verification challenge:', payload.challenge);
       
-      // For verification challenges, we need to identify the user
-      // Since verification happens during webhook setup, we'll store without user_id first
-      // and let the user associate it later through the UI
+      // Store verification token without user_id initially
+      // User association will happen through database lookup when needed
       const { error: insertError } = await supabase
         .from('notion_webhook_verifications')
         .insert({
           verification_token: payload.challenge,
           challenge_type: 'url_verification',
-          user_id: null // Will be associated later
+          user_id: null // Will be associated via profiles lookup
         });
       
       if (insertError) {
@@ -76,7 +75,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Handle page updates - try to identify user from database mapping
+    // Handle page updates - use profiles table for user lookup
     if (payload.object === 'event' && payload.page) {
       console.log('Processing page update for page:', payload.page.id);
       
@@ -87,20 +86,20 @@ Deno.serve(async (req) => {
       if (databaseId) {
         console.log('Page belongs to database:', databaseId);
         
-        // Look up user by database ID
-        const { data: mapping } = await supabase
-          .from('notion_database_user_mapping')
-          .select('user_id')
+        // Look up user by database ID using profiles table (no separate mapping needed)
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, notion_database_id')
           .eq('notion_database_id', databaseId)
           .single();
         
-        if (mapping) {
-          userId = mapping.user_id;
+        if (profile) {
+          userId = profile.id;
           console.log('Found user for database:', userId);
         }
       }
       
-      // Process the page update similar to sync-notion-database
+      // Process the page update
       const pageData = {
         notion_page_id: payload.page.id,
         notion_created_time: payload.page.created_time,
