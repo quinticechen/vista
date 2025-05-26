@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import TranslatedText from "@/components/TranslatedText";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Copy, ExternalLink } from "lucide-react";
 
 const Content = () => {
   const [urlParam, setUrlParam] = useState("");
@@ -18,7 +19,19 @@ const Content = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [verificationToken, setVerificationToken] = useState("");
   const navigate = useNavigate();
+  
+  // Generate verification token on component mount
+  useEffect(() => {
+    const generateVerificationToken = () => {
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      return `notion_verify_${timestamp}_${randomString}`;
+    };
+    
+    setVerificationToken(generateVerificationToken());
+  }, []);
   
   // Fetch user's profile data on component mount
   useEffect(() => {
@@ -138,7 +151,7 @@ const Content = () => {
       
       const { data, error } = await supabase.functions.invoke('sync-notion-database', {
         body: { 
-          notionDatabaseId: formattedDatabaseId, // We'll format it in the edge function
+          notionDatabaseId: formattedDatabaseId,
           notionApiKey,
           userId: session.user.id
         }
@@ -148,17 +161,6 @@ const Content = () => {
       
       toast.success("Content synced successfully!");
       
-      // Show webhook setup information
-      const webhookUrl = `${window.location.protocol}//${window.location.host}/api/notion-webhook`;
-      toast("Set up Notion webhook for automatic updates", {
-        description: `Use this URL in Notion: ${webhookUrl}`,
-        duration: 8000,
-        action: {
-          label: "Copy URL",
-          onClick: () => navigator.clipboard.writeText(webhookUrl)
-        }
-      });
-      
     } catch (error) {
       console.error("Error syncing Notion content:", error);
       toast.error(`Failed to sync Notion content: ${error.message || error}`);
@@ -167,21 +169,13 @@ const Content = () => {
     }
   };
   
-  const copyToClipboard = () => {
-    if (!urlParam) {
-      toast.error("Please enter a URL parameter first");
-      return;
-    }
-    
-    const baseUrl = window.location.origin;
-    const fullUrl = `${baseUrl}/${urlParam}`;
-    
-    navigator.clipboard.writeText(fullUrl)
+  const copyToClipboard = (text, successMessage) => {
+    navigator.clipboard.writeText(text)
       .then(() => {
-        toast.success("URL copied to clipboard!");
+        toast.success(successMessage);
       })
       .catch((err) => {
-        toast.error("Failed to copy URL: " + err);
+        toast.error("Failed to copy: " + err);
       });
   };
   
@@ -192,6 +186,12 @@ const Content = () => {
     }
     
     navigate(`/${urlParam}`);
+  };
+  
+  // Get the webhook URL based on current domain
+  const getWebhookUrl = () => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl.replace('https://', 'https://oyvbdbajqsqzafpuahvz.supabase.co')}/functions/v1/notion-webhook`;
   };
   
   return (
@@ -252,7 +252,7 @@ const Content = () => {
                     <Button variant="outline" onClick={viewPreview} disabled={isLoading || !urlParam}>
                       <TranslatedText>Preview</TranslatedText>
                     </Button>
-                    <Button variant="outline" onClick={copyToClipboard} disabled={isLoading || !urlParam}>
+                    <Button variant="outline" onClick={() => copyToClipboard(`${window.location.origin}/${urlParam}`, "URL copied to clipboard!")} disabled={isLoading || !urlParam}>
                       <TranslatedText>Copy URL</TranslatedText>
                     </Button>
                   </div>
@@ -282,6 +282,7 @@ const Content = () => {
                       </TranslatedText>
                     </p>
                     <Button variant="outline" onClick={() => window.open("https://quintice.notion.site/1f0b07b9915c807095caf75eb3f47ed1?v=1f0b07b9915c80f88ec1000c5ccba839&pvs=4", "_blank")}>
+                      <ExternalLink className="h-4 w-4 mr-2" />
                       <TranslatedText>Open Notion Template</TranslatedText>
                     </Button>
                   </div>
@@ -335,6 +336,104 @@ const Content = () => {
                       >
                         <TranslatedText>{isSyncing ? "Syncing..." : "Sync Now"}</TranslatedText>
                       </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Webhook Configuration Section */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">
+                      <TranslatedText>Webhook Configuration</TranslatedText>
+                    </h3>
+                    
+                    <Alert className="mb-4">
+                      <AlertTitle>
+                        <TranslatedText>Automatic Updates</TranslatedText>
+                      </AlertTitle>
+                      <AlertDescription>
+                        <TranslatedText>
+                          Set up a webhook in Notion to automatically sync changes. When you create or update pages in your Notion database, they will be automatically updated here.
+                        </TranslatedText>
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label>
+                          <TranslatedText>Webhook URL</TranslatedText>
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={getWebhookUrl()}
+                            readOnly
+                            className="bg-gray-50"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyToClipboard(getWebhookUrl(), "Webhook URL copied to clipboard!")}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          <TranslatedText>
+                            Use this URL when setting up the webhook in your Notion integration settings.
+                          </TranslatedText>
+                        </p>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label>
+                          <TranslatedText>Verification Token</TranslatedText>
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={verificationToken}
+                            readOnly
+                            className="bg-gray-50 font-mono text-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyToClipboard(verificationToken, "Verification token copied to clipboard!")}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          <TranslatedText>
+                            Notion will require this token for webhook verification during setup. Keep this token secure.
+                          </TranslatedText>
+                        </p>
+                      </div>
+                      
+                      <Alert>
+                        <AlertTitle>
+                          <TranslatedText>Setup Instructions</TranslatedText>
+                        </AlertTitle>
+                        <AlertDescription className="space-y-2">
+                          <p>
+                            <TranslatedText>
+                              1. Go to your Notion integration settings
+                            </TranslatedText>
+                          </p>
+                          <p>
+                            <TranslatedText>
+                              2. Add the webhook URL above to your integration
+                            </TranslatedText>
+                          </p>
+                          <p>
+                            <TranslatedText>
+                              3. When prompted for verification, use the token shown above
+                            </TranslatedText>
+                          </p>
+                          <p>
+                            <TranslatedText>
+                              4. Select "Page content changed" as the event type
+                            </TranslatedText>
+                          </p>
+                        </AlertDescription>
+                      </Alert>
                     </div>
                   </div>
                 </div>

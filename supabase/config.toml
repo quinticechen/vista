@@ -37,3 +37,11 @@ verify_jwt = true
 [functions.notion-webhook]
 verify_jwt = false
 
+[functions.generate-embeddings]
+verify_jwt = true
+
+[functions.generate-query-embedding]
+verify_jwt = true
+
+[functions.get-translation-key]
+verify_jwt = true
