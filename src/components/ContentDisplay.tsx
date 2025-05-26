@@ -122,6 +122,7 @@ export const ContentDisplayItem = ({
   const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
   const [imageError, setImageError] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const [mediaLoaded, setMediaLoaded] = useState(false);
   
   // Deep check content's structure to find images
@@ -140,13 +141,15 @@ export const ContentDisplayItem = ({
   const hasCoverImage = !!normalizedContent.cover_image;
   const mediaBlock = !hasCoverImage ? findMediaBlock(normalizedContent.content) : null;
   const mediaUrl = hasCoverImage ? normalizedContent.cover_image : (mediaBlock?.media_url || null);
+  const mediaType = hasCoverImage ? 'image' : (mediaBlock?.media_type || 'image');
   
   console.log(`ContentDisplay - Content ID: ${normalizedContent.id}, Title: ${normalizedContent.title}`);
   console.log(`ContentDisplay - Has cover image: ${hasCoverImage}, Cover image URL: ${normalizedContent.cover_image}`);
   console.log(`ContentDisplay - Media block found:`, mediaBlock);
-  console.log(`ContentDisplay - Final mediaUrl: ${mediaUrl}`);
+  console.log(`ContentDisplay - Final mediaUrl: ${mediaUrl}, mediaType: ${mediaType}`);
   
-  const hasMedia = !!mediaUrl && !imageError && mediaLoaded;
+  // Media is available if we have a URL and no errors occurred
+  const hasMedia = !!mediaUrl && !imageError && !videoError && mediaLoaded;
   const isMediaRight = index % 2 === 0;
   
   // Function to get the correct detail route
@@ -165,13 +168,84 @@ export const ContentDisplayItem = ({
 
   const handleImageLoad = () => {
     console.log('Image loaded successfully');
+    setImageError(false);
+    setVideoError(false);
     setMediaLoaded(true);
   };
 
   const handleVideoError = () => {
     console.log('Video failed to load, switching to text-only layout');
-    setImageError(true);
+    setVideoError(true);
     setMediaLoaded(false);
+  };
+
+  const handleVideoLoad = () => {
+    console.log('Video loaded successfully');
+    setImageError(false);
+    setVideoError(false);
+    setMediaLoaded(true);
+  };
+
+  // Function to render media content with natural proportions
+  const renderMediaContent = () => {
+    if (!mediaUrl) return null;
+
+    // Check if it's a YouTube video
+    const isYouTube = mediaUrl.includes("youtube.com") || mediaUrl.includes("youtu.be");
+    
+    if (mediaType === 'video' || isYouTube) {
+      if (isYouTube) {
+        // Extract YouTube video ID for embedding
+        let youtubeEmbedUrl = mediaUrl;
+        const videoId = mediaUrl.includes("youtube.com/watch?v=") 
+          ? new URL(mediaUrl).searchParams.get("v")
+          : mediaUrl.includes("youtu.be/") 
+            ? mediaUrl.split("youtu.be/")[1]?.split("&")[0] 
+            : null;
+            
+        if (videoId) {
+          youtubeEmbedUrl = `https://www.youtube.com/embed/${videoId}`;
+        }
+
+        return (
+          <iframe
+            src={youtubeEmbedUrl}
+            title={normalizedContent.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full"
+            onError={handleVideoError}
+            onLoad={handleVideoLoad}
+          />
+        );
+      } else {
+        return (
+          <video 
+            src={mediaUrl} 
+            controls 
+            className="w-full h-full object-cover"
+            playsInline
+            preload="metadata"
+            onError={handleVideoError}
+            onLoadedData={handleVideoLoad}
+          >
+            Your browser does not support the video tag.
+          </video>
+        );
+      }
+    } else {
+      // Handle image
+      return (
+        <img 
+          src={mediaUrl} 
+          alt={hasCoverImage ? normalizedContent.title : (mediaBlock?.caption || normalizedContent.title)}
+          className="w-full h-full object-cover"
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+          loading="lazy"
+        />
+      );
+    }
   };
 
   return (
@@ -254,33 +328,16 @@ export const ContentDisplayItem = ({
       </div>
 
       {/* Media Section - Only show if we have media URL and it loaded successfully */}
-      {mediaUrl && (
+      {mediaUrl && hasMedia && (
         <div 
-          className={`relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100 h-[400px]`}
-          style={{ flexShrink: 0 }}
+          className={`relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100`}
+          style={{ 
+            flexShrink: 0,
+            height: '400px',
+            width: 'auto'
+          }}
         >
-          {hasCoverImage || (mediaBlock?.media_type === 'image') ? (
-            <img 
-              src={mediaUrl} 
-              alt={hasCoverImage ? normalizedContent.title : (mediaBlock?.caption || normalizedContent.title)}
-              className="object-cover w-full h-full"
-              onError={handleImageError}
-              onLoad={handleImageLoad}
-              loading="lazy"
-            />
-          ) : mediaBlock?.media_type === 'video' ? (
-            <video 
-              src={mediaUrl} 
-              controls 
-              className="object-cover w-full h-full"
-              playsInline
-              preload="metadata"
-              onError={handleVideoError}
-              onLoadedData={handleImageLoad}
-            >
-              Your browser does not support the video tag.
-            </video>
-          ) : null}
+          {renderMediaContent()}
         </div>
       )}
     </Card>
