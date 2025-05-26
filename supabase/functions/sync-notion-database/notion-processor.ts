@@ -83,6 +83,9 @@ export async function processBlockWithImageBackup(
       break;
       
     case 'image':
+      // FIXED: Get unique image counter for this specific page and image
+      const imageIndex = getAndIncrementImageIndex(pageId);
+      
       // Backup image if it's a Notion expiring URL
       baseBlock.media_type = 'image';
       
@@ -91,8 +94,7 @@ export async function processBlockWithImageBackup(
         block.image.external.url : 
         block.image.type === 'file' ? block.image.file.url : null;
       
-      // Get the image counter for this page for generating unique filenames
-      const imageIndex = getAndIncrementImageIndex(pageId);
+      console.log(`Processing image ${imageIndex} for page ${pageId}: ${imageUrl}`);
       
       // Check if it's a HEIC image by examining the URL
       const isHeic = imageUrl && (
@@ -113,12 +115,13 @@ export async function processBlockWithImageBackup(
         baseBlock.aspect_ratio = block.image.width / block.image.height;
       }
       
-      // Backup the image if it's an expiring URL, using the image index
+      // Backup the image if it's an expiring URL, using the unique image index
       if (imageUrl) {
         baseBlock.media_url = await backupImageToStorage(
           imageUrl, 
           { supabase, bucketName, userId, pageId, imageIndex }
         );
+        console.log(`Image ${imageIndex} backed up to: ${baseBlock.media_url}`);
       } else {
         baseBlock.media_url = null;
       }

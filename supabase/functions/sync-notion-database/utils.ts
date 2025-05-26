@@ -1,3 +1,4 @@
+
 import { Client } from 'https://deno.land/x/notion_sdk/src/mod.ts';
 import { ImageBackupOptions } from './types.ts';
 
@@ -154,15 +155,20 @@ export function extractRichText(richText: any[]): string {
   return richText.map(rt => rt.plain_text).join('');
 }
 
-// Helper function to extract simplified annotations from rich_text arrays
+// Helper function to extract simplified annotations from rich_text arrays with correct positioning
 export function extractAnnotationsSimplified(richText: any[]): any[] {
   if (!richText || richText.length === 0) return [];
   
   const annotations = [];
+  let currentPosition = 0;
   
   // Process each rich text segment
   for (const rt of richText) {
-    if (!rt || !rt.annotations) continue;
+    if (!rt || !rt.annotations) {
+      // Even if no annotations, we need to advance the position
+      currentPosition += (rt.plain_text || '').length;
+      continue;
+    }
     
     const {
       bold, italic, strikethrough, underline, code, color
@@ -170,10 +176,11 @@ export function extractAnnotationsSimplified(richText: any[]): any[] {
     
     // Only create an annotation if there's formatting applied
     if (bold || italic || strikethrough || underline || code || (color && color !== 'default') || rt.href) {
+      const textLength = (rt.plain_text || '').length;
       annotations.push({
         text: rt.plain_text,
-        start: annotations.length > 0 ? annotations[annotations.length-1].end : 0,
-        end: (annotations.length > 0 ? annotations[annotations.length-1].end : 0) + rt.plain_text.length,
+        start: currentPosition,
+        end: currentPosition + textLength,
         bold,
         italic,
         strikethrough,
@@ -183,19 +190,25 @@ export function extractAnnotationsSimplified(richText: any[]): any[] {
         href: rt.href || undefined
       });
     }
+    
+    // Always advance position by the text length
+    currentPosition += (rt.plain_text || '').length;
   }
   
   return annotations;
 }
 
-// Increment and get image count for a page
+// Increment and get image count for a page - FIXED: Ensure unique indices per page
 export function getAndIncrementImageIndex(pageId: string): number {
   const currentCount = pageImageCounts.get(pageId) || 0;
-  pageImageCounts.set(pageId, currentCount + 1);
+  const nextCount = currentCount + 1;
+  pageImageCounts.set(pageId, nextCount);
+  console.log(`Page ${pageId}: Image index ${currentCount} assigned`);
   return currentCount;
 }
 
 // Reset image counters (useful for tests or when starting new sync)
 export function resetImageCounters(): void {
   pageImageCounts.clear();
+  console.log('Image counters reset');
 }
