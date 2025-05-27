@@ -139,7 +139,7 @@ export const ToggleRenderer: React.FC<BlockRendererProps> = ({ block, index, lis
   );
 };
 
-// FIXED: Component for table blocks with improved rendering
+// FIXED: Component for table blocks with improved rendering and proper typing
 export const TableRenderer: React.FC<BlockRendererProps> = ({ block, index, listPath, renderNested }) => {
   const { children, rows, has_column_header, has_row_header, table_width } = block;
   
