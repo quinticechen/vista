@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ScrollToTop from "./components/ScrollToTop";
 import Index from "./pages/Index";
 import Vista from "./pages/Vista";
 import ContentDetail from "./pages/ContentDetail";
@@ -11,6 +12,7 @@ import Admin from "./pages/Admin";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import AdminGuard from "./components/AdminGuard";
+import PublicRoute from "./components/PublicRoute";
 import About from "./pages/About";
 import UrlParamVista from "./pages/UrlParamVista";
 import UrlParamContentDetail from "./pages/UrlParamContentDetail";
@@ -30,22 +32,24 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/vista" element={<Vista />} />
-          <Route path="/vista/:contentId" element={<ContentDetail />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/about" element={<About />} />
+          {/* Public routes - accessible to everyone */}
+          <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+          <Route path="/vista" element={<PublicRoute><Vista /></PublicRoute>} />
+          <Route path="/vista/:contentId" element={<PublicRoute><ContentDetail /></PublicRoute>} />
+          <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
+          <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />
           
-          {/* URL parameter routes */}
-          <Route path="/:urlParam" element={<Index />} />
-          <Route path="/:urlParam/vista" element={<UrlParamVista />} />
-          <Route path="/:urlParam/vista/:contentId" element={<UrlParamContentDetail />} />
+          {/* URL parameter routes - public access */}
+          <Route path="/:urlParam" element={<PublicRoute><Index /></PublicRoute>} />
+          <Route path="/:urlParam/vista" element={<PublicRoute><UrlParamVista /></PublicRoute>} />
+          <Route path="/:urlParam/vista/:contentId" element={<PublicRoute><UrlParamContentDetail /></PublicRoute>} />
           
-          {/* Admin routes with legacy page */}
+          {/* Admin routes - protected by AdminGuard */}
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
           
-          {/* New admin routes with layout */}
+          {/* New admin routes with layout - all protected */}
           <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
             <Route path="" element={<AdminHome />} />
             <Route path="language-setting" element={<LanguageSettings />} />
@@ -53,7 +57,8 @@ const App = () => (
             <Route path="content" element={<Content />} />
           </Route>
           
-          <Route path="*" element={<NotFound />} />
+          {/* Catch-all route */}
+          <Route path="*" element={<PublicRoute><NotFound /></PublicRoute>} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
