@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// FIXED: Extract annotations with proper background color handling
+// FIXED: Extract annotations with proper background color handling - Enhanced version
 function extractAnnotationsSimplified(richTextArray: any[]): any[] {
   if (!richTextArray || !Array.isArray(richTextArray) || richTextArray.length === 0) {
     return [];
@@ -28,8 +28,12 @@ function extractAnnotationsSimplified(richTextArray: any[]): any[] {
     const { bold, italic, strikethrough, underline, code, color } = richText.annotations;
     const textLength = (richText.plain_text || "").length;
     
-    // Check if any formatting is applied or if there's a link
-    if (bold || italic || strikethrough || underline || code || (color && color !== 'default') || richText.href) {
+    // Check if any formatting is applied, if there's a background color, or if there's a link
+    const hasFormatting = bold || italic || strikethrough || underline || code;
+    const hasColor = color && color !== 'default';
+    const hasLink = richText.href;
+    
+    if (hasFormatting || hasColor || hasLink) {
       const annotation: any = {
         text: richText.plain_text,
         start: currentPosition,

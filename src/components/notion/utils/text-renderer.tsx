@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { NotionAnnotation } from "../types";
@@ -190,21 +189,22 @@ const getColorClass = (color?: string): string => {
   }
 };
 
-// FIXED: Helper function to get the correct background color class
+// ENHANCED: Helper function to get the correct background color class with all supported colors
 const getBackgroundColorClass = (background_color?: string): string => {
   if (!background_color) return '';
   
   switch (background_color) {
-    case "red": return "bg-red-100";
-    case "blue": return "bg-blue-100";
-    case "green": return "bg-green-100";
-    case "yellow": return "bg-yellow-100";
-    case "orange": return "bg-orange-100";
-    case "purple": return "bg-purple-100";
-    case "pink": return "bg-pink-100";
-    case "gray": return "bg-gray-100";
-    case "brown": return "bg-amber-100";
-    default: return "bg-gray-100";
+    case "red": return "bg-red-100 dark:bg-red-900/30";
+    case "blue": return "bg-blue-100 dark:bg-blue-900/30";
+    case "green": return "bg-green-100 dark:bg-green-900/30";
+    case "yellow": return "bg-yellow-100 dark:bg-yellow-900/30";
+    case "orange": return "bg-orange-100 dark:bg-orange-900/30";
+    case "purple": return "bg-purple-100 dark:bg-purple-900/30";
+    case "pink": return "bg-pink-100 dark:bg-pink-900/30";
+    case "gray": return "bg-gray-100 dark:bg-gray-800/50";
+    case "brown": return "bg-amber-100 dark:bg-amber-900/30";
+    case "default": return "bg-gray-100 dark:bg-gray-800/50";
+    default: return "bg-gray-100 dark:bg-gray-800/50";
   }
 };
 
