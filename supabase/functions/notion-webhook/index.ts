@@ -54,16 +54,67 @@ function extractRichText(richTextArray: any[]): string {
   return richTextArray.map(item => item.plain_text || '').join('');
 }
 
-// Helper function to extract annotations (simplified version)
-function extractAnnotationsSimplified(richTextArray: any[]): any[] {
-  if (!richTextArray || !Array.isArray(richTextArray)) return [];
+// FIXED: Enhanced annotations extraction with proper background color handling
+function extractAnnotationsSimplified(richText: any[]): any[] {
+  if (!richText || richText.length === 0) return [];
   
-  return richTextArray
-    .filter(item => item.annotations && Object.values(item.annotations).some(val => val === true))
-    .map(item => ({
-      text: item.plain_text,
-      ...item.annotations
-    }));
+  const annotations = [];
+  let currentPosition = 0;
+  
+  // Process each rich text segment
+  for (const rt of richText) {
+    if (!rt || !rt.annotations) {
+      // Even if no annotations, we need to advance the position
+      currentPosition += (rt.plain_text || '').length;
+      continue;
+    }
+    
+    const {
+      bold, italic, strikethrough, underline, code, color
+    } = rt.annotations;
+    
+    // Only create an annotation if there's formatting applied
+    if (bold || italic || strikethrough || underline || code || (color && color !== 'default') || rt.href) {
+      const textLength = (rt.plain_text || '').length;
+      const annotation: any = {
+        text: rt.plain_text,
+        start: currentPosition,
+        end: currentPosition + textLength,
+        bold,
+        italic,
+        strikethrough,
+        underline,
+        code,
+        href: rt.href || undefined
+      };
+      
+      // FIXED: Handle background colors properly (format: color_background)
+      if (color && color !== 'default') {
+        if (color.includes('_background')) {
+          // Extract the base color name for background
+          annotation.background_color = color.replace('_background', '');
+        } else {
+          // Regular text color
+          annotation.color = color;
+        }
+      }
+      
+      annotations.push(annotation);
+    }
+    
+    // Always advance position by the text length
+    currentPosition += (rt.plain_text || '').length;
+  }
+  
+  return annotations;
+}
+
+// FIXED: Process table cells with proper rich text handling
+function processTableCell(cellRichText: any[]): any {
+  return {
+    text: extractRichText(cellRichText),
+    annotations: extractAnnotationsSimplified(cellRichText)
+  };
 }
 
 // Helper function to process blocks (simplified version for webhook)
@@ -108,6 +159,21 @@ async function processBlocksForWebhook(blocks: any[], notionClient: Client): Pro
         baseBlock.text = extractRichText(block.to_do?.rich_text || []);
         baseBlock.checked = block.to_do?.checked;
         baseBlock.annotations = extractAnnotationsSimplified(block.to_do?.rich_text || []);
+        break;
+      case 'table':
+        // FIXED: Proper table processing
+        baseBlock.table_width = block.table?.table_width;
+        baseBlock.has_row_header = block.table?.has_row_header;
+        baseBlock.has_column_header = block.table?.has_column_header;
+        break;
+      case 'table_row':
+        // FIXED: Process table row with proper cell handling
+        baseBlock.cells = [];
+        if (block.table_row && block.table_row.cells) {
+          for (const cell of block.table_row.cells) {
+            baseBlock.cells.push(processTableCell(cell));
+          }
+        }
         break;
       case 'image':
         baseBlock.media_type = 'image';

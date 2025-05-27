@@ -155,7 +155,7 @@ export function extractRichText(richText: any[]): string {
   return richText.map(rt => rt.plain_text).join('');
 }
 
-// Helper function to extract simplified annotations from rich_text arrays with correct positioning
+// FIXED: Helper function to extract enhanced annotations with proper background color handling
 export function extractAnnotationsSimplified(richText: any[]): any[] {
   if (!richText || richText.length === 0) return [];
   
@@ -177,7 +177,7 @@ export function extractAnnotationsSimplified(richText: any[]): any[] {
     // Only create an annotation if there's formatting applied
     if (bold || italic || strikethrough || underline || code || (color && color !== 'default') || rt.href) {
       const textLength = (rt.plain_text || '').length;
-      annotations.push({
+      const annotation: any = {
         text: rt.plain_text,
         start: currentPosition,
         end: currentPosition + textLength,
@@ -186,9 +186,21 @@ export function extractAnnotationsSimplified(richText: any[]): any[] {
         strikethrough,
         underline,
         code,
-        color: color !== 'default' ? color : undefined,
         href: rt.href || undefined
-      });
+      };
+      
+      // FIXED: Handle background colors properly (format: color_background)
+      if (color && color !== 'default') {
+        if (color.includes('_background')) {
+          // Extract the base color name for background
+          annotation.background_color = color.replace('_background', '');
+        } else {
+          // Regular text color
+          annotation.color = color;
+        }
+      }
+      
+      annotations.push(annotation);
     }
     
     // Always advance position by the text length

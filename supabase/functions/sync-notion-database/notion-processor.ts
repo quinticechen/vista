@@ -2,6 +2,14 @@
 import { Client } from 'https://deno.land/x/notion_sdk/src/mod.ts';
 import { backupImageToStorage, extractAnnotationsSimplified, extractRichText, getAndIncrementImageIndex } from './utils.ts';
 
+// FIXED: Process table cells with proper rich text handling
+function processTableCell(cellRichText: any[]): any {
+  return {
+    text: extractRichText(cellRichText),
+    annotations: extractAnnotationsSimplified(cellRichText)
+  };
+}
+
 // Process a single block with image backup
 export async function processBlockWithImageBackup(
   block: any,
@@ -160,9 +168,20 @@ export async function processBlockWithImageBackup(
       break;
       
     case 'table':
+      // FIXED: Proper table processing with rich text support
       baseBlock.table_width = block.table.table_width;
       baseBlock.has_row_header = block.table.has_row_header;
       baseBlock.has_column_header = block.table.has_column_header;
+      break;
+      
+    case 'table_row':
+      // FIXED: Process table row with proper cell handling
+      baseBlock.cells = [];
+      if (block.table_row && block.table_row.cells) {
+        for (const cell of block.table_row.cells) {
+          baseBlock.cells.push(processTableCell(cell));
+        }
+      }
       break;
       
     default:
