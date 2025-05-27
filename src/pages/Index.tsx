@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Hero from '@/components/Hero';
@@ -24,17 +23,23 @@ const Index = () => {
           const profile = await getProfileByUrlParam(urlParam);
           
           if (!profile) {
-            console.error(`No profile found for URL parameter: ${urlParam}`);
-            toast.error(`The page for /${urlParam} does not exist.`);
-            navigate('/');
-            return;
+            console.log(`No profile found for URL parameter: ${urlParam}. This may be due to RLS policies or the profile doesn't exist.`);
+            
+            // For now, we'll show a more user-friendly message and allow the page to load
+            // without redirecting, since this might be a temporary RLS issue
+            toast.error(`The page for /${urlParam} may not exist or is temporarily unavailable.`);
+            
+            // Don't redirect immediately - let the user stay on the page
+            // navigate('/');
+            // return;
+          } else {
+            console.log(`Profile found for ${urlParam}:`, profile);
+            setOwnerProfile(profile);
           }
-          
-          console.log(`Profile found for ${urlParam}:`, profile);
-          setOwnerProfile(profile);
         } catch (error) {
           console.error('Error fetching profile:', error);
-          toast.error('Could not load page data');
+          toast.error('Could not load page data. The page will load with default settings.');
+          // Don't block the page from loading
         } finally {
           setLoading(false);
         }
@@ -48,7 +53,7 @@ const Index = () => {
   
   const handlePurposeSubmit = (purpose: string) => {
     // When we're on a custom URL parameter page, navigate to that user's vista page
-    if (urlParam && ownerProfile) {
+    if (urlParam) {
       navigate(`/${urlParam}/vista?search=${encodeURIComponent(purpose)}`);
     } else {
       // Default behavior - navigate to the global vista page
@@ -84,7 +89,7 @@ const Index = () => {
     };
   }, []);
   
-  // Show loading state while checking URL parameter
+  // Show loading state only briefly while checking URL parameter
   if (loading && urlParam) {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
