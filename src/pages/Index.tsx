@@ -14,6 +14,7 @@ const Index = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [profileNotFound, setProfileNotFound] = useState(false);
   
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -23,23 +24,18 @@ const Index = () => {
           const profile = await getProfileByUrlParam(urlParam);
           
           if (!profile) {
-            console.log(`No profile found for URL parameter: ${urlParam}. This may be due to RLS policies or the profile doesn't exist.`);
-            
-            // For now, we'll show a more user-friendly message and allow the page to load
-            // without redirecting, since this might be a temporary RLS issue
-            toast.error(`The page for /${urlParam} may not exist or is temporarily unavailable.`);
-            
-            // Don't redirect immediately - let the user stay on the page
-            // navigate('/');
-            // return;
+            console.log(`No profile found for URL parameter: ${urlParam}`);
+            setProfileNotFound(true);
+            toast.error(`The page for /${urlParam} does not exist.`);
           } else {
             console.log(`Profile found for ${urlParam}:`, profile);
             setOwnerProfile(profile);
+            setProfileNotFound(false);
           }
         } catch (error) {
           console.error('Error fetching profile:', error);
-          toast.error('Could not load page data. The page will load with default settings.');
-          // Don't block the page from loading
+          setProfileNotFound(true);
+          toast.error(`Could not load page for /${urlParam}. Please check if this page exists.`);
         } finally {
           setLoading(false);
         }
@@ -49,9 +45,15 @@ const Index = () => {
     };
     
     fetchProfileData();
-  }, [urlParam, navigate]);
+  }, [urlParam]);
   
   const handlePurposeSubmit = (purpose: string) => {
+    // Prevent search if profile not found for URL parameter routes
+    if (urlParam && profileNotFound) {
+      toast.error(`Cannot search - the page for /${urlParam} does not exist.`);
+      return;
+    }
+    
     // When we're on a custom URL parameter page, navigate to that user's vista page
     if (urlParam) {
       navigate(`/${urlParam}/vista?search=${encodeURIComponent(purpose)}`);
@@ -94,6 +96,25 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
         <p>Loading...</p>
+      </div>
+    );
+  }
+  
+  // Show error state for non-existent URL parameter profiles
+  if (urlParam && profileNotFound) {
+    return (
+      <div className="min-h-screen bg-beige-50 flex items-center justify-center">
+        <Toaster />
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
+          <p className="text-gray-600 mb-4">The page for /{urlParam} does not exist.</p>
+          <button 
+            onClick={() => navigate('/')}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Go to Home
+          </button>
+        </div>
       </div>
     );
   }
