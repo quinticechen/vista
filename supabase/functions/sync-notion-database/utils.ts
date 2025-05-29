@@ -1,3 +1,4 @@
+
 // Utility functions for sync-notion-database Edge Function
 
 // Global image counter map to track images per page
@@ -121,7 +122,7 @@ export function extractProperty(properties: any, propertyName: string, propertyT
   }
 }
 
-// Backup image to Supabase Storage and return the new URL
+// ENHANCED: Backup image to Supabase Storage and return the new URL
 export async function backupImageToStorage(
   imageUrl: string, 
   options: {
@@ -136,6 +137,12 @@ export async function backupImageToStorage(
   
   try {
     console.log(`Starting backup for image ${imageIndex} from page ${pageId}: ${imageUrl}`);
+    
+    // Skip backup if URL doesn't look like a Notion expiring URL
+    if (!imageUrl || (!imageUrl.includes('notion.so') && !imageUrl.includes('amazonaws.com'))) {
+      console.log(`Skipping backup for non-expiring URL: ${imageUrl}`);
+      return imageUrl;
+    }
     
     // Fetch the image from the original URL
     const response = await fetch(imageUrl);

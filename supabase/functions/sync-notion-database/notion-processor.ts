@@ -10,7 +10,7 @@ function processTableCell(cellRichText: any[]): any {
   };
 }
 
-// Process a single block with image backup
+// ENHANCED: Process a single block with reliable image backup
 export async function processBlockWithImageBackup(
   block: any,
   supabase: any,
@@ -91,10 +91,9 @@ export async function processBlockWithImageBackup(
       break;
       
     case 'image':
-      // FIXED: Get unique image counter for this specific page and image
+      // ENHANCED: Get unique image counter for this specific page and image
       const imageIndex = getAndIncrementImageIndex(pageId);
       
-      // Backup image if it's a Notion expiring URL
       baseBlock.media_type = 'image';
       
       // Get original URL
@@ -123,13 +122,19 @@ export async function processBlockWithImageBackup(
         baseBlock.aspect_ratio = block.image.width / block.image.height;
       }
       
-      // Backup the image if it's an expiring URL, using the unique image index
+      // ENHANCED: Always attempt to backup the image with proper error handling
       if (imageUrl) {
-        baseBlock.media_url = await backupImageToStorage(
-          imageUrl, 
-          { supabase, bucketName, userId, pageId, imageIndex }
-        );
-        console.log(`Image ${imageIndex} backed up to: ${baseBlock.media_url}`);
+        try {
+          const backupUrl = await backupImageToStorage(
+            imageUrl, 
+            { supabase, bucketName, userId, pageId, imageIndex }
+          );
+          baseBlock.media_url = backupUrl || imageUrl; // Use backup URL or fallback to original
+          console.log(`Image ${imageIndex} processed: ${baseBlock.media_url}`);
+        } catch (error) {
+          console.error(`Failed to backup image ${imageIndex}:`, error);
+          baseBlock.media_url = imageUrl; // Use original URL as fallback
+        }
       } else {
         baseBlock.media_url = null;
       }
@@ -195,7 +200,7 @@ export async function processBlockWithImageBackup(
   return baseBlock;
 }
 
-// Process blocks recursively with image backup
+// ENHANCED: Process blocks recursively with reliable image backup
 export async function processBlocksSimplifiedWithImageBackup(
   blocks: any[],
   notionClient: Client,

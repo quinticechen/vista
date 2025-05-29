@@ -10,6 +10,83 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Global image counter map to track images per page for webhook
+const webhookImageCounterMap = new Map<string, number>();
+
+// Get and increment image index for webhook processing
+function getAndIncrementWebhookImageIndex(pageId: string): number {
+  const currentCount = webhookImageCounterMap.get(pageId) || 0;
+  const newCount = currentCount + 1;
+  webhookImageCounterMap.set(pageId, newCount);
+  return newCount;
+}
+
+// ENHANCED: Backup image to Supabase Storage for webhook
+async function backupWebhookImageToStorage(
+  imageUrl: string, 
+  options: {
+    supabase: any;
+    bucketName: string;
+    userId: string;
+    pageId: string;
+    imageIndex: number;
+  }
+): Promise<string | null> {
+  const { supabase, bucketName, userId, pageId, imageIndex } = options;
+  
+  try {
+    console.log(`[Webhook] Starting backup for image ${imageIndex} from page ${pageId}: ${imageUrl}`);
+    
+    // Skip backup if URL doesn't look like a Notion expiring URL
+    if (!imageUrl || (!imageUrl.includes('notion.so') && !imageUrl.includes('amazonaws.com'))) {
+      console.log(`[Webhook] Skipping backup for non-expiring URL: ${imageUrl}`);
+      return imageUrl;
+    }
+    
+    // Fetch the image from the original URL
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.error(`[Webhook] Failed to fetch image: ${response.status} ${response.statusText}`);
+      return imageUrl; // Return original URL if backup fails
+    }
+    
+    const imageBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    
+    // Create a unique filename using page ID and image index
+    const fileExtension = contentType.split('/')[1] || 'jpg';
+    const fileName = `${userId}/${pageId}/image-${imageIndex}.${fileExtension}`;
+    
+    console.log(`[Webhook] Uploading image to storage: ${fileName}`);
+    
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, imageBuffer, {
+        contentType,
+        upsert: true // Overwrite if exists
+      });
+    
+    if (error) {
+      console.error('[Webhook] Storage upload error:', error);
+      return imageUrl; // Return original URL if backup fails
+    }
+    
+    // Get the public URL for the uploaded image
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+    
+    const backupUrl = publicUrlData.publicUrl;
+    console.log(`[Webhook] Image ${imageIndex} successfully backed up to: ${backupUrl}`);
+    
+    return backupUrl;
+  } catch (error) {
+    console.error('[Webhook] Error backing up image:', error);
+    return imageUrl; // Return original URL if backup fails
+  }
+}
+
 // FIXED: Extract annotations with proper background color handling - Enhanced version
 function extractAnnotationsSimplified(richTextArray: any[]): any[] {
   if (!richTextArray || !Array.isArray(richTextArray) || richTextArray.length === 0) {
@@ -84,7 +161,7 @@ function extractRichText(richTextArray: any[]): string {
     .join("");
 }
 
-// Process a single block with image backup
+// ENHANCED: Process a single block with image backup for webhook
 async function processBlockWithWebhook(
   block: any,
   supabase: any,
@@ -160,7 +237,9 @@ async function processBlockWithWebhook(
       break;
       
     case 'image':
-      // For images, we don't download them but we try to backup thumbnails if needed
+      // ENHANCED: Get unique image counter for this specific page and image
+      const imageIndex = getAndIncrementWebhookImageIndex(pageId);
+      
       baseBlock.media_type = 'image';
       
       // Get original URL
@@ -168,12 +247,42 @@ async function processBlockWithWebhook(
         block.image.external.url : 
         block.image.type === 'file' ? block.image.file.url : null;
       
-      baseBlock.media_url = imageUrl;
+      console.log(`[Webhook] Processing image ${imageIndex} for page ${pageId}: ${imageUrl}`);
+      
+      // Check if it's a HEIC image by examining the URL
+      const isHeic = imageUrl && (
+        imageUrl.toLowerCase().endsWith('.heic') || 
+        imageUrl.toLowerCase().includes('/heic') || 
+        imageUrl.toLowerCase().includes('heic.')
+      );
+      
+      // Mark HEIC images
+      if (isHeic) {
+        baseBlock.is_heic = true;
+      }
+      
+      // ENHANCED: Always attempt to backup the image with proper error handling
+      if (imageUrl) {
+        try {
+          const backupUrl = await backupWebhookImageToStorage(
+            imageUrl, 
+            { supabase, bucketName, userId, pageId, imageIndex }
+          );
+          baseBlock.media_url = backupUrl || imageUrl; // Use backup URL or fallback to original
+          console.log(`[Webhook] Image ${imageIndex} processed: ${baseBlock.media_url}`);
+        } catch (error) {
+          console.error(`[Webhook] Failed to backup image ${imageIndex}:`, error);
+          baseBlock.media_url = imageUrl; // Use original URL as fallback
+        }
+      } else {
+        baseBlock.media_url = null;
+      }
+      
       baseBlock.caption = block.image.caption ? extractRichText(block.image.caption) : null;
       break;
       
     case 'video':
-      // For videos, we don't download them
+      // For videos, we don't download them but we try to backup thumbnails if needed
       baseBlock.media_type = 'video';
       baseBlock.media_url = block.video.type === 'external' ? block.video.external.url : block.video.file.url;
       baseBlock.caption = block.video.caption ? extractRichText(block.video.caption) : null;
@@ -309,6 +418,9 @@ Deno.serve(async (req) => {
       const pageId = payload.entity.id;
       console.log(`Processing page event: ${payload.type} for page: ${pageId}`);
 
+      // Reset image counter for this page
+      webhookImageCounterMap.delete(pageId);
+
       // Initialize the Notion client
       const notion = new Client({ auth: notionApiKey });
 
@@ -323,7 +435,7 @@ Deno.serve(async (req) => {
         page_size: 100,
       });
 
-      // Process blocks with the updated background color handling
+      // ENHANCED: Process blocks with reliable image backup
       const processedBlocks = await processBlocksSimplifiedWithImageBackup(
         blocks,
         notion,
@@ -442,7 +554,7 @@ Deno.serve(async (req) => {
   }
 });
 
-// Process blocks recursively with image backup and background color support
+// ENHANCED: Process blocks recursively with image backup and background color support
 async function processBlocksSimplifiedWithImageBackup(
   blocks: any[],
   notionClient: any,
