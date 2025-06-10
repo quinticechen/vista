@@ -6,6 +6,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { 
   checkAdminStatus, 
   fetchEmbeddingJobs, 
@@ -19,8 +28,9 @@ const Embedding = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentJob, setCurrentJob] = useState<EmbeddingJob | null>(null);
   const [previousJobs, setPreviousJobs] = useState<EmbeddingJob[]>([]);
-
-  // Check if current user is admin
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  
+  // Initialize and check for active jobs
   useEffect(() => {
     refreshJobHistory();
   }, []);
@@ -28,6 +38,7 @@ const Embedding = () => {
   // Refresh job history
   const refreshJobHistory = async () => {
     const jobs = await fetchEmbeddingJobs();
+    setLastUpdated(new Date().toLocaleString());
     
     // Check for any processing jobs
     const processingJobs = jobs.filter(job => job.status === 'processing' || job.status === 'pending');
@@ -136,15 +147,32 @@ const Embedding = () => {
     }
   };
 
+  // Get the date of the last successful embedding
+  const getLastSuccessfulEmbedding = () => {
+    const completedJobs = previousJobs.filter(job => job.status === 'completed');
+    if (completedJobs.length === 0) return "No previous completed jobs";
+    
+    const lastSuccessful = completedJobs[0]; // Jobs are already sorted by date desc
+    return formatDate(lastSuccessful.completed_at || lastSuccessful.started_at);
+  };
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Content Embedding</h1>
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Content Embedding</CardTitle>
+            <CardTitle>Generate Content Embeddings</CardTitle>
             <CardDescription>
-              Generate vector embeddings for all content items to enable AI-powered semantic search.
+              Generate vector embeddings for your content items to enable AI-powered semantic search.
+              {previousJobs.some(job => job.status === 'completed') && (
+                <p className="mt-2">
+                  <strong>Last successful embedding:</strong> {getLastSuccessfulEmbedding()}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground mt-2">
+                Only content updated since the last successful embedding will be processed.
+              </p>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -164,7 +192,7 @@ const Embedding = () => {
                 </div>
               </div>
             ) : (
-              <p>Click the button below to start generating embeddings for all content items.</p>
+              <p>Click the button below to start generating embeddings for content items updated since your last embedding job.</p>
             )}
           </CardContent>
           <CardFooter className="flex justify-between">
@@ -188,28 +216,44 @@ const Embedding = () => {
           <Card>
             <CardHeader>
               <CardTitle>Job History</CardTitle>
+              <CardDescription>
+                History of your embedding jobs. Last updated: {lastUpdated}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {previousJobs.map(job => (
-                  <div key={job.id} className="border rounded-md p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="font-medium">Job ID: {job.id.slice(0, 8)}...</div>
-                      {getStatusBadge(job.status)}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>Started: {formatDate(job.started_at)}</div>
-                      <div>Completed: {job.completed_at ? formatDate(job.completed_at) : "N/A"}</div>
-                      <div>Items Processed: {job.items_processed} / {job.total_items}</div>
-                      {job.error && (
-                        <div className="col-span-2 text-red-500">
-                          Error: {job.error}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <Table>
+                <TableCaption>Your embedding job history</TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Started</TableHead>
+                    <TableHead>Completed</TableHead>
+                    <TableHead>Progress</TableHead>
+                    <TableHead>Result</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {previousJobs.map(job => (
+                    <TableRow key={job.id}>
+                      <TableCell className="font-medium">{job.id.slice(0, 8)}...</TableCell>
+                      <TableCell>{getStatusBadge(job.status)}</TableCell>
+                      <TableCell>{formatDate(job.started_at)}</TableCell>
+                      <TableCell>{job.completed_at ? formatDate(job.completed_at) : "N/A"}</TableCell>
+                      <TableCell>{job.items_processed} / {job.total_items}</TableCell>
+                      <TableCell>
+                        {job.error ? (
+                          <span className="text-red-500 text-xs">{job.error}</span>
+                        ) : job.status === 'completed' ? (
+                          <span className="text-green-500">Success</span>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         )}
