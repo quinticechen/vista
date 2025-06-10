@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
@@ -64,13 +65,13 @@ async function processContentEmbedding(jobId: string, userId: string) {
       })
       .eq('id', jobId);
 
-    // Find the last successful embedding job's started_at timestamp
+    // Find the last successful embedding job timestamp
     const { data: lastSuccessfulJob, error: jobError } = await supabase
       .from('embedding_jobs')
-      .select('started_at')
+      .select('completed_at')
       .eq('status', 'completed')
       .eq('created_by', userId)
-      .order('started_at', { ascending: false })
+      .order('completed_at', { ascending: false })
       .limit(1)
       .maybeSingle();
     
@@ -78,13 +79,13 @@ async function processContentEmbedding(jobId: string, userId: string) {
       console.warn('Error fetching last successful job:', jobError.message);
     }
 
-    // Use the last successful job's started_at time as the cutoff for updates
+    // Use the last successful job's completion time as the cutoff for updates
     // If no previous successful job, process all content items for the user
-    const lastEmbeddingTime = lastSuccessfulJob?.started_at || null;
+    const lastEmbeddingTime = lastSuccessfulJob?.completed_at || null;
     
     console.log(`Processing content updated after: ${lastEmbeddingTime || 'All content (no previous job found)'}`);
     
-    // Query for content items to be processed - only those updated after last embedding started_at
+    // Query for content items to be processed - only those updated after last embedding
     // and only those belonging to the current user
     let contentQuery = supabase
       .from('content_items')

@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,19 +31,10 @@ const Embedding = () => {
   const [currentJob, setCurrentJob] = useState<EmbeddingJob | null>(null);
   const [previousJobs, setPreviousJobs] = useState<EmbeddingJob[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const notifiedJobsRef = useRef<Set<string>>(new Set());
   
   // Initialize and check for active jobs
   useEffect(() => {
     refreshJobHistory();
-    
-    // Cleanup interval on unmount
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
   }, []);
 
   // Refresh job history
@@ -58,24 +48,15 @@ const Embedding = () => {
       setCurrentJob(processingJobs[0]);
       setPreviousJobs(jobs.filter(job => job.id !== processingJobs[0].id));
       
-      // Clear any existing interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-      
       // Set up polling for the current job
-      pollingIntervalRef.current = setInterval(() => {
+      const intervalId = setInterval(() => {
         pollJobStatus(processingJobs[0].id);
       }, 5000);
+      
+      return () => clearInterval(intervalId);
     } else {
       setPreviousJobs(jobs);
       setCurrentJob(null);
-      
-      // Clear polling when no active jobs
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
     }
   };
 
@@ -90,20 +71,7 @@ const Embedding = () => {
     
     setCurrentJob(jobData);
     
-    // Check if job is complete and we haven't notified about this job yet
-    if ((jobData.status === 'completed' || jobData.status === 'error' || jobData.status === 'partial_success') 
-        && !notifiedJobsRef.current.has(jobId)) {
-      
-      // Mark this job as notified
-      notifiedJobsRef.current.add(jobId);
-      
-      // Clear the polling interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-      
-      // Show appropriate notification
+    if (jobData.status === 'completed' || jobData.status === 'error' || jobData.status === 'partial_success') {
       if (jobData.status === 'error') {
         toast.error(`Embedding process failed: ${jobData.error || 'Unknown error'}`);
       } else if (jobData.status === 'partial_success') {
@@ -111,8 +79,6 @@ const Embedding = () => {
       } else {
         toast.success("Embedding process completed successfully");
       }
-      
-      // Refresh job history to update the UI
       await refreshJobHistory();
     }
   };
@@ -145,15 +111,12 @@ const Embedding = () => {
       
       toast.success("Embedding process started");
       
-      // Clear any existing interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-      
       // Start polling for job status
-      pollingIntervalRef.current = setInterval(() => {
+      const intervalId = setInterval(() => {
         pollJobStatus(jobData.id);
       }, 5000);
+      
+      return () => clearInterval(intervalId);
     } catch (error: any) {
       toast.error(`Error: ${error.message}`);
       await refreshJobHistory(); // Refresh to get accurate state
@@ -192,7 +155,7 @@ const Embedding = () => {
     if (completedJobs.length === 0) return "No previous completed jobs";
     
     const lastSuccessful = completedJobs[0]; // Jobs are already sorted by date desc
-    return formatDate(lastSuccessful.started_at); // Use started_at instead of completed_at
+    return formatDate(lastSuccessful.completed_at || lastSuccessful.started_at);
   };
 
   return (
@@ -205,10 +168,11 @@ const Embedding = () => {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="jobs">Job History</TabsTrigger>
           <TabsTrigger value="metrics">Metrics</TabsTrigger>
+          <TabsTrigger value="debug">Webhook Debug</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -320,6 +284,10 @@ const Embedding = () => {
               View metrics related to your embedding jobs.
             </p>
           </div>
+        </TabsContent>
+
+        <TabsContent value="debug" className="space-y-6">
+          <WebhookDebugger />
         </TabsContent>
       </Tabs>
     </div>
