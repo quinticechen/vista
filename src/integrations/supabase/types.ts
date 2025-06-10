@@ -120,6 +120,41 @@ export type Database = {
         }
         Relationships: []
       }
+      notion_webhook_verifications: {
+        Row: {
+          challenge_type: string | null
+          created_at: string | null
+          id: string
+          received_at: string | null
+          user_id: string | null
+          verification_token: string
+        }
+        Insert: {
+          challenge_type?: string | null
+          created_at?: string | null
+          id?: string
+          received_at?: string | null
+          user_id?: string | null
+          verification_token: string
+        }
+        Update: {
+          challenge_type?: string | null
+          created_at?: string | null
+          id?: string
+          received_at?: string | null
+          user_id?: string | null
+          verification_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notion_webhook_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null

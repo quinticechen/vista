@@ -7,10 +7,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { getUserSpecificWebhookUrl, hasNotionDatabaseConfigured } from "@/services/webhookVerificationService";
 
+interface WebhookEvent {
+  id: string;
+  verification_token: string;
+  challenge_type: string;
+  received_at: string;
+  user_id: string | null;
+}
+
 const WebhookDebugger = () => {
   const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
   const [hasNotionConfig, setHasNotionConfig] = useState(false);
-  const [recentWebhooks, setRecentWebhooks] = useState<any[]>([]);
+  const [recentWebhooks, setRecentWebhooks] = useState<WebhookEvent[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
