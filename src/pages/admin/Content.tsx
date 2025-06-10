@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import WebhookDebugger from "@/components/WebhookDebugger";
+import ContentPreview from "@/pages/admin/ContentPreview";
 
 const Content = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -103,11 +104,16 @@ const Content = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="notion" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="preview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="preview">Content Preview</TabsTrigger>
           <TabsTrigger value="notion">Notion Integration</TabsTrigger>
           <TabsTrigger value="webhook">Webhook Debug</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="preview" className="space-y-6">
+          <ContentPreview />
+        </TabsContent>
 
         <TabsContent value="notion" className="space-y-6">
           <Card>
