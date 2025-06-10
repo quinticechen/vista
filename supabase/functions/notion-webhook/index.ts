@@ -322,6 +322,7 @@ Deno.serve(async (req) => {
   console.log('=== Notion Webhook Request ===');
   console.log('Method:', req.method);
   console.log('URL:', req.url);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -335,6 +336,7 @@ Deno.serve(async (req) => {
     console.log('User ID from URL:', userId);
 
     if (!userId) {
+      console.error('Missing user_id parameter');
       return new Response(
         JSON.stringify({ error: 'user_id parameter is required' }),
         { 
@@ -348,17 +350,47 @@ Deno.serve(async (req) => {
     }
 
     // Parse the webhook payload
-    const payload = await req.json();
-    console.log('Webhook payload:', JSON.stringify(payload, null, 2));
+    let payload;
+    try {
+      payload = await req.json();
+      console.log('Webhook payload received:', JSON.stringify(payload, null, 2));
+    } catch (parseError) {
+      console.error('Failed to parse webhook payload:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON payload' }),
+        { 
+          status: 400, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
+    }
 
     // Get the API keys from environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
     
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase environment variables');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { 
+          status: 500, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
+    }
+    
     // Create a Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get user's Notion credentials from profile
+    console.log('Fetching user profile for user ID:', userId);
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('notion_database_id, notion_api_key')
@@ -380,8 +412,10 @@ Deno.serve(async (req) => {
     }
 
     const { notion_database_id: notionDatabaseId, notion_api_key: notionApiKey } = profile;
+    console.log('User database ID:', notionDatabaseId);
 
     if (!notionDatabaseId || !notionApiKey) {
+      console.error('User has not configured Notion credentials');
       return new Response(
         JSON.stringify({ error: 'User has not configured Notion credentials' }),
         { 
@@ -399,6 +433,10 @@ Deno.serve(async (req) => {
     const formattedUserDatabaseId = notionDatabaseId.replace(/-/g, '');
     const formattedWebhookDatabaseId = webhookDatabaseId?.replace(/-/g, '');
 
+    console.log('Comparing database IDs:');
+    console.log('User database ID (formatted):', formattedUserDatabaseId);
+    console.log('Webhook database ID (formatted):', formattedWebhookDatabaseId);
+
     if (formattedWebhookDatabaseId !== formattedUserDatabaseId) {
       console.log('Webhook is not for this user\'s database, ignoring');
       return new Response(
@@ -413,6 +451,21 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Log webhook verification record
+    try {
+      await supabase
+        .from('notion_webhook_verifications')
+        .insert({
+          verification_token: payload.id || 'unknown',
+          challenge_type: payload.type || 'unknown',
+          user_id: userId
+        });
+      console.log('Webhook verification logged successfully');
+    } catch (logError) {
+      console.error('Failed to log webhook verification:', logError);
+      // Continue processing even if logging fails
+    }
+
     // Process the webhook based on the event type
     if (payload.type === 'page.created' || payload.type === 'page.properties_updated' || payload.type === 'page.content_updated') {
       const pageId = payload.entity.id;
@@ -424,106 +477,126 @@ Deno.serve(async (req) => {
       // Initialize the Notion client
       const notion = new Client({ auth: notionApiKey });
 
-      // Fetch the page details
-      console.log(`Fetching page details for: ${pageId}`);
-      const page = await notion.pages.retrieve({ page_id: pageId });
+      try {
+        // Fetch the page details
+        console.log(`Fetching page details for: ${pageId}`);
+        const page = await notion.pages.retrieve({ page_id: pageId });
 
-      // Fetch the page blocks (content)
-      console.log(`Fetching page blocks for: ${pageId}`);
-      const { results: blocks } = await notion.blocks.children.list({
-        block_id: pageId,
-        page_size: 100,
-      });
+        // Fetch the page blocks (content)
+        console.log(`Fetching page blocks for: ${pageId}`);
+        const { results: blocks } = await notion.blocks.children.list({
+          block_id: pageId,
+          page_size: 100,
+        });
 
-      // ENHANCED: Process blocks with reliable image backup
-      const processedBlocks = await processBlocksSimplifiedWithImageBackup(
-        blocks,
-        notion,
-        supabase,
-        'notion-images',
-        userId,
-        pageId
-      );
+        // ENHANCED: Process blocks with reliable image backup
+        const processedBlocks = await processBlocksSimplifiedWithImageBackup(
+          blocks,
+          notion,
+          supabase,
+          'notion-images',
+          userId,
+          pageId
+        );
 
-      // Extract properties
-      const extractProperty = (properties: any, propertyName: string, propertyType: string): any => {
-        const property = properties[propertyName];
-        if (!property) return null;
-        
-        switch (propertyType) {
-          case 'title':
-            return property.title?.[0]?.plain_text || null;
-          case 'rich_text':
-            return extractRichText(property.rich_text);
-          case 'select':
-            return property.select?.name || null;
-          case 'multi_select':
-            return property.multi_select?.map((option: any) => option.name) || [];
-          case 'date':
-            return property.date?.start || null;
-          default:
-            return null;
-        }
-      };
+        // Extract properties
+        const extractProperty = (properties: any, propertyName: string, propertyType: string): any => {
+          const property = properties[propertyName];
+          if (!property) return null;
+          
+          switch (propertyType) {
+            case 'title':
+              return property.title?.[0]?.plain_text || null;
+            case 'rich_text':
+              return extractRichText(property.rich_text);
+            case 'select':
+              return property.select?.name || null;
+            case 'multi_select':
+              return property.multi_select?.map((option: any) => option.name) || [];
+            case 'date':
+              return property.date?.start || null;
+            default:
+              return null;
+          }
+        };
 
-      // Prepare the content item
-      const contentItem = {
-        title: extractProperty(page.properties, 'Name', 'title') || extractProperty(page.properties, 'Title', 'title') || 'Untitled',
-        description: extractProperty(page.properties, 'Description', 'rich_text'),
-        category: extractProperty(page.properties, 'Category', 'select'),
-        tags: extractProperty(page.properties, 'Tags', 'multi_select'),
-        created_at: page.created_time,
-        updated_at: page.last_edited_time,
-        start_date: extractProperty(page.properties, 'Start date', 'date'),
-        end_date: extractProperty(page.properties, 'End date', 'date'),
-        notion_url: page.url,
-        user_id: userId,
-        content: processedBlocks,
-        notion_page_id: pageId,
-        notion_created_time: page.created_time,
-        notion_last_edited_time: page.last_edited_time,
-        notion_page_status: 'active'
-      };
+        // Prepare the content item
+        const contentItem = {
+          title: extractProperty(page.properties, 'Name', 'title') || extractProperty(page.properties, 'Title', 'title') || 'Untitled',
+          description: extractProperty(page.properties, 'Description', 'rich_text'),
+          category: extractProperty(page.properties, 'Category', 'select'),
+          tags: extractProperty(page.properties, 'Tags', 'multi_select'),
+          created_at: page.created_time,
+          updated_at: page.last_edited_time,
+          start_date: extractProperty(page.properties, 'Start date', 'date'),
+          end_date: extractProperty(page.properties, 'End date', 'date'),
+          notion_url: page.url,
+          user_id: userId,
+          content: processedBlocks,
+          notion_page_id: pageId,
+          notion_created_time: page.created_time,
+          notion_last_edited_time: page.last_edited_time,
+          notion_page_status: 'active'
+        };
 
-      console.log('Prepared content item:', JSON.stringify(contentItem, null, 2));
+        console.log('Prepared content item:', JSON.stringify(contentItem, null, 2));
 
-      // Check if the content item already exists
-      const { data: existingItem } = await supabase
-        .from('content_items')
-        .select('id')
-        .eq('notion_page_id', pageId)
-        .eq('user_id', userId)
-        .single();
-
-      if (existingItem) {
-        // Update existing item
-        const { error: updateError } = await supabase
+        // Check if the content item already exists
+        const { data: existingItem } = await supabase
           .from('content_items')
-          .update(contentItem)
-          .eq('id', existingItem.id);
+          .select('id')
+          .eq('notion_page_id', pageId)
+          .eq('user_id', userId)
+          .single();
 
-        if (updateError) {
-          console.error('Error updating content item:', updateError);
-          throw updateError;
+        if (existingItem) {
+          // Update existing item
+          const { error: updateError } = await supabase
+            .from('content_items')
+            .update(contentItem)
+            .eq('id', existingItem.id);
+
+          if (updateError) {
+            console.error('Error updating content item:', updateError);
+            throw updateError;
+          }
+
+          console.log(`Content item updated successfully: ${existingItem.id}`);
+        } else {
+          // Insert new item
+          const { data: newItem, error: insertError } = await supabase
+            .from('content_items')
+            .insert(contentItem)
+            .select();
+
+          if (insertError) {
+            console.error('Error inserting content item:', insertError);
+            throw insertError;
+          }
+
+          console.log(`Content item created successfully: ${newItem?.[0]?.id}`);
         }
-
-        console.log(`Content item updated successfully: ${existingItem.id}`);
-      } else {
-        // Insert new item
-        const { data: newItem, error: insertError } = await supabase
-          .from('content_items')
-          .insert(contentItem)
-          .select();
-
-        if (insertError) {
-          console.error('Error inserting content item:', insertError);
-          throw insertError;
-        }
-
-        console.log(`Content item created successfully: ${newItem?.[0]?.id}`);
+      } catch (notionError) {
+        console.error('Error processing Notion content:', notionError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to process Notion content',
+            message: notionError.message 
+          }),
+          { 
+            status: 500, 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            } 
+          }
+        );
       }
+    } else {
+      console.log(`Unhandled webhook event type: ${payload.type}`);
     }
 
+    console.log('Webhook processed successfully');
     return new Response(
       JSON.stringify({ message: 'Webhook processed successfully' }),
       { 
@@ -541,7 +614,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Failed to process webhook',
-        message: error.message 
+        message: error.message,
+        stack: error.stack
       }),
       { 
         status: 500, 

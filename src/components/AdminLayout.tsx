@@ -1,16 +1,35 @@
 
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/ui/nav-link";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { LucidePanelLeft, LucideLayoutGrid, LucideGlobe, LucideText, LucideDatabase, LucideLink } from "lucide-react";
+import { LucidePanelLeft, LucideLayoutGrid, LucideGlobe, LucideText, LucideDatabase, LucideLink, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/sonner";
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
   
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        toast.error("Failed to logout");
+      } else {
+        toast.success("Logged out successfully");
+        navigate("/auth");
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error("Failed to logout");
+    }
   };
 
   return (
@@ -87,6 +106,21 @@ const AdminLayout = () => {
             {!collapsed && <span>Content</span>}
           </NavLink>
         </nav>
+
+        {/* Logout button at bottom */}
+        <div className="p-2 mt-auto">
+          <Separator className="mb-2" />
+          <Button
+            variant="ghost"
+            onClick={handleLogout}
+            className={`w-full flex items-center ${
+              collapsed ? "justify-center px-2" : "justify-start space-x-3 px-2"
+            }`}
+          >
+            <LogOut size={20} />
+            {!collapsed && <span>Logout</span>}
+          </Button>
+        </div>
       </aside>
       
       {/* Main content area */}

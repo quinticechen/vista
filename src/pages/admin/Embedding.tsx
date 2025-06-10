@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
@@ -23,6 +24,7 @@ import {
   startEmbeddingProcess,
   type EmbeddingJob 
 } from "@/services/adminService";
+import WebhookDebugger from "@/components/WebhookDebugger";
 
 const Embedding = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -157,107 +159,137 @@ const Embedding = () => {
   };
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Content Embedding</h1>
-      <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Generate Content Embeddings</CardTitle>
-            <CardDescription>
-              Generate vector embeddings for your content items to enable AI-powered semantic search.
-              {previousJobs.some(job => job.status === 'completed') && (
-                <p className="mt-2">
-                  <strong>Last successful embedding:</strong> {getLastSuccessfulEmbedding()}
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground mt-2">
-                Only content updated since the last successful embedding will be processed.
-              </p>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {currentJob && (currentJob.status === 'processing' || currentJob.status === 'pending') ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span>Embedding in progress...</span>
-                  {getStatusBadge(currentJob.status)}
-                </div>
-                <Progress value={
-                  currentJob.total_items > 0 
-                    ? Math.round((currentJob.items_processed / currentJob.total_items) * 100) 
-                    : 0
-                } />
-                <div className="text-sm text-muted-foreground">
-                  {currentJob.items_processed} / {currentJob.total_items} items processed
-                </div>
-              </div>
-            ) : (
-              <p>Click the button below to start generating embeddings for content items updated since your last embedding job.</p>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button 
-              onClick={startEmbedding} 
-              disabled={isLoading || (currentJob && (currentJob.status === 'processing' || currentJob.status === 'pending'))}
-            >
-              {isLoading ? "Starting..." : "Generate Embeddings"}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={refreshJobHistory} 
-              disabled={isLoading}
-            >
-              Refresh Status
-            </Button>
-          </CardFooter>
-        </Card>
-        
-        {previousJobs.length > 0 && (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Embedding Management</h1>
+        <p className="text-muted-foreground">
+          Generate and manage embeddings for your content to enable AI-powered search
+        </p>
+      </div>
+
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="jobs">Job History</TabsTrigger>
+          <TabsTrigger value="metrics">Metrics</TabsTrigger>
+          <TabsTrigger value="debug">Webhook Debug</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Job History</CardTitle>
+              <CardTitle>Generate Content Embeddings</CardTitle>
               <CardDescription>
-                History of your embedding jobs. Last updated: {lastUpdated}
+                Generate vector embeddings for your content items to enable AI-powered semantic search.
+                {previousJobs.some(job => job.status === 'completed') && (
+                  <p className="mt-2">
+                    <strong>Last successful embedding:</strong> {getLastSuccessfulEmbedding()}
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground mt-2">
+                  Only content updated since the last successful embedding will be processed.
+                </p>
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableCaption>Your embedding job history</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Started</TableHead>
-                    <TableHead>Completed</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Result</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {previousJobs.map(job => (
-                    <TableRow key={job.id}>
-                      <TableCell className="font-medium">{job.id.slice(0, 8)}...</TableCell>
-                      <TableCell>{getStatusBadge(job.status)}</TableCell>
-                      <TableCell>{formatDate(job.started_at)}</TableCell>
-                      <TableCell>{job.completed_at ? formatDate(job.completed_at) : "N/A"}</TableCell>
-                      <TableCell>{job.items_processed} / {job.total_items}</TableCell>
-                      <TableCell>
-                        {job.error ? (
-                          <span className="text-red-500 text-xs">{job.error}</span>
-                        ) : job.status === 'completed' ? (
-                          <span className="text-green-500">Success</span>
-                        ) : (
-                          "-"
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {currentJob && (currentJob.status === 'processing' || currentJob.status === 'pending') ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span>Embedding in progress...</span>
+                    {getStatusBadge(currentJob.status)}
+                  </div>
+                  <Progress value={
+                    currentJob.total_items > 0 
+                      ? Math.round((currentJob.items_processed / currentJob.total_items) * 100) 
+                      : 0
+                  } />
+                  <div className="text-sm text-muted-foreground">
+                    {currentJob.items_processed} / {currentJob.total_items} items processed
+                  </div>
+                </div>
+              ) : (
+                <p>Click the button below to start generating embeddings for content items updated since your last embedding job.</p>
+              )}
             </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button 
+                onClick={startEmbedding} 
+                disabled={isLoading || (currentJob && (currentJob.status === 'processing' || currentJob.status === 'pending'))}
+              >
+                {isLoading ? "Starting..." : "Generate Embeddings"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={refreshJobHistory} 
+                disabled={isLoading}
+              >
+                Refresh Status
+              </Button>
+            </CardFooter>
           </Card>
-        )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="jobs" className="space-y-6">
+          {previousJobs.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Job History</CardTitle>
+                <CardDescription>
+                  History of your embedding jobs. Last updated: {lastUpdated}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableCaption>Your embedding job history</TableCaption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Started</TableHead>
+                      <TableHead>Completed</TableHead>
+                      <TableHead>Progress</TableHead>
+                      <TableHead>Result</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {previousJobs.map(job => (
+                      <TableRow key={job.id}>
+                        <TableCell className="font-medium">{job.id.slice(0, 8)}...</TableCell>
+                        <TableCell>{getStatusBadge(job.status)}</TableCell>
+                        <TableCell>{formatDate(job.started_at)}</TableCell>
+                        <TableCell>{job.completed_at ? formatDate(job.completed_at) : "N/A"}</TableCell>
+                        <TableCell>{job.items_processed} / {job.total_items}</TableCell>
+                        <TableCell>
+                          {job.error ? (
+                            <span className="text-red-500 text-xs">{job.error}</span>
+                          ) : job.status === 'completed' ? (
+                            <span className="text-green-500">Success</span>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="metrics" className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold">Embedding Metrics</h2>
+            <p className="text-muted-foreground">
+              View metrics related to your embedding jobs.
+            </p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="debug" className="space-y-6">
+          <WebhookDebugger />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
