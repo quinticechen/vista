@@ -9,15 +9,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import WebhookDebugger from "@/components/WebhookDebugger";
 import ContentPreview from "@/pages/admin/ContentPreview";
+import { getUserSpecificWebhookUrl, getUserVerificationToken } from "@/services/webhookVerificationService";
 
 const Content = () => {
   const [profile, setProfile] = useState<any>(null);
   const [notionApiKey, setNotionApiKey] = useState("");
   const [notionDatabaseId, setNotionDatabaseId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
+  const [verificationToken, setVerificationToken] = useState<string | null>(null);
 
   useEffect(() => {
     loadProfile();
+    loadWebhookInfo();
   }, []);
 
   const loadProfile = async () => {
@@ -38,6 +42,18 @@ const Content = () => {
       setNotionDatabaseId(data.notion_database_id || "");
     } catch (error) {
       console.error('Error loading profile:', error);
+    }
+  };
+
+  const loadWebhookInfo = async () => {
+    try {
+      const url = await getUserSpecificWebhookUrl();
+      setWebhookUrl(url);
+      
+      const token = await getUserVerificationToken();
+      setVerificationToken(token);
+    } catch (error) {
+      console.error('Error loading webhook info:', error);
     }
   };
 
@@ -95,6 +111,24 @@ const Content = () => {
     }
   };
 
+  const refreshVerificationToken = async () => {
+    try {
+      const token = await getUserVerificationToken();
+      setVerificationToken(token);
+      toast.success("Verification token refreshed");
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      toast.error("Failed to refresh verification token");
+    }
+  };
+
+  const copyWebhookUrl = () => {
+    if (webhookUrl) {
+      navigator.clipboard.writeText(webhookUrl);
+      toast.success("Webhook URL copied to clipboard");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -118,43 +152,157 @@ const Content = () => {
         <TabsContent value="notion" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Notion Database Configuration</CardTitle>
+              <CardTitle>Notion Integration</CardTitle>
               <CardDescription>
-                Connect your Notion database to automatically sync content
+                Connect your Notion database to import content automatically
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="notion-api-key">Notion API Key</Label>
-                <Input
-                  id="notion-api-key"
-                  type="password"
-                  value={notionApiKey}
-                  onChange={(e) => setNotionApiKey(e.target.value)}
-                  placeholder="Enter your Notion API key"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notion-database-id">Database ID</Label>
-                <Input
-                  id="notion-database-id"
-                  value={notionDatabaseId}
-                  onChange={(e) => setNotionDatabaseId(e.target.value)}
-                  placeholder="Enter your Notion database ID"
-                />
-              </div>
-              <div className="flex space-x-2">
-                <Button onClick={saveNotionConfig} disabled={loading}>
-                  {loading ? "Saving..." : "Save Configuration"}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={syncDatabase} 
-                  disabled={loading || !notionApiKey || !notionDatabaseId}
+            <CardContent className="space-y-6">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm text-blue-800 mb-2">
+                  Use our Notion template to structure your content. You can duplicate it and customize as needed.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('https://www.notion.so/templates/content-database', '_blank')}
                 >
-                  {loading ? "Syncing..." : "Sync Database"}
+                  Open Notion Template
                 </Button>
               </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="notion-database-id">Notion Database ID</Label>
+                  <Input
+                    id="notion-database-id"
+                    value={notionDatabaseId}
+                    onChange={(e) => setNotionDatabaseId(e.target.value)}
+                    placeholder="1f0b07b9915c807095caf75eb3f47ed1"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The ID can be found in your Notion database URL after the page title and before any query parameters.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="notion-api-key">Notion API Key</Label>
+                  <Input
+                    id="notion-api-key"
+                    type="password"
+                    value={notionApiKey}
+                    onChange={(e) => setNotionApiKey(e.target.value)}
+                    placeholder="Enter your Notion API key"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    You can get your API key from{" "}
+                    <a
+                      href="https://www.notion.so/my-integrations"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Notion Integrations
+                    </a>
+                  </p>
+                </div>
+                
+                <div className="flex space-x-2">
+                  <Button onClick={saveNotionConfig} disabled={loading}>
+                    {loading ? "Saving..." : "Save Settings"}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={syncDatabase} 
+                    disabled={loading || !notionApiKey || !notionDatabaseId}
+                  >
+                    {loading ? "Syncing..." : "Sync Now"}
+                  </Button>
+                </div>
+              </div>
+
+              {notionApiKey && notionDatabaseId && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Webhook Configuration</CardTitle>
+                    <CardDescription>
+                      User-Specific Webhook
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Your webhook URL is unique to your account. This ensures verification tokens are correctly associated with your profile.
+                    </p>
+                    
+                    <div className="space-y-2">
+                      <Label>Your Webhook URL</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          value={webhookUrl || ""}
+                          readOnly
+                          className="bg-muted"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={copyWebhookUrl}
+                          disabled={!webhookUrl}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Use this unique URL when setting up the webhook in your Notion integration settings.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Verification Token</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={refreshVerificationToken}
+                        >
+                          Refresh
+                        </Button>
+                      </div>
+                      <Input
+                        value={verificationToken || "No token generated yet"}
+                        readOnly
+                        className="bg-muted"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Updated: {new Date().toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        This token is automatically updated when you verify your webhook in Notion.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-base font-medium">Setup Instructions</Label>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground pl-4">
+                        <li>Save your Notion settings above first</li>
+                        <li>
+                          Go to your{" "}
+                          <a
+                            href="https://www.notion.so/my-integrations"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            Notion integration settings
+                          </a>
+                        </li>
+                        <li>Add your unique webhook URL above to your integration</li>
+                        <li>Click "Verify subscription" in Notion - your token will appear automatically</li>
+                        <li>Select "Page content changed" as the event type</li>
+                      </ol>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
