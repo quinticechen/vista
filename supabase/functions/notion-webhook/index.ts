@@ -1,3 +1,4 @@
+
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -349,15 +350,51 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse the webhook payload
+    // Check if request has content-length or body
+    const contentLength = req.headers.get('content-length');
+    console.log('Content-Length:', contentLength);
+    
+    // Handle empty requests or GET requests (like health checks)
+    if (req.method === 'GET' || contentLength === '0' || contentLength === null) {
+      console.log('Empty request or GET request - returning success for health check');
+      return new Response(
+        JSON.stringify({ message: 'Webhook endpoint is healthy' }),
+        { 
+          status: 200, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
+    }
+
+    // Parse the webhook payload with better error handling
     let payload;
     try {
-      payload = await req.json();
+      const requestText = await req.text();
+      console.log('Raw request body:', requestText);
+      
+      if (!requestText || requestText.trim() === '') {
+        console.log('Empty request body - treating as health check');
+        return new Response(
+          JSON.stringify({ message: 'Webhook endpoint is healthy' }),
+          { 
+            status: 200, 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            } 
+          }
+        );
+      }
+      
+      payload = JSON.parse(requestText);
       console.log('Webhook payload received:', JSON.stringify(payload, null, 2));
     } catch (parseError) {
       console.error('Failed to parse webhook payload:', parseError);
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON payload' }),
+        JSON.stringify({ error: 'Invalid JSON payload', details: parseError.message }),
         { 
           status: 400, 
           headers: { 
