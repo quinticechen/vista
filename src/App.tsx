@@ -23,6 +23,7 @@ import AdminHome from "./pages/admin/Index";
 import LanguageSettings from "./pages/admin/LanguageSettings";
 import Embedding from "./pages/admin/Embedding";
 import Content from "./pages/admin/Content";
+import UrlSettings from "./pages/admin/UrlSettings";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
           {/* New admin routes with layout - all protected */}
           <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
             <Route path="" element={<AdminHome />} />
+            <Route path="url-settings" element={<UrlSettings />} />
             <Route path="language-setting" element={<LanguageSettings />} />
             <Route path="embedding" element={<Embedding />} />
             <Route path="content" element={<Content />} />

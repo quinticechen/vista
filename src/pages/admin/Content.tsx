@@ -4,39 +4,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import TranslatedText from "@/components/TranslatedText";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Copy, ExternalLink, Clock, RefreshCw } from "lucide-react";
 import { getUserVerificationToken, getUserSpecificWebhookUrl, subscribeToVerificationUpdates } from "@/services/webhookVerificationService";
+import ContentPreview from "./ContentPreview";
 
 const Content = () => {
-  const [urlParam, setUrlParam] = useState("");
   const [notionDatabaseId, setNotionDatabaseId] = useState("");
   const [notionApiKey, setNotionApiKey] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [verificationToken, setVerificationToken] = useState("");
   const [verificationTokenTimestamp, setVerificationTokenTimestamp] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
-  const navigate = useNavigate();
   
   // Fetch user's profile data
   useEffect(() => {
     const fetchProfileData = async () => {
-      setIsLoading(true);
-      
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
         
         const { data, error } = await supabase
           .from('profiles')
-          .select('url_param, notion_database_id, notion_api_key, verification_token')
+          .select('notion_database_id, notion_api_key, verification_token')
           .eq('id', session.user.id)
           .single();
         
@@ -51,7 +45,6 @@ const Content = () => {
         }
         
         if (data) {
-          setUrlParam(data.url_param || "");
           setNotionDatabaseId(data.notion_database_id || "");
           setNotionApiKey(data.notion_api_key || "");
           setVerificationToken(data.verification_token || "");
@@ -72,8 +65,6 @@ const Content = () => {
           description: "Failed to load profile data",
           variant: "destructive",
         });
-      } finally {
-        setIsLoading(false);
       }
     };
     
@@ -93,52 +84,6 @@ const Content = () => {
 
     return unsubscribe;
   }, []);
-  
-  const saveUrlParam = async () => {
-    if (!urlParam) {
-      toast({
-        title: "Error",
-        description: "Please enter a URL parameter first",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsSaving(true);
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to save settings",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ url_param: urlParam.trim().toLowerCase() })
-        .eq('id', session.user.id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "URL parameter saved successfully!",
-      });
-    } catch (error) {
-      console.error("Error saving URL parameter:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save URL parameter",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
   
   const saveNotionSettings = async () => {
     if (!notionDatabaseId || !notionApiKey) {
@@ -258,19 +203,6 @@ const Content = () => {
         });
       });
   };
-  
-  const viewPreview = () => {
-    if (!urlParam) {
-      toast({
-        title: "Error",
-        description: "Please enter a URL parameter first",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    navigate(`/${urlParam}`);
-  };
 
   const formatTimestamp = (timestamp: string) => {
     if (!timestamp) return "";
@@ -309,64 +241,18 @@ const Content = () => {
       </h1>
       
       <div className="grid gap-6">
-        <Tabs defaultValue="url" className="w-full">
+        <Tabs defaultValue="preview" className="w-full">
           <TabsList>
-            <TabsTrigger value="url">
-              <TranslatedText>URL Settings</TranslatedText>
+            <TabsTrigger value="preview">
+              <TranslatedText>Content Preview</TranslatedText>
             </TabsTrigger>
             <TabsTrigger value="notion">
               <TranslatedText>Notion Integration</TranslatedText>
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="url">
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  <TranslatedText>Website URL Settings</TranslatedText>
-                </CardTitle>
-                <CardDescription>
-                  <TranslatedText>
-                    Configure your website's URL parameter to make it accessible at your-domain.com/your-parameter
-                  </TranslatedText>
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="urlParam">
-                      <TranslatedText>URL Parameter</TranslatedText>
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="urlParam"
-                        placeholder="e.g. yourbrand"
-                        value={urlParam}
-                        onChange={(e) => setUrlParam(e.target.value.trim().toLowerCase())}
-                        disabled={isLoading || isSaving}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      <TranslatedText>
-                        This will be used as your website's URL: {window.location.origin}/{urlParam || "your-parameter"}
-                      </TranslatedText>
-                    </p>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button onClick={saveUrlParam} disabled={isLoading || isSaving}>
-                      <TranslatedText>{isSaving ? "Saving..." : "Save"}</TranslatedText>
-                    </Button>
-                    <Button variant="outline" onClick={viewPreview} disabled={isLoading || !urlParam}>
-                      <TranslatedText>Preview</TranslatedText>
-                    </Button>
-                    <Button variant="outline" onClick={() => copyToClipboard(`${window.location.origin}/${urlParam}`, "URL copied to clipboard!")} disabled={isLoading || !urlParam}>
-                      <TranslatedText>Copy URL</TranslatedText>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="preview">
+            <ContentPreview />
           </TabsContent>
           
           <TabsContent value="notion">
@@ -405,7 +291,7 @@ const Content = () => {
                         placeholder="e.g. 1f0b07b9915c807095caf75eb3f47ed1"
                         value={notionDatabaseId}
                         onChange={(e) => setNotionDatabaseId(e.target.value.trim())}
-                        disabled={isLoading || isSaving}
+                        disabled={isSaving}
                       />
                       <p className="text-xs text-muted-foreground">
                         <TranslatedText>
@@ -424,7 +310,7 @@ const Content = () => {
                         placeholder="secret_..."
                         value={notionApiKey}
                         onChange={(e) => setNotionApiKey(e.target.value.trim())}
-                        disabled={isLoading || isSaving}
+                        disabled={isSaving}
                       />
                       <p className="text-xs text-muted-foreground">
                         <TranslatedText>
@@ -434,13 +320,13 @@ const Content = () => {
                     </div>
                     
                     <div className="flex gap-2 pt-2">
-                      <Button onClick={saveNotionSettings} disabled={isLoading || isSaving}>
+                      <Button onClick={saveNotionSettings} disabled={isSaving}>
                         <TranslatedText>{isSaving ? "Saving..." : "Save Settings"}</TranslatedText>
                       </Button>
                       <Button 
                         variant="outline" 
                         onClick={syncNotionContent} 
-                        disabled={isLoading || isSyncing || !notionDatabaseId || !notionApiKey}
+                        disabled={isSyncing || !notionDatabaseId || !notionApiKey}
                       >
                         <TranslatedText>{isSyncing ? "Syncing..." : "Sync Now"}</TranslatedText>
                       </Button>

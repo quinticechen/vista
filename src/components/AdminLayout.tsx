@@ -4,7 +4,7 @@ import { Outlet } from "react-router-dom";
 import { NavLink } from "@/components/ui/nav-link";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { LucidePanelLeft, LucideLayoutGrid, LucideGlobe, LucideText, LucideDatabase } from "lucide-react";
+import { LucidePanelLeft, LucideLayoutGrid, LucideGlobe, LucideText, LucideDatabase, LucideLink } from "lucide-react";
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -45,6 +45,16 @@ const AdminLayout = () => {
           >
             <LucideLayoutGrid size={20} />
             {!collapsed && <span>Dashboard</span>}
+          </NavLink>
+          
+          <NavLink 
+            to="/admin/url-settings" 
+            className={`flex items-center p-2 rounded-md ${
+              collapsed ? "justify-center" : "space-x-3"
+            }`}
+          >
+            <LucideLink size={20} />
+            {!collapsed && <span>URL Settings</span>}
           </NavLink>
           
           <NavLink 

@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
-import UrlParamSetting from "@/components/UrlParamSetting";
 
 const AdminHome = () => {
   const [user, setUser] = useState<any>(null);
@@ -54,31 +53,27 @@ const AdminHome = () => {
     <div className="space-y-8">
       <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome, {user?.email}</CardTitle>
-            <CardDescription>
-              This is your admin dashboard. You can manage your content, settings, and more from here.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Use the sidebar to navigate to different sections of the admin panel.
-              </p>
-              <Button
-                className="w-full sm:w-auto"
-                onClick={() => window.location.href = "/"}
-              >
-                Visit Main Site
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <UrlParamSetting />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Welcome, {user?.email}</CardTitle>
+          <CardDescription>
+            This is your admin dashboard. You can manage your content, settings, and more from here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Use the sidebar to navigate to different sections of the admin panel.
+            </p>
+            <Button
+              className="w-full sm:w-auto"
+              onClick={() => window.location.href = "/"}
+            >
+              Visit Main Site
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
