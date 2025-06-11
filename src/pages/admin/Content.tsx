@@ -149,6 +149,219 @@ const Content = () => {
           <ContentPreview />
         </TabsContent>
 
+          <TabsContent value="notion">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  <TranslatedText>Notion Integration</TranslatedText>
+                </CardTitle>
+                <CardDescription>
+                  <TranslatedText>
+                    Connect your Notion database to import content automatically
+                  </TranslatedText>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      <TranslatedText>
+                        Use our Notion template to structure your content. You can duplicate it and customize as needed.
+                      </TranslatedText>
+                    </p>
+                    <Button variant="outline" onClick={() => window.open("https://quintice.notion.site/1f0b07b9915c807095caf75eb3f47ed1?v=1f0b07b9915c80f88ec1000c5ccba839&pvs=4", "_blank")}>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      <TranslatedText>Open Notion Template</TranslatedText>
+                    </Button>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="notionDatabaseId">
+                        <TranslatedText>Notion Database ID</TranslatedText>
+                      </Label>
+                      <Input
+                        id="notionDatabaseId"
+                        placeholder="e.g. 1f0b07b9915c807095caf75eb3f47ed1"
+                        value={notionDatabaseId}
+                        onChange={(e) => setNotionDatabaseId(e.target.value.trim())}
+                        disabled={isLoading || isSaving}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        <TranslatedText>
+                          The ID can be found in your Notion database URL after the page title and before any query parameters.
+                        </TranslatedText>
+                      </p>
+                    </div>
+                    
+                    <div className="grid gap-2">
+                      <Label htmlFor="notionApiKey">
+                        <TranslatedText>Notion API Key</TranslatedText>
+                      </Label>
+                      <Input
+                        id="notionApiKey"
+                        type="password"
+                        placeholder="secret_..."
+                        value={notionApiKey}
+                        onChange={(e) => setNotionApiKey(e.target.value.trim())}
+                        disabled={isLoading || isSaving}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        <TranslatedText>
+                          You can get your API key from <a href="https://www.notion.so/my-integrations" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Notion Integrations</a>
+                        </TranslatedText>
+                      </p>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2">
+                      <Button onClick={saveNotionSettings} disabled={isLoading || isSaving}>
+                        <TranslatedText>{isSaving ? "Saving..." : "Save Settings"}</TranslatedText>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={syncNotionContent} 
+                        disabled={isLoading || isSyncing || !notionDatabaseId || !notionApiKey}
+                      >
+                        <TranslatedText>{isSyncing ? "Syncing..." : "Sync Now"}</TranslatedText>
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Webhook Configuration Section */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">
+                      <TranslatedText>Webhook Configuration</TranslatedText>
+                    </h3>
+                    
+                    <Alert className="mb-4">
+                      <AlertTitle>
+                        <TranslatedText>User-Specific Webhook</TranslatedText>
+                      </AlertTitle>
+                      <AlertDescription>
+                        <TranslatedText>
+                          Your webhook URL is unique to your account. This ensures verification tokens are correctly associated with your profile.
+                        </TranslatedText>
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label>
+                          <TranslatedText>Your Webhook URL</TranslatedText>
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={webhookUrl}
+                            readOnly
+                            className="bg-gray-50 font-mono text-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyToClipboard(webhookUrl, "Webhook URL copied to clipboard!")}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          <TranslatedText>
+                            Use this unique URL when setting up the webhook in your Notion integration settings.
+                          </TranslatedText>
+                        </p>
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                          <Label>
+                            <TranslatedText>Verification Token</TranslatedText>
+                          </Label>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={refreshVerificationToken}
+                            className="flex items-center gap-1"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            <TranslatedText>Refresh</TranslatedText>
+                          </Button>
+                        </div>
+                        <div className="space-y-2">
+                          {verificationToken ? (
+                            <>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={verificationToken}
+                                  readOnly
+                                  className="bg-green-50 border-green-200 font-mono text-sm"
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(verificationToken, "Verification token copied to clipboard!")}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-green-600">
+                                <Clock className="h-3 w-3" />
+                                <span>
+                                  <TranslatedText>Updated:</TranslatedText> {formatTimestamp(verificationTokenTimestamp)}
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="p-3 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600">
+                              <TranslatedText>
+                                No verification token yet. Set up your webhook in Notion to receive one automatically.
+                              </TranslatedText>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          <TranslatedText>
+                            This token is automatically updated when you verify your webhook in Notion.
+                          </TranslatedText>
+                        </p>
+                      </div>
+                      
+                      <Alert>
+                        <AlertTitle>
+                          <TranslatedText>Setup Instructions</TranslatedText>
+                        </AlertTitle>
+                        <AlertDescription className="space-y-2">
+                          <p>
+                            <TranslatedText>
+                              1. Save your Notion settings above first
+                            </TranslatedText>
+                          </p>
+                          <p>
+                            <TranslatedText>
+                              2. Go to your Notion integration settings
+                            </TranslatedText>
+                          </p>
+                          <p>
+                            <TranslatedText>
+                              3. Add your unique webhook URL above to your integration
+                            </TranslatedText>
+                          </p>
+                          <p>
+                            <TranslatedText>
+                              4. Click "Verify subscription" in Notion - your token will appear automatically
+                            </TranslatedText>
+                          </p>
+                          <p>
+                            <TranslatedText>
+                              5. Select "Page content changed" as the event type
+                            </TranslatedText>
+                          </p>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+{/*           </TabsContent>
         <TabsContent value="notion" className="space-y-6">
           <Card>
             <CardHeader>
@@ -158,16 +371,15 @@ const Content = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-sm text-blue-800 mb-2">
-                  Use our Notion template to structure your content. You can duplicate it and customize as needed.
+              <div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  <TranslatedText>
+                    Use our Notion template to structure your content. You can duplicate it and customize as needed.
+                  </TranslatedText>
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open('https://www.notion.so/templates/content-database', '_blank')}
-                >
-                  Open Notion Template
+                <Button variant="outline" onClick={() => window.open("https://quintice.notion.site/1f0b07b9915c807095caf75eb3f47ed1?v=1f0b07b9915c80f88ec1000c5ccba839&pvs=4", "_blank")}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <TranslatedText>Open Notion Template</TranslatedText>
                 </Button>
               </div>
 
@@ -305,7 +517,7 @@ const Content = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         <TabsContent value="webhook" className="space-y-6">
           <WebhookDebugger />
