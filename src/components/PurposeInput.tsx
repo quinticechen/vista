@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -64,26 +65,27 @@ const PurposeInput = ({
   const opacity = scrollProgress < 0.1 ? 0 : 1;
 
   return (
-    <div id="purpose-input" className="min-h-screen flex flex-col items-center justify-start pt-32 pb-32 px-6 bg-beige-50">
+    <div id="purpose-input" className="relative min-h-screen flex flex-col items-center justify-start pt-32 pb-32 px-6 bg-beige-50 overflow-hidden">
+      {/* Top Wave Transition */}
+      <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
+      
+      {/* Floating animated shapes */}
+      <div className="absolute top-[100px] left-0 w-full">
+        <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" opacity={0.3} /> 
+      </div>
+      
+      {/* Background overlay */}
+      <div className="absolute inset-0 bg-beige-100 z-0 opacity-20"></div>
+
       <motion.div 
-        className="w-full max-w-3xl"
+        className="relative w-full max-w-3xl z-10"
         style={{ 
           scale, 
           opacity,
           transition: 'all 0.3s ease'
         }}
       >
-     {/* Top Wave Transition with direct Tailwind class */}
-      <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
-      
-      {/* Floating animated shapes with direct Tailwind class */}
-      <div className="absolute top-[100px] left-0 w-full">
-        <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" /> 
-      </div>
-        
-      {/* Background overlay with solid opacity */}
-      <div className="absolute inset-0 bg-beige-100 z-0"></div> 
-        <div className="text-center text-center mb-10 animate-fade-up">
+        <div className="text-center mb-10 animate-fade-up">
           <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-3">
             {interactiveTitle || "How Can I Help You Today?"}
           </h2>
@@ -134,11 +136,10 @@ const PurposeInput = ({
             </Button>
           </div>
         </form>
-        </div>
-      
-      {/* Bottom Wave Transition with direct Tailwind class */}
-      <WaveTransition scrollProgress={scrollProgress} position="bottom" color="fill-beige-50" />
       </motion.div>
+      
+      {/* Bottom Wave Transition */}
+      <WaveTransition scrollProgress={scrollProgress} position="bottom" color="fill-beige-50" />
     </div>
   );
 };

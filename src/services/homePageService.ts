@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface OptionButton {
@@ -39,11 +38,27 @@ export const DEFAULT_HOME_PAGE_SETTINGS: Omit<HomePageSettings, 'id' | 'profileI
     },
     {
       id: 2,
-      text: 'Seek Candidate',
-      defaultText: 'I\'m an HR professional in [___] field company, seeking an AI Product Manager expert in the latest technology'
+      text: 'Company Owner',
+      defaultText: 'I\'m a company owner, I\'m seeking a consultant to help with AI implementation and team training'
     }
   ]
 };
+
+function isValidOptionButton(obj: any): obj is OptionButton {
+  return obj && 
+         typeof obj === 'object' && 
+         typeof obj.id === 'number' && 
+         typeof obj.text === 'string' && 
+         typeof obj.defaultText === 'string';
+}
+
+function transformToOptionButtons(data: any): OptionButton[] {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  
+  return data.filter(isValidOptionButton);
+}
 
 export async function getHomePageSettingsByProfileId(profileId: string): Promise<HomePageSettings | null> {
   try {
@@ -61,22 +76,7 @@ export async function getHomePageSettingsByProfileId(profileId: string): Promise
     }
     
     // Transform from snake_case to camelCase and ensure proper typing
-    const optionButtons: OptionButton[] = [];
-    
-    if (Array.isArray(data.option_buttons)) {
-      data.option_buttons.forEach((button: any) => {
-        if (button && typeof button === 'object' && 
-            typeof button.id === 'number' && 
-            typeof button.text === 'string' && 
-            typeof button.defaultText === 'string') {
-          optionButtons.push({
-            id: button.id,
-            text: button.text,
-            defaultText: button.defaultText
-          });
-        }
-      });
-    }
+    const optionButtons = transformToOptionButtons(data.option_buttons);
     
     return {
       id: data.id,
@@ -113,7 +113,11 @@ export async function saveHomePageSettings(settings: HomePageSettings): Promise<
       custom_input_placeholder: settings.customInputPlaceholder,
       submit_button_text: settings.submitButtonText,
       footer_name: settings.footerName,
-      option_buttons: JSON.parse(JSON.stringify(settings.optionButtons)), // Ensure proper JSONB format
+      option_buttons: settings.optionButtons.map(button => ({
+        id: button.id,
+        text: button.text,
+        defaultText: button.defaultText
+      })),
       updated_at: new Date().toISOString()
     };
 
