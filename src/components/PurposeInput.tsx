@@ -37,35 +37,37 @@ const PurposeInput = ({
 }: PurposeInputProps) => {
   const [purpose, setPurpose] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const navigate = useNavigate(); // A 檔案的 Hook
-  const { toast } = useToast(); // A 檔案的 Hook
-  const { urlParam } = useParams(); // A 檔案的 Hook
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { urlParam } = useParams();
+
+  // Default purpose options if none provided
+  const purposeOptions = optionButtons || [
+    {
+      id: 1,
+      text: "HR, Seek Candidate",
+      defaultText: "I'm an HR professional in [___] field company, seeking an AI Product Manager expert in the latest technology"
+    },
+    {
+      id: 2,
+      text: "Company Owner, Seek Consultant", 
+      defaultText: "I'm a company owner, I'm seeking a consultant to help with AI implementation and team training"
+    }
+  ];
 
   // If the user clicks on a predefined button
-  const handleOptionClick = (inputContent: string) => { // 沿用 A 檔案的命名
+  const handleOptionClick = (inputContent: string) => {
     setPurpose(inputContent);
     if (inputRef.current) {
       inputRef.current.focus();
     }
   };
 
-  // // Focus the input when the component first renders
-  // useEffect(() => {
-  //   if (scrollProgress > 0.8) {
-  //     inputRef.current?.focus();
-  //   }
-  // }, [scrollProgress]);
-
-  // const handleSubmit = (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   if (purpose.trim()) {
-  //     onPurposeSubmit(purpose);
-  //   }
-  // };
-  const handleSubmit = async (e: React.FormEvent) => { // 沿用 A 檔案的完整邏輯
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-        if (purpose.trim()) {
+    if (purpose.trim()) {
       try {
         setIsSearching(true);
         toast({
@@ -124,10 +126,8 @@ const PurposeInput = ({
       }
     }
   }; 
-  // const scale = scrollProgress < 0.1 ? 0.8 : 1;
-  // const opacity = scrollProgress < 0.1 ? 0 : 1;
 
-    // Handle textarea auto-resizing (來自 A 檔案)
+  // Handle textarea auto-resizing
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPurpose(e.target.value);
 
@@ -137,124 +137,42 @@ const PurposeInput = ({
     textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
-  // Calculate background opacity based on scroll progress (來自 A 檔案)
+  // Calculate background opacity based on scroll progress
   const backgroundOpacity = Math.min(1, 0.9 + (scrollProgress * 0.1));
 
-//   return (
-//     <div id="purpose-input" className="relative min-h-screen flex flex-col items-center justify-start pt-32 pb-32 px-6 bg-beige-50 overflow-hidden">
-//       {/* Top Wave Transition */}
-//       <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
-      
-//       {/* Floating animated shapes */}
-//       <div className="absolute top-[100px] left-0 w-full">
-//         <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" opacity={0.3} /> 
-//       </div>
-      
-//       {/* Background overlay */}
-//       <div className="absolute inset-0 bg-beige-100 z-0 opacity-20"></div>
-
-//       <motion.div 
-//         className="relative w-full max-w-3xl z-10"
-//         style={{ 
-//           scale, 
-//           opacity,
-//           transition: 'all 0.3s ease'
-//         }}
-//       >
-//         <div className="text-center mb-10 animate-fade-up">
-//           <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-3">
-//             {interactiveTitle || "How Can I Help You Today?"}
-//           </h2>
-//           <p className="text-lg text-beige-700">
-//             {interactiveSubtitle || "Select a purpose or enter your own to see the most relevant information."}
-//           </p>
-//         </div>
-
-//         {optionButtons && optionButtons.length > 0 && (
-//           <div className="flex flex-wrap justify-center gap-3 mb-8">
-//             {optionButtons.map((option) => (
-//               <Button
-//                 key={option.id}
-//                 variant="outline"
-//                 className="border-beige-300 hover:border-beige-500 hover:bg-beige-100 text-beige-800"
-//                 onClick={() => handleOptionClick(option.defaultText)}
-//               >
-//                 {option.text}
-//               </Button>
-//             ))}
-//           </div>
-//         )}
-
-//         <form onSubmit={handleSubmit} className="space-y-4">
-//           <div 
-//             className={`bg-white rounded-lg shadow-lg p-2 transition-all ${
-//               isFocused ? 'ring-2 ring-beige-400 shadow-xl' : ''
-//             }`}
-//           >
-//             <textarea
-//               ref={inputRef}
-//               className="w-full p-4 text-lg text-beige-900 resize-none outline-none min-h-[120px] bg-transparent"
-//               placeholder={placeholder || "Tell me why you're visiting this website..."}
-//               value={purpose}
-//               onChange={e => setPurpose(e.target.value)}
-//               onFocus={() => setIsFocused(true)}
-//               onBlur={() => setIsFocused(false)}
-//               autoComplete="off"
-//             />
-//           </div>
-//           <div className="text-center">
-//             <Button
-//               type="submit"
-//               size="lg"
-//               className="bg-beige-800 hover:bg-beige-900 text-white px-12 py-6 text-lg h-auto"
-//             >
-//               {submitButtonText || "Submit"}
-//             </Button>
-//           </div>
-//         </form>
-//       </motion.div>
-      
-//       {/* Bottom Wave Transition */}
-//       <WaveTransition scrollProgress={scrollProgress} position="bottom" color="fill-beige-50" />
-//     </div>
-//   );
-// };
-
-// export default PurposeInput;
-return (
+  return (
     <motion.section
       id="purpose-input"
       className="min-h-screen flex items-center py-16 px-4 md:px-8 lg:px-16 relative"
       style={{
-        transform: `translateY(${(1 - scrollProgress) * 50}px)`, // A 檔案的動畫
+        transform: `translateY(${(1 - scrollProgress) * 50}px)`,
         position: "relative"
       }}
     >
-      {/* Top Wave Transition with direct Tailwind class */}
+      {/* Top Wave Transition */}
       <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
 
-      {/* Floating animated shapes with direct Tailwind class */}
-      {/* A 檔案的 FloatingShapes 位置在 WaveTransition 之後 */}
+      {/* Floating animated shapes */}
       <div className="absolute top-[100px] left-0 w-full">
         <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
       </div>
 
-      {/* Background overlay with solid opacity (來自 A 檔案) */}
+      {/* Background overlay */}
       <div className="absolute inset-0 bg-beige-100 z-0" style={{ opacity: backgroundOpacity }}></div>
 
       <div className="max-w-4xl mx-auto w-full z-10 relative">
         <div className="text-center mb-10 animate-fade-up">
           <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-4">
-            {interactiveTitle || "How Can I Help You Today?"} {/* 沿用 B 的可配置標題 */}
+            {interactiveTitle || "How Can I Help You Today?"}
           </h2>
           <p className="text-beige-700">
-            {interactiveSubtitle || "Select a purpose or enter your own to see the most relevant information."} {/* 沿用 B 的可配置副標題 */}
+            {interactiveSubtitle || "Select a purpose or enter your own to see the most relevant information."}
           </p>
         </div>
 
-        {/* 使用 A 檔案的 button 結構和 class，但使用 B 檔案的 optionButtons 數據源 */}
+        {/* Purpose option buttons */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
-          {purposeOptions.map((option) => ( // 使用內部定義的 purposeOptions
+          {purposeOptions.map((option) => (
             <button
               key={option.id}
               onClick={() => handleOptionClick(option.defaultText)}
@@ -269,24 +187,24 @@ return (
           <textarea
             ref={inputRef}
             value={purpose}
-            onChange={handleTextareaChange} // 使用 A 檔案的 auto-resize 邏輯
+            onChange={handleTextareaChange}
             placeholder={placeholder || "Tell me why you're visiting this website..."}
-            rows={1} // A 檔案的 rows=1
-            className="flex-grow bg-white border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800 rounded-md p-2 min-h-[42px] resize-none" // A 檔案的 class
-            style={{ overflow: 'hidden' }} // 配合 auto-resize
+            rows={1}
+            className="flex-grow bg-white border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800 rounded-md p-2 min-h-[42px] resize-none"
+            style={{ overflow: 'hidden' }}
           />
           <Button
             type="submit"
-            className="bg-beige-800 hover:bg-beige-700 text-white" // A 檔案的 class
-            disabled={isSearching} // A 檔案的狀態
+            className="bg-beige-800 hover:bg-beige-700 text-white"
+            disabled={isSearching}
           >
-            {isSearching ? 'Searching...' : (submitButtonText || 'Submit')} {/* 沿用 B 的可配置按鈕文字 */}
+            {isSearching ? 'Searching...' : (submitButtonText || 'Submit')}
             {!isSearching && <ArrowRight className="ml-2 w-4 h-4" />}
           </Button>
         </form>
       </div>
 
-      {/* Bottom Wave Transition with direct Tailwind class */}
+      {/* Bottom Wave Transition */}
       <WaveTransition scrollProgress={scrollProgress} position="bottom" color="fill-beige-50" />
     </motion.section>
   );
