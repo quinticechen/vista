@@ -61,9 +61,22 @@ export async function getHomePageSettingsByProfileId(profileId: string): Promise
     }
     
     // Transform from snake_case to camelCase and ensure proper typing
-    const optionButtons = Array.isArray(data.option_buttons) 
-      ? data.option_buttons as OptionButton[]
-      : [];
+    const optionButtons: OptionButton[] = [];
+    
+    if (Array.isArray(data.option_buttons)) {
+      data.option_buttons.forEach((button: any) => {
+        if (button && typeof button === 'object' && 
+            typeof button.id === 'number' && 
+            typeof button.text === 'string' && 
+            typeof button.defaultText === 'string') {
+          optionButtons.push({
+            id: button.id,
+            text: button.text,
+            defaultText: button.defaultText
+          });
+        }
+      });
+    }
     
     return {
       id: data.id,
