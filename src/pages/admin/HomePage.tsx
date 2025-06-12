@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Trash2 } from "lucide-react";
@@ -10,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   HomePageSettings, 
@@ -109,6 +108,13 @@ const HomePage = () => {
     try {
       setIsLoading(true);
       
+      // Ensure all optionButtons have required fields with proper types
+      const validOptionButtons: OptionButton[] = data.optionButtons.map((button, index) => ({
+        id: button.id ?? index + 1,
+        text: button.text ?? '',
+        defaultText: button.defaultText ?? ''
+      }));
+      
       // Prepare settings object with all required fields
       const settings: HomePageSettings = {
         profileId: userId,
@@ -120,7 +126,7 @@ const HomePage = () => {
         customInputPlaceholder: data.customInputPlaceholder || '',
         submitButtonText: data.submitButtonText,
         footerName: data.footerName,
-        optionButtons: data.optionButtons
+        optionButtons: validOptionButtons
       };
       
       const result = await saveHomePageSettings(settings);

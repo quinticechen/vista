@@ -60,7 +60,11 @@ export async function getHomePageSettingsByProfileId(profileId: string): Promise
       return null;
     }
     
-    // Transform from snake_case to camelCase
+    // Transform from snake_case to camelCase and ensure proper typing
+    const optionButtons = Array.isArray(data.option_buttons) 
+      ? data.option_buttons as OptionButton[]
+      : [];
+    
     return {
       id: data.id,
       profileId: data.profile_id,
@@ -72,7 +76,7 @@ export async function getHomePageSettingsByProfileId(profileId: string): Promise
       customInputPlaceholder: data.custom_input_placeholder,
       submitButtonText: data.submit_button_text,
       footerName: data.footer_name,
-      optionButtons: data.option_buttons || [],
+      optionButtons: optionButtons,
       updatedAt: data.updated_at
     };
   } catch (error) {
@@ -85,7 +89,7 @@ export async function saveHomePageSettings(settings: HomePageSettings): Promise<
   try {
     console.log(`Saving home page settings for profile ID: ${settings.profileId}`);
     
-    // Transform from camelCase to snake_case
+    // Transform from camelCase to snake_case and ensure JSONB compatibility
     const formattedSettings = {
       profile_id: settings.profileId,
       hero_title: settings.heroTitle,
@@ -96,7 +100,7 @@ export async function saveHomePageSettings(settings: HomePageSettings): Promise<
       custom_input_placeholder: settings.customInputPlaceholder,
       submit_button_text: settings.submitButtonText,
       footer_name: settings.footerName,
-      option_buttons: settings.optionButtons,
+      option_buttons: JSON.parse(JSON.stringify(settings.optionButtons)), // Ensure proper JSONB format
       updated_at: new Date().toISOString()
     };
 
