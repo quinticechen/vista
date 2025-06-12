@@ -15,8 +15,8 @@ const AdminLayout = () => {
       <AdminSidebar isCollapsed={isCollapsed} onToggle={handleToggle} />
       
       {/* Main content */}
-      <div className="flex-1 overflow-auto bg-gray-50">
-        <main className="py-6">
+      <div className="flex-1 overflow-auto bg-secondary/20">
+        <main className="p-6 py-6">
           <Outlet />
         </main>
       </div>
