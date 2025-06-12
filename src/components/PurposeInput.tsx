@@ -1,7 +1,13 @@
-
-import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
+import { useNavigate, useParams } from "react-router-dom";
+import WaveTransition from "./WaveTransition";
+import FloatingShapes from "./FloatingShapes";
+import { semanticSearch } from "@/services/adminService";
+import { SearchCache } from "@/utils/searchCache";
 
 interface OptionButton {
   id: number;
@@ -67,7 +73,17 @@ const PurposeInput = ({
           transition: 'all 0.3s ease'
         }}
       >
-        <div className="text-center mb-10">
+     {/* Top Wave Transition with direct Tailwind class */}
+      <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
+      
+      {/* Floating animated shapes with direct Tailwind class */}
+      <div className="absolute top-[100px] left-0 w-full">
+        <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" /> 
+      </div>
+        
+      {/* Background overlay with solid opacity */}
+      <div className="absolute inset-0 bg-beige-100 z-0"></div> 
+        <div className="text-center text-center mb-10 animate-fade-up">
           <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-3">
             {interactiveTitle || "How Can I Help You Today?"}
           </h2>
@@ -118,6 +134,10 @@ const PurposeInput = ({
             </Button>
           </div>
         </form>
+        </div>
+      
+      {/* Bottom Wave Transition with direct Tailwind class */}
+      <WaveTransition scrollProgress={scrollProgress} position="bottom" color="fill-beige-50" />
       </motion.div>
     </div>
   );
