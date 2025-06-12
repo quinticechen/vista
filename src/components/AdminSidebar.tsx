@@ -35,7 +35,9 @@ const AdminSidebar = ({ isCollapsed = false, onToggle }: AdminSidebarProps) => {
       navigate("/");
     } catch (error) {
       toast.error("Failed to log out");
-      console.error("Logout error:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Logout error:", error);
+      }
     } finally {
       setLoading(false);
     }

@@ -30,13 +30,17 @@ const UrlParamContentDetail = () => {
   useEffect(() => {
     const loadData = async () => {
       if (!urlParam || !contentId) {
-        console.error("Missing URL parameters:", { urlParam, contentId });
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Missing URL parameters:", { urlParam, contentId });
+        }
         navigate('/');
         return;
       }
       
       try {
-        console.log(`Loading content detail for urlParam: ${urlParam}, contentId: ${contentId}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Loading content detail for urlParam: ${urlParam}, contentId: ${contentId}`);
+        }
         // Load owner profile
         const profile = await getProfileByUrlParam(urlParam);
         if (!profile) {
@@ -61,7 +65,9 @@ const UrlParamContentDetail = () => {
           return;
         }
         
-        console.log("Content loaded successfully:", contentItem);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Content loaded successfully:", contentItem);
+        }
         
         // Process content for rendering
         const processedContent = processNotionContent(contentItem);
@@ -86,7 +92,9 @@ const UrlParamContentDetail = () => {
         
         setContent(processedContent);
       } catch (error) {
-        console.error("Error loading content:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Error loading content:", error);
+        }
         toast.error("Error loading content");
         navigate(`/${urlParam}/vista`);
       } finally {

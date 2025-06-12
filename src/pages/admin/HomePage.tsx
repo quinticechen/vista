@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -89,7 +90,9 @@ const HomePage = () => {
           }
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Error fetching user data:", error);
+        }
         toast.error("Failed to load settings");
       } finally {
         setIsLoading(false);
@@ -137,7 +140,9 @@ const HomePage = () => {
         toast.error("Failed to save home page settings");
       }
     } catch (error) {
-      console.error("Error saving home page settings:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Error saving home page settings:", error);
+      }
       toast.error("An error occurred while saving");
     } finally {
       setIsLoading(false);
