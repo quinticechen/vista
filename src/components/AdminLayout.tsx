@@ -1,132 +1,140 @@
 
 import { useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import { NavLink } from "@/components/ui/nav-link";
+import { NavLink, Outlet } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { Home, Settings, Languages, Search, Grid, Globe, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { LucidePanelLeft, LucideLayoutGrid, LucideGlobe, LucideText, LucideDatabase, LucideLink, LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminLayout = () => {
-  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
-  
-  const toggleSidebar = () => {
-    setCollapsed(!collapsed);
-  };
+  const [loading, setLoading] = useState(false);
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Logout error:', error);
-        toast.error("Failed to logout");
-      } else {
-        toast.success("Logged out successfully");
-        navigate("/auth");
-      }
+      setLoading(true);
+      await supabase.auth.signOut();
+      toast.success("Logged out successfully");
+      navigate("/");
     } catch (error) {
-      console.error('Logout error:', error);
-      toast.error("Failed to logout");
+      toast.error("Failed to log out");
+      console.error("Logout error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside 
-        className={`bg-secondary/20 flex flex-col h-screen sticky top-0 transition-all duration-300 ease-in-out border-r ${
-          collapsed ? "w-16" : "w-64"
-        }`}
-      >
-        {/* Toggle button */}
-        <Button 
-          variant="ghost" 
-          className="m-2 self-end"
-          onClick={toggleSidebar}
-        >
-          <LucidePanelLeft className={`transition-transform ${collapsed ? "rotate-180" : ""}`} />
-        </Button>
-        
-        <div className="p-4">
-          <h2 className={`font-bold text-xl ${collapsed ? "hidden" : "block"}`}>Admin</h2>
+      <div className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-gray-900">Admin</h1>
         </div>
-        
         <Separator />
-        
-        <nav className="p-2 flex-1 space-y-1">
-          <NavLink 
-            to="/admin" 
-            className={`flex items-center p-2 rounded-md ${
-              collapsed ? "justify-center" : "space-x-3"
-            }`}
-          >
-            <LucideLayoutGrid size={20} />
-            {!collapsed && <span>Dashboard</span>}
-          </NavLink>
-          
-          <NavLink 
-            to="/admin/url-settings" 
-            className={`flex items-center p-2 rounded-md ${
-              collapsed ? "justify-center" : "space-x-3"
-            }`}
-          >
-            <LucideLink size={20} />
-            {!collapsed && <span>URL Settings</span>}
-          </NavLink>
-          
-          <NavLink 
-            to="/admin/language-setting" 
-            className={`flex items-center p-2 rounded-md ${
-              collapsed ? "justify-center" : "space-x-3"
-            }`}
-          >
-            <LucideGlobe size={20} />
-            {!collapsed && <span>Language Settings</span>}
-          </NavLink>
-          
-          <NavLink 
-            to="/admin/embedding" 
-            className={`flex items-center p-2 rounded-md ${
-              collapsed ? "justify-center" : "space-x-3"
-            }`}
-          >
-            <LucideDatabase size={20} />
-            {!collapsed && <span>Embedding</span>}
-          </NavLink>
-          
-          <NavLink 
-            to="/admin/content" 
-            className={`flex items-center p-2 rounded-md ${
-              collapsed ? "justify-center" : "space-x-3"
-            }`}
-          >
-            <LucideText size={20} />
-            {!collapsed && <span>Content</span>}
-          </NavLink>
-        </nav>
+        <div className="flex-1 overflow-y-auto py-4 px-3">
+          <nav className="space-y-1">
+            <NavLink 
+              to="/admin" 
+              end 
+              className={({ isActive }) => 
+                `flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  isActive ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50"
+                }`
+              }
+            >
+              <Home className="mr-3 h-5 w-5" />
+              <span>Dashboard</span>
+            </NavLink>
 
-        {/* Logout button at bottom */}
-        <div className="p-2 mt-auto">
-          <Separator className="mb-2" />
-          <Button
-            variant="ghost"
+            <NavLink 
+              to="/admin/home-page" 
+              className={({ isActive }) => 
+                `flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  isActive ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50"
+                }`
+              }
+            >
+              <Globe className="mr-3 h-5 w-5" />
+              <span>Home Page</span>
+            </NavLink>
+            
+            <NavLink 
+              to="/admin/url-settings" 
+              className={({ isActive }) => 
+                `flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  isActive ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50"
+                }`
+              }
+            >
+              <Grid className="mr-3 h-5 w-5" />
+              <span>URL Settings</span>
+            </NavLink>
+            
+            <NavLink 
+              to="/admin/language-setting" 
+              className={({ isActive }) => 
+                `flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  isActive ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50"
+                }`
+              }
+            >
+              <Languages className="mr-3 h-5 w-5" />
+              <span>Languages</span>
+            </NavLink>
+            
+            <NavLink 
+              to="/admin/embedding" 
+              className={({ isActive }) => 
+                `flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  isActive ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50"
+                }`
+              }
+            >
+              <Search className="mr-3 h-5 w-5" />
+              <span>Embedding</span>
+            </NavLink>
+            
+            <NavLink 
+              to="/admin/content" 
+              className={({ isActive }) => 
+                `flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  isActive ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50"
+                }`
+              }
+            >
+              <Settings className="mr-3 h-5 w-5" />
+              <span>Content</span>
+            </NavLink>
+          </nav>
+        </div>
+        <div className="p-4 border-t border-gray-200">
+          <Button 
+            variant="destructive" 
+            className="w-full flex items-center justify-center"
             onClick={handleLogout}
-            className={`w-full flex items-center ${
-              collapsed ? "justify-center px-2" : "justify-start space-x-3 px-2"
-            }`}
+            disabled={loading}
           >
-            <LogOut size={20} />
-            {!collapsed && <span>Logout</span>}
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sign Out</span>
           </Button>
         </div>
-      </aside>
+      </div>
       
-      {/* Main content area */}
-      <main className="flex-1 p-6">
-        <Outlet />
-      </main>
+      {/* Mobile menu */}
+      <div className="md:hidden w-full bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-gray-900">Admin</h1>
+        {/* Add mobile menu button */}
+      </div>
+      
+      {/* Main content */}
+      <div className="flex-1 overflow-auto bg-gray-50">
+        <main className="py-6">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };

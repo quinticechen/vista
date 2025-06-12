@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Hero from '@/components/Hero';
@@ -6,6 +7,7 @@ import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import { Toaster } from '@/components/ui/toaster';
 import { getProfileByUrlParam } from '@/services/urlParamService';
+import { getHomePageSettingsByUrlParam, DEFAULT_HOME_PAGE_SETTINGS } from '@/services/homePageService';
 import { toast } from '@/components/ui/sonner';
 
 const Index = () => {
@@ -13,6 +15,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [scrollProgress, setScrollProgress] = useState(0);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
+  const [homePageSettings, setHomePageSettings] = useState<any>(DEFAULT_HOME_PAGE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [profileNotFound, setProfileNotFound] = useState(false);
   
@@ -30,6 +33,13 @@ const Index = () => {
           } else {
             console.log(`Profile found for ${urlParam}:`, profile);
             setOwnerProfile(profile);
+            
+            // Fetch home page settings for this URL parameter
+            const settings = await getHomePageSettingsByUrlParam(urlParam);
+            if (settings) {
+              setHomePageSettings(settings);
+            }
+            
             setProfileNotFound(false);
           }
         } catch (error) {
@@ -129,8 +139,9 @@ const Index = () => {
         <Hero 
           scrollToInput={scrollToInput} 
           scrollProgress={scrollProgress}
-          customTitle={urlParam ? `${urlParam}'s Portfolio` : undefined}
-          customSubtitle={urlParam ? `Welcome to ${urlParam}'s professional page` : undefined}
+          customTitle={homePageSettings.heroTitle}
+          customSubtitle={homePageSettings.heroSubtitle}
+          customDescription={homePageSettings.heroDescription}
         />
       </div>
       
@@ -142,14 +153,21 @@ const Index = () => {
         <PurposeInput 
           onPurposeSubmit={handlePurposeSubmit} 
           scrollProgress={scrollProgress}
-          placeholder={urlParam ? `Search ${urlParam}'s content...` : undefined}
+          placeholder={homePageSettings.customInputPlaceholder || `Search ${urlParam || ''}'s content...`}
+          interactiveTitle={homePageSettings.interactiveTitle}
+          interactiveSubtitle={homePageSettings.interactiveSubtitle}
+          submitButtonText={homePageSettings.submitButtonText}
+          optionButtons={homePageSettings.optionButtons}
         />
       </div>
       
       {/* Footer with proper z-index to appear after PurposeInput */}
       <div className="relative z-10">
-        <Footer userLanguage={ownerProfile?.default_language} 
-                supportedLanguages={ownerProfile?.supported_ai_languages} />
+        <Footer 
+          userLanguage={ownerProfile?.default_language} 
+          supportedLanguages={ownerProfile?.supported_ai_languages}
+          customName={homePageSettings.footerName}
+        />
       </div>
     </div>
   );

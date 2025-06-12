@@ -1,211 +1,125 @@
-import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
-import { useNavigate, useParams } from "react-router-dom";
-import WaveTransition from "./WaveTransition";
-import FloatingShapes from "./FloatingShapes";
-import { semanticSearch } from "@/services/adminService";
-import { SearchCache } from "@/utils/searchCache";
 
-interface PurposeOption {
-  id: string;
-  buttonText: string;
-  inputContent: string;
+import { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+
+interface OptionButton {
+  id: number;
+  text: string;
+  defaultText: string;
 }
 
 interface PurposeInputProps {
   onPurposeSubmit: (purpose: string) => void;
-  scrollProgress: number;
+  scrollProgress?: number;
   placeholder?: string;
+  interactiveTitle?: string;
+  interactiveSubtitle?: string;
+  submitButtonText?: string;
+  optionButtons?: OptionButton[];
 }
 
-const purposeOptions: PurposeOption[] = [
-  {
-    id: "hr-candidate",
-    buttonText: "HR, Seek Candidate",
-    inputContent: "I'm an HR professional in [___] field company, seeking an AI Product Manager expert in the latest technology"
-  },
-  {
-    id: "owner-consultant",
-    buttonText: "Company Owner, Seek Consultant",
-    inputContent: "I'm a company owner, I'm seeking a consultant to help with AI implementation and team training"
-  },
-  {
-    id: "owner-product",
-    buttonText: "Company Owner, Seek Product Expert",
-    inputContent: "I'm a company owner, I'm seeking a product expert to collaborate on a business"
-  },
-  {
-    id: "designer-portfolio",
-    buttonText: "Designer, Seek Portfolio Reference",
-    inputContent: "I'm a website designer, I'm seeking an example portfolio website"
-  },
-  {
-    id: "architect-reference",
-    buttonText: "Architect, Seek Architecture Reference",
-    inputContent: "I'm an architect, I'm seeking an architectural design reference"
-  }
-];
-
-const PurposeInput = ({ onPurposeSubmit, scrollProgress, placeholder }: PurposeInputProps) => {
-  const [purpose, setPurpose] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
+const PurposeInput = ({ 
+  onPurposeSubmit, 
+  scrollProgress = 0, 
+  placeholder,
+  interactiveTitle,
+  interactiveSubtitle,
+  submitButtonText,
+  optionButtons
+}: PurposeInputProps) => {
+  const [purpose, setPurpose] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { urlParam } = useParams();
 
-  const handleOptionClick = (inputContent: string) => {
-    setPurpose(inputContent);
+  // If the user clicks on a predefined button
+  const handleOptionClick = (defaultText: string) => {
+    setPurpose(defaultText);
     if (inputRef.current) {
       inputRef.current.focus();
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Focus the input when the component first renders
+  useEffect(() => {
+    if (scrollProgress > 0.8) {
+      inputRef.current?.focus();
+    }
+  }, [scrollProgress]);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (purpose.trim()) {
-      try {
-        setIsSearching(true);
-        toast({
-          title: "Searching for relevant content",
-          description: "Please wait while we find what you're looking for...",
-        });
-
-        console.log("Starting search with query:", purpose.trim());
-        
-        // Perform semantic search with the user's purpose
-        const searchResults = await semanticSearch(purpose.trim());
-
-        console.log(`Search completed. Found ${searchResults.length} results (50%+ similarity)`);
-
-        if (searchResults.length === 0) {
-          toast({
-            title: "No matches found",
-            description: "No content found with sufficient relevance (50%+). Try different keywords.",
-            variant: "destructive"
-          });
-        }
-
-        // Save search results to cache
-        SearchCache.save({
-          results: searchResults,
-          query: purpose.trim(),
-          timestamp: Date.now(),
-          showingSearchResults: true,
-          purpose: purpose.trim()
-        }, urlParam);
-
-        // Determine the correct navigation path based on whether we're on a URL parameter page
-        const targetRoute = urlParam ? `/${urlParam}/vista` : "/vista";
-        console.log(`Navigating to ${targetRoute} with search results`);
-        
-        // Navigate to the appropriate vista page with search results
-        navigate(targetRoute, {
-          state: {
-            purpose: purpose.trim(),
-            searchResults,
-            searchQuery: Date.now() // Add timestamp to force re-render
-          }
-        });
-        
-        // Reset form state
-        if (e.target) {
-          const textarea = e.target as HTMLTextAreaElement; 
-          textarea.style.height = 'auto';
-          textarea.style.height = `${textarea.scrollHeight}px`;
-        }
-      } catch (error) {
-        console.error("Exception during search:", error);
-        toast({
-          title: "Search Error",
-          description: "An error occurred during the search. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsSearching(false);
-      }
+      onPurposeSubmit(purpose);
     }
   };
 
-  // Handle textarea auto-resizing
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setPurpose(e.target.value);
-    
-    // Auto-resize the textarea
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
-  };
-
-  // Calculate background opacity based on scroll progress
-  const backgroundOpacity = Math.min(1, 0.9 + (scrollProgress * 0.1));
+  const scale = scrollProgress < 0.1 ? 0.8 : 1;
+  const opacity = scrollProgress < 0.1 ? 0 : 1;
 
   return (
-    <motion.section 
-      id="purpose-input" 
-      className="min-h-screen flex items-center py-16 px-4 md:px-8 lg:px-16 relative"
-      style={{
-        transform: `translateY(${(1 - scrollProgress) * 50}px)`,
-        position: "relative"
-      }}
-    >
-      {/* Top Wave Transition with direct Tailwind class */}
-      <WaveTransition scrollProgress={scrollProgress} position="top" color="fill-beige-100" />
-      
-      {/* Floating animated shapes with direct Tailwind class */}
-      <div className="absolute top-[100px] left-0 w-full">
-        <FloatingShapes scrollProgress={scrollProgress} position="top" color="fill-beige-100" /> 
-      </div>
-      
-      {/* Background overlay with solid opacity */}
-      <div className="absolute inset-0 bg-beige-100 z-0"></div>
-      
-      <div className="max-w-4xl mx-auto w-full z-10 relative">
-        <div className="text-center mb-10 animate-fade-up">
-          <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-4">How Can I Help You Today?</h2>
-          <p className="text-beige-700">Select a purpose or enter your own to see the most relevant information.</p>
+    <div id="purpose-input" className="min-h-screen flex flex-col items-center justify-start pt-32 pb-32 px-6 bg-beige-50">
+      <motion.div 
+        className="w-full max-w-3xl"
+        style={{ 
+          scale, 
+          opacity,
+          transition: 'all 0.3s ease'
+        }}
+      >
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-3">
+            {interactiveTitle || "How Can I Help You Today?"}
+          </h2>
+          <p className="text-lg text-beige-700">
+            {interactiveSubtitle || "Select a purpose or enter your own to see the most relevant information."}
+          </p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
-          {purposeOptions.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => handleOptionClick(option.inputContent)}
-              className="button-purpose animate-fade-up bg-white hover:bg-opacity-100 transition-all p-3 rounded-md border border-beige-300 text-beige-800 hover:border-beige-500"
-            >
-              {option.buttonText}
-            </button>
-          ))}
-        </div>
-        
-        <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3 animate-fade-up">
-          <textarea
-            ref={inputRef}
-            value={purpose}
-            onChange={handleTextareaChange}
-            placeholder={placeholder || "Tell me why you're visiting this website..."}
-            rows={1}
-            className="flex-grow bg-white border-beige-300 focus:border-beige-500 focus:ring-beige-500 text-beige-800 rounded-md p-2 min-h-[42px] resize-none"
-            style={{ overflow: 'hidden' }}
-          />
-          <Button 
-            type="submit" 
-            className="bg-beige-800 hover:bg-beige-700 text-white"
-            disabled={isSearching}
+
+        {optionButtons && optionButtons.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
+            {optionButtons.map((option) => (
+              <Button
+                key={option.id}
+                variant="outline"
+                className="border-beige-300 hover:border-beige-500 hover:bg-beige-100 text-beige-800"
+                onClick={() => handleOptionClick(option.defaultText)}
+              >
+                {option.text}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div 
+            className={`bg-white rounded-lg shadow-lg p-2 transition-all ${
+              isFocused ? 'ring-2 ring-beige-400 shadow-xl' : ''
+            }`}
           >
-            {isSearching ? 'Searching...' : 'Submit'}
-            {!isSearching && <ArrowRight className="ml-2 w-4 h-4" />}
-          </Button>
+            <textarea
+              ref={inputRef}
+              className="w-full p-4 text-lg text-beige-900 resize-none outline-none min-h-[120px] bg-transparent"
+              placeholder={placeholder || "Tell me why you're visiting this website..."}
+              value={purpose}
+              onChange={e => setPurpose(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="text-center">
+            <Button
+              type="submit"
+              size="lg"
+              className="bg-beige-800 hover:bg-beige-900 text-white px-12 py-6 text-lg h-auto"
+            >
+              {submitButtonText || "Submit"}
+            </Button>
+          </div>
         </form>
-      </div>
-      
-      {/* Bottom Wave Transition with direct Tailwind class */}
-      <WaveTransition scrollProgress={scrollProgress} position="bottom" color="fill-beige-50" />
-    </motion.section>
+      </motion.div>
+    </div>
   );
 };
 
