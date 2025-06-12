@@ -62,7 +62,7 @@ const AdminSidebar = ({ isCollapsed = false, onToggle }: AdminSidebarProps) => {
 
       {/* Desktop Sidebar */}
       <div className={`
-        hidden md:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 ease-in-out
+        hidden md:flex flex-col bg-secondary/20 border-r border-gray-200 transition-all duration-300 ease-in-out
         ${isCollapsed ? 'w-16' : 'w-64'}
       `}>
         {/* Header */}
