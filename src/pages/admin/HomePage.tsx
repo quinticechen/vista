@@ -109,10 +109,18 @@ const HomePage = () => {
     try {
       setIsLoading(true);
       
-      // Prepare settings object
+      // Prepare settings object with all required fields
       const settings: HomePageSettings = {
         profileId: userId,
-        ...data
+        heroTitle: data.heroTitle,
+        heroSubtitle: data.heroSubtitle,
+        heroDescription: data.heroDescription,
+        interactiveTitle: data.interactiveTitle,
+        interactiveSubtitle: data.interactiveSubtitle || '',
+        customInputPlaceholder: data.customInputPlaceholder || '',
+        submitButtonText: data.submitButtonText,
+        footerName: data.footerName,
+        optionButtons: data.optionButtons
       };
       
       const result = await saveHomePageSettings(settings);
