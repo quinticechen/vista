@@ -53,7 +53,7 @@ const AdminSidebar = ({ isCollapsed = false, onToggle }: AdminSidebarProps) => {
   return (
     <>
       {/* Mobile Header */}
-      <div className="md:hidden w-full bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+      <div className="md:hidden w-full bg-white border-b border-b p-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Admin</h1>
         <Button variant="ghost" size="sm" onClick={onToggle}>
           <Menu className="h-5 w-5" />
@@ -62,7 +62,7 @@ const AdminSidebar = ({ isCollapsed = false, onToggle }: AdminSidebarProps) => {
 
       {/* Desktop Sidebar */}
       <div className={`
-        hidden md:flex flex-col bg-secondary/20 border-r border-gray-200 transition-all duration-300 ease-in-out
+        hidden md:flex flex-col bg-secondary/20 border-r border-r transition-all duration-300 ease-in-out
         ${isCollapsed ? 'w-16' : 'w-64'}
       `}>
         {/* Header */}
@@ -114,8 +114,8 @@ const AdminSidebar = ({ isCollapsed = false, onToggle }: AdminSidebarProps) => {
         {/* Footer with Logout */}
         <div className="p-4 border-t border-gray-200">
           <Button 
-            variant="destructive" 
-            className={`flex items-center justify-center transition-all ${
+            variant="ghost" 
+            className={`ml-auto ${
               isCollapsed ? 'w-8 h-8 p-0' : 'w-full'
             }`}
             onClick={handleLogout}
@@ -125,6 +125,7 @@ const AdminSidebar = ({ isCollapsed = false, onToggle }: AdminSidebarProps) => {
             <LogOut className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
             {!isCollapsed && <span>Sign Out</span>}
           </Button>
+        
         </div>
       </div>
     </>
