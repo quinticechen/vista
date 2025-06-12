@@ -54,6 +54,11 @@ const PurposeInput = ({
       id: 2,
       text: "Company Owner, Seek Consultant", 
       defaultText: "I'm a company owner, I'm seeking a consultant to help with AI implementation and team training"
+    },
+    {
+      id: 3,
+      text: "Company Owner, Seek Product Expert", 
+      defaultText: "I'm a company owner, I'm seeking a product expert to collaborate on a business"
     }
   ];
 
