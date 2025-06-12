@@ -1,262 +1,384 @@
 
 # Vista Platform - Development Guide
 
-This guide supports the Document-driven Test-driven Development (DTDD) approach for the Vista platform.
+This guide provides comprehensive information for developers working on the Vista platform, following Document-driven Test-driven Development (DTDD) principles.
 
-## DTDD Workflow
+## Overview
 
-### 1. Document-First Development
-1. **Review PRD**: Understand requirements and user stories
-2. **Study Sequence Diagrams**: Understand interaction flows
-3. **Analyze Class Diagrams**: Understand system structure
-4. **Write Tests**: Create tests based on documented behavior
-5. **Implement Code**: Write minimal code to pass tests
-6. **Refactor**: Improve code while maintaining test coverage
+Vista is built using modern web technologies with a focus on AI-powered content personalization, privacy-first design, and seamless user experience. The platform follows DTDD methodology where documentation drives test creation, which in turn drives implementation.
 
-### 2. Test Categories
+## Technology Stack
 
-#### Unit Tests
-```typescript
-// Example: Content processing tests
-describe('ContentProcessor', () => {
-  it('should process Notion blocks correctly', () => {
-    const mockBlocks = [/* mock data */];
-    const result = processNotionContent(mockBlocks);
-    expect(result).toMatchSnapshot();
-  });
-});
-```
+### Frontend
+- **React 18** - Component-based UI library
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Build tool and development server
+- **Tailwind CSS** - Utility-first CSS framework
+- **Shadcn/UI** - Component library
+- **React Router DOM** - Client-side routing
+- **Framer Motion** - Animation library
+- **React Query (@tanstack/react-query)** - Data fetching and state management
 
-#### Integration Tests
-```typescript
-// Example: Notion API integration tests
-describe('NotionSyncService', () => {
-  it('should sync content from Notion database', async () => {
-    const syncResult = await syncNotionDatabase(testConfig);
-    expect(syncResult.status).toBe('success');
-    expect(syncResult.results).toHaveLength(expectedCount);
-  });
-});
-```
+### Backend & Infrastructure
+- **Supabase** - Backend-as-a-Service (Database, Auth, Storage, Edge Functions)
+- **PostgreSQL** - Primary database
+- **Edge Functions** - Serverless functions for API endpoints
 
-#### End-to-End Tests
-```typescript
-// Example: Search functionality tests
-describe('Semantic Search', () => {
-  it('should return relevant results for user query', async () => {
-    await page.goto('/vista');
-    await page.fill('[data-testid="search-input"]', 'AI machine learning');
-    await page.click('[data-testid="search-button"]');
-    
-    const results = await page.locator('[data-testid="search-result"]');
-    expect(await results.count()).toBeGreaterThan(0);
-  });
-});
-```
+### AI & Content Processing
+- **OpenAI API** - Embeddings and translations
+- **Vector Search** - Semantic content discovery
+- **Notion API** - Content synchronization
 
-### 3. Development Standards
+### Testing & Development
+- **Vitest** - Unit testing framework
+- **Jest DOM** - DOM testing utilities
+- **GitHub Actions** - CI/CD pipeline
+- **Husky** - Git hooks
+- **ESLint** - Code linting
+- **Prettier** - Code formatting
 
-#### Code Quality
-- **TypeScript**: Strict type checking enabled
-- **ESLint**: Consistent code style and error prevention
-- **Prettier**: Automated code formatting
-- **Husky**: Pre-commit hooks for quality gates
+## Architecture Principles
 
-#### Testing Requirements
-- **Minimum 80% code coverage** for new features
-- **All user stories must have corresponding tests**
-- **API endpoints must have integration tests**
-- **UI components must have unit tests**
+### Document-driven Test-driven Development (DTDD)
 
-#### Documentation Standards
-- **JSDoc comments** for all public functions
-- **README files** for each major component
-- **API documentation** for all endpoints
-- **Architecture decision records (ADRs)** for major decisions
+1. **Documentation First**: All features begin with documentation updates
+2. **Test Creation**: Tests are written based on documentation requirements
+3. **Implementation**: Code is written to pass the tests
+4. **Validation**: Features are validated against original documentation
 
-## Implementation Checklist
+### Component Architecture
 
-### Phase 1: Foundation ✅
-- [x] Supabase setup and configuration
-- [x] Authentication system
-- [x] Basic database schema
-- [x] Notion API integration
-- [x] Content synchronization pipeline
+- **Atomic Design**: Components organized by complexity (atoms, molecules, organisms)
+- **Separation of Concerns**: Business logic separated from presentation
+- **Reusability**: Components designed for maximum reuse
+- **Type Safety**: Full TypeScript coverage
 
-### Phase 2: Content Management 🔄
-- [x] NotionRenderer component system
-- [x] Media handling (images, videos, embeds)
-- [x] HEIC image support
-- [x] Content processing pipeline
-- [ ] Advanced content validation
-- [ ] Content versioning system
+### Data Flow
 
-### Phase 3: Search & Personalization
-- [x] Vector embeddings generation
-- [x] Semantic search functionality
-- [x] Basic personalization engine
-- [ ] Advanced recommendation algorithms
-- [ ] User segmentation system
-- [ ] A/B testing framework
-
-### Phase 4: Analytics & Reporting
-- [ ] Real-time analytics tracking
-- [ ] Performance dashboard
-- [ ] User engagement metrics
-- [ ] Content performance analysis
-- [ ] Export and reporting features
-
-### Phase 5: Scale & Polish
-- [ ] Performance optimization
-- [ ] Load testing
-- [ ] Security audit
-- [ ] Accessibility compliance
-- [ ] Documentation completion
+- **Unidirectional Data Flow**: Props down, events up
+- **State Management**: React Query for server state, React hooks for local state
+- **Real-time Updates**: Supabase real-time subscriptions
+- **Caching**: Intelligent caching with React Query
 
 ## Testing Strategy
 
-### Test Pyramid
-```
-    E2E Tests (Few)
-   ________________
-  Integration Tests (Some)
- ________________________
-Unit Tests (Many)
-```
+### Automated Testing Setup
 
-### Test Data Management
-- **Mock data** for unit tests
-- **Test fixtures** for integration tests
-- **Seed data** for development environment
-- **Synthetic data** for performance testing
+The project uses Vitest as the primary testing framework with the following configuration:
 
-### Continuous Integration
-```yaml
-# Example GitHub Actions workflow
-name: CI/CD Pipeline
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - name: Install dependencies
-        run: npm ci
-      - name: Run tests
-        run: npm test
-      - name: Check coverage
-        run: npm run coverage
+#### Test Scripts
+```bash
+npm test          # Run all tests once
+npm run test:watch    # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
+npm run test:ui       # Run tests with Vitest UI
 ```
 
-## Monitoring and Observability
+#### CI/CD Integration
+- **GitHub Actions**: Automated testing on push and pull requests
+- **Pre-commit Hooks**: Tests run before commits via Husky
+- **Coverage Reporting**: Minimum 80% coverage threshold
+- **Quality Gates**: Tests must pass before merge
 
-### Key Metrics
-- **Performance**: Response times, throughput, error rates
-- **Business**: User engagement, content views, search queries
-- **Technical**: Database performance, API usage, storage utilization
-
-### Logging Strategy
-```typescript
-// Structured logging example
-logger.info('Content synchronized', {
-  userId: user.id,
-  contentCount: results.length,
-  duration: Date.now() - startTime,
-  notionDatabaseId: config.databaseId
-});
+#### Test Organization
+```
+src/
+├── utils/
+│   └── __tests__/          # Utility function tests
+├── components/
+│   └── __tests__/          # Component tests
+├── services/
+│   └── __tests__/          # Service layer tests
+└── test/
+    ├── setup.ts            # Test configuration
+    └── helpers/            # Test utilities
 ```
 
-### Error Tracking
-- **Sentry** for error monitoring and alerting
-- **Custom error boundaries** for React components
-- **Graceful error handling** with user-friendly messages
-- **Error analytics** for identifying patterns
+### Test Categories
 
-## Security Considerations
+#### 1. Unit Tests
+- Individual component functionality
+- Utility function behavior
+- Service method validation
+- State management logic
 
-### Data Protection
-- **Encryption at rest** for sensitive data
-- **Encryption in transit** using HTTPS/TLS
-- **API key management** using environment variables
-- **Input validation** and sanitization
+#### 2. Integration Tests
+- Component interaction
+- API integration
+- Authentication flows
+- Data persistence
 
-### Privacy Compliance
-- **GDPR compliance** for EU users
-- **CCPA compliance** for California users
-- **Explicit consent** for data collection
-- **Data minimization** principles
+#### 3. Feature Tests
+- End-to-end user workflows
+- Business logic validation
+- Cross-component functionality
+- Performance requirements
 
-### Access Control
-- **Role-based permissions** (admin, creator, consumer)
-- **JWT authentication** for API access
-- **Row-level security** in database
-- **Rate limiting** for API endpoints
+### DTDD Test Methodology
 
-## Deployment Strategy
+#### Test Naming Convention
+Tests are named to reflect the feature or requirement they validate:
 
-### Environment Management
-- **Development**: Local development with hot reload
-- **Staging**: Production-like environment for testing
-- **Production**: Live environment with monitoring
-
-### Database Migrations
-```sql
--- Example migration
--- Migration: 001_add_content_translations.sql
-ALTER TABLE content_items 
-ADD COLUMN content_translations JSONB DEFAULT '{}'::jsonb;
-
-CREATE INDEX idx_content_translations 
-ON content_items USING gin(content_translations);
-```
-
-### Feature Flags
-```typescript
-// Feature flag usage
-const useAdvancedSearch = useFeatureFlag('advanced-search-v2');
-
-return (
-  <div>
-    {useAdvancedSearch ? 
-      <AdvancedSearchComponent /> : 
-      <BasicSearchComponent />
-    }
-  </div>
-);
-```
-
-## Performance Optimization
-
-### Frontend Optimization
-- **Code splitting** for lazy loading
-- **Image optimization** with next-gen formats
-- **Caching strategies** for API responses
-- **Bundle size monitoring**
-
-### Backend Optimization
-- **Database indexing** for fast queries
-- **Connection pooling** for database efficiency
-- **CDN usage** for static assets
-- **API response caching**
-
-### Monitoring Performance
-```typescript
-// Performance monitoring example
-const performanceObserver = new PerformanceObserver((list) => {
-  list.getEntries().forEach((entry) => {
-    if (entry.entryType === 'navigation') {
-      analytics.track('page_load_time', {
-        page: entry.name,
-        duration: entry.duration
-      });
-    }
+```javascript
+describe('Notion Webhook Syncing Feature', () => {
+  test('should display Notion template link', () => {
+    // Test implementation
+  });
+  
+  test('should save Notion settings correctly', () => {
+    // Test implementation
   });
 });
 ```
 
-This development guide provides the foundation for implementing Vista using the DTDD approach, ensuring that all development activities are guided by clear documentation and comprehensive testing.
+#### Test-Driven Development Flow
+1. **Red**: Write failing test based on documentation
+2. **Green**: Write minimal code to pass test
+3. **Refactor**: Improve code while keeping tests green
+4. **Document**: Update documentation if needed
+
+## Project Structure
+
+```
+vista/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   ├── ui/             # Base UI components (shadcn)
+│   │   ├── content/        # Content-specific components
+│   │   └── notion/         # Notion rendering components
+│   ├── pages/              # Route components
+│   │   ├── admin/          # Admin dashboard pages
+│   │   └── auth/           # Authentication pages
+│   ├── hooks/              # Custom React hooks
+│   ├── services/           # API and business logic
+│   ├── utils/              # Utility functions
+│   ├── integrations/       # Third-party integrations
+│   └── test/               # Test configuration and utilities
+├── docs/                   # Documentation
+├── supabase/               # Database and edge functions
+├── public/                 # Static assets
+└── __tests__/              # Global test files
+```
+
+## Feature Development Workflow
+
+### 1. Documentation Update
+- Update relevant documentation (PRD, technical specs)
+- Define user stories and acceptance criteria
+- Create or update class diagrams if needed
+
+### 2. Test Creation
+- Write tests based on documentation requirements
+- Ensure tests cover all specified functionality
+- Run tests to confirm they fail (Red phase)
+
+### 3. Implementation
+- Write minimal code to make tests pass (Green phase)
+- Implement full functionality iteratively
+- Refactor code for maintainability (Refactor phase)
+
+### 4. Integration
+- Test integration with existing features
+- Update related components if necessary
+- Ensure all existing tests still pass
+
+### 5. Documentation Review
+- Update implementation documentation
+- Review and update class diagrams
+- Validate against original requirements
+
+## Core Features
+
+### 1. Content Management
+- **Notion Integration**: Seamless content synchronization
+- **Rich Media Support**: Images, videos, documents
+- **Version Control**: Content versioning and history
+- **Translation**: Multi-language content support
+
+### 2. AI-Powered Features
+- **Semantic Search**: Vector-based content discovery
+- **Content Personalization**: AI-driven recommendations
+- **Automated Translation**: Multi-language support
+- **Embedding Generation**: Content vectorization
+
+### 3. User Management
+- **Authentication**: Supabase Auth integration
+- **Authorization**: Role-based access control
+- **Profile Management**: User preferences and settings
+- **Admin Dashboard**: Administrative controls
+
+### 4. Website Customization
+- **Content Editor**: Basic website content editing
+- **Style Templates**: Pre-designed styling options
+- **Real-time Preview**: Live preview of changes
+- **Brand Consistency**: Logo, colors, and typography management
+
+### 5. Analytics & Reporting
+- **Usage Analytics**: Content engagement tracking
+- **Performance Metrics**: Search and recommendation analytics
+- **User Behavior**: Interaction patterns and preferences
+
+## API Documentation
+
+### REST Endpoints
+
+#### Content Management
+- `GET /api/content` - List user content
+- `GET /api/content/:id` - Get specific content
+- `POST /api/content` - Create new content
+- `PUT /api/content/:id` - Update content
+- `DELETE /api/content/:id` - Delete content
+
+#### User Management
+- `GET /api/profile` - Get user profile
+- `PUT /api/profile` - Update user profile
+- `GET /api/settings` - Get user settings
+- `PUT /api/settings` - Update user settings
+
+#### Website Customization
+- `GET /api/website-settings` - Get website settings
+- `PUT /api/website-settings` - Update website settings
+- `GET /api/style-templates` - List available templates
+- `POST /api/style-templates/:id/apply` - Apply style template
+
+### Edge Functions
+- `sync-notion-database` - Notion content synchronization
+- `notion-webhook` - Webhook event handling
+- `generate-embeddings` - Content vectorization
+- `generate-query-embedding` - Search query vectorization
+- `get-translation-key` - Translation service access
+
+## Database Schema
+
+### Core Tables
+- `profiles` - User profiles and settings
+- `content_items` - Main content storage
+- `text_content` - Text-based content
+- `image_content` - Image metadata
+- `video_content` - Video metadata
+- `embedding_jobs` - Background job tracking
+- `notion_webhook_verifications` - Webhook security tokens
+- `website_settings` - User website customization
+- `style_templates` - Available styling options
+
+### Relationships
+- One-to-many: Profile → Content Items
+- One-to-many: Content Item → Media Content
+- One-to-one: Profile → Website Settings
+- Many-to-one: Profile → Style Template
+
+## Development Guidelines
+
+### Code Standards
+- **TypeScript**: All code must be properly typed
+- **ESLint**: Follow configured linting rules
+- **Prettier**: Consistent code formatting
+- **Naming**: Use descriptive, self-documenting names
+
+### Component Guidelines
+- **Single Responsibility**: Each component has one clear purpose
+- **Props Interface**: Define clear TypeScript interfaces
+- **Error Boundaries**: Handle errors gracefully
+- **Accessibility**: Follow WCAG guidelines
+
+### Testing Guidelines
+- **Test Coverage**: Minimum 80% coverage required
+- **Test Isolation**: Tests should not depend on each other
+- **Meaningful Assertions**: Test behavior, not implementation
+- **Documentation**: Tests serve as living documentation
+
+### Performance Guidelines
+- **Lazy Loading**: Load components and routes as needed
+- **Memoization**: Use React.memo and useMemo appropriately
+- **Bundle Optimization**: Minimize bundle size
+- **Caching**: Implement appropriate caching strategies
+
+## Security Considerations
+
+### Authentication
+- JWT tokens for session management
+- Refresh token rotation
+- Session timeout handling
+- Multi-factor authentication support
+
+### Authorization
+- Role-based access control (RBAC)
+- Resource-level permissions
+- API endpoint protection
+- Admin privilege separation
+
+### Data Protection
+- Input validation and sanitization
+- SQL injection prevention
+- XSS protection
+- CSRF token validation
+
+### Privacy Compliance
+- GDPR compliance features
+- Data export capabilities
+- Right to deletion
+- Consent management
+
+## Deployment & Operations
+
+### Environment Management
+- **Development**: Local development environment
+- **Staging**: Pre-production testing
+- **Production**: Live application environment
+
+### CI/CD Pipeline
+1. **Code Push**: Developer pushes to repository
+2. **Automated Testing**: All tests run automatically
+3. **Build Process**: Application is built and optimized
+4. **Deployment**: Automatic deployment to staging/production
+5. **Health Checks**: Post-deployment verification
+
+### Monitoring
+- Application performance monitoring
+- Error tracking and reporting
+- User analytics and behavior
+- Infrastructure health monitoring
+
+### Backup & Recovery
+- Automated database backups
+- Content backup strategies
+- Disaster recovery procedures
+- Data retention policies
+
+## Troubleshooting
+
+### Common Issues
+1. **Build Failures**: Check TypeScript errors and dependency versions
+2. **Test Failures**: Verify test setup and mock configurations
+3. **Authentication Issues**: Check Supabase configuration
+4. **Performance Issues**: Profile components and optimize queries
+
+### Debug Tools
+- React Developer Tools
+- Supabase Dashboard
+- Browser Developer Tools
+- Application logs and metrics
+
+### Support Resources
+- Internal documentation
+- Community forums
+- Technical support channels
+- Code review process
+
+## Contributing
+
+### Code Review Process
+1. Create feature branch from main
+2. Implement changes following DTDD methodology
+3. Ensure all tests pass locally
+4. Submit pull request with clear description
+5. Address review feedback
+6. Merge after approval
+
+### Documentation Updates
+- Update relevant documentation for any changes
+- Maintain consistency across all docs
+- Include examples and use cases
+- Review for clarity and completeness
+
+This development guide serves as the primary reference for all developers working on the Vista platform, ensuring consistent practices and high-quality deliverables.

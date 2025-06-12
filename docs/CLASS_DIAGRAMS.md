@@ -42,9 +42,45 @@ classDiagram
         +String defaultLanguage
         +String notionApiKey
         +String notionDatabaseId
+        +String verificationToken
+        +JsonB websiteSettings
+        +String selectedTheme
+        +JsonB customStyles
         +getPreferences(): UserPreferences
         +updateLanguageSettings(settings: LanguageSettings): boolean
         +hasNotionIntegration(): boolean
+        +updateWebsiteSettings(settings: WebsiteSettings): boolean
+        +applyTheme(themeId: String): boolean
+    }
+
+    class WebsiteSettings {
+        +UUID id
+        +UUID profileId
+        +String heroTitle
+        +String heroSubtitle
+        +String aboutText
+        +String contactEmail
+        +String logoUrl
+        +String primaryColor
+        +String secondaryColor
+        +String fontFamily
+        +JsonB customCss
+        +Date updatedAt
+        +validate(): boolean
+        +generatePreview(): PreviewData
+    }
+
+    class StyleTemplate {
+        +UUID id
+        +String name
+        +String description
+        +String category
+        +JsonB styles
+        +String previewImageUrl
+        +Boolean isActive
+        +Date createdAt
+        +apply(profileId: UUID): boolean
+        +generateCss(): String
     }
 
     class TextContent {
@@ -111,6 +147,17 @@ classDiagram
         +failJob(error: String): boolean
     }
 
+    class NotionWebhookVerification {
+        +UUID id
+        +UUID userId
+        +String token
+        +Date createdAt
+        +Date updatedAt
+        +Boolean isActive
+        +generateToken(): String
+        +validateToken(token: String): boolean
+    }
+
     ContentItem "1" -- "0..n" TextContent: contains
     ContentItem "1" -- "0..n" ImageContent: contains
     ContentItem "1" -- "0..n" VideoContent: contains
@@ -118,6 +165,9 @@ classDiagram
     ContentItem "1" -- "0..n" Testimonial: contains
     ContentItem "*" -- "1" Profile: owned by
     EmbeddingJob "*" -- "1" Profile: created by
+    Profile "1" -- "0..1" WebsiteSettings: has
+    Profile "*" -- "0..1" StyleTemplate: uses
+    NotionWebhookVerification "*" -- "1" Profile: belongs to
 ```
 
 ## 2. Frontend Component Architecture
@@ -147,8 +197,16 @@ classDiagram
         +render(): JSX.Element
     }
 
+    class PublicRoute {
+        +children: ReactNode
+        +render(): JSX.Element
+    }
+
     class AdminLayout {
         +children: ReactNode
+        +collapsed: boolean
+        +toggleSidebar(): void
+        +handleLogout(): void
         +render(): JSX.Element
     }
 
@@ -215,9 +273,54 @@ classDiagram
         +render(): JSX.Element
     }
 
+    class TranslatedText {
+        +children: ReactNode
+        +keyword: string
+        +className: string
+        +translate(): Promise<string>
+        +render(): JSX.Element
+    }
+
+    class WebhookDebugger {
+        +webhookEvents: WebhookEvent[]
+        +loadEvents(): void
+        +refreshEvents(): void
+        +render(): JSX.Element
+    }
+
+    class ContentPreview {
+        +content: ContentItem[]
+        +searchQuery: string
+        +currentLanguage: string
+        +loadContent(): void
+        +handleSearch(): void
+        +render(): JSX.Element
+    }
+
+    class StyleEditor {
+        +selectedTemplate: StyleTemplate
+        +customStyles: JsonB
+        +previewMode: boolean
+        +applyTemplate(template: StyleTemplate): void
+        +updateCustomStyles(styles: JsonB): void
+        +generatePreview(): void
+        +render(): JSX.Element
+    }
+
+    class WebsiteEditor {
+        +websiteSettings: WebsiteSettings
+        +isEditing: boolean
+        +pendingChanges: JsonB
+        +saveSettings(): void
+        +resetChanges(): void
+        +previewChanges(): void
+        +render(): JSX.Element
+    }
+
     App *-- Router
     Router *-- AuthGuard
     Router *-- AdminGuard
+    Router *-- PublicRoute
     AdminGuard *-- AdminLayout
     Router *-- ContentDisplay
     ContentDisplay *-- ContentBody
@@ -228,6 +331,11 @@ classDiagram
     NotionRenderer *-- ListRenderer
     AdminLayout *-- PurposeInput
     AdminLayout *-- LanguageSwitcher
+    AdminLayout *-- TranslatedText
+    AdminLayout *-- WebhookDebugger
+    AdminLayout *-- ContentPreview
+    AdminLayout *-- StyleEditor
+    AdminLayout *-- WebsiteEditor
 ```
 
 ## 3. Backend Service Architecture
@@ -250,6 +358,7 @@ classDiagram
         +handleWebhook(payload: WebhookPayload): Promise<boolean>
         +backupImages(blocks: Block[]): Promise<ProcessedBlocks>
         +detectHeicImages(blocks: Block[]): Block[]
+        +updateContentEmbeddings(contentId: string): Promise<boolean>
     }
 
     class TranslationService {
@@ -275,6 +384,7 @@ classDiagram
         +getContentItems(userId: string): Promise<ContentItem[]>
         +syncNotionContent(userId: string, notionConfig: NotionConfig): Promise<SyncResult>
         +generateAllEmbeddings(userId: string): Promise<EmbeddingJob>
+        +checkAdminStatus(userId: string): Promise<boolean>
     }
 
     class UrlParamService {
@@ -282,6 +392,29 @@ classDiagram
         +getProfileByUrlParam(param: string): Promise<Profile>
         +validateUrlParam(param: string): boolean
         +createUrlParam(userId: string, param: string): Promise<boolean>
+        +setUrlParam(userId: string, param: string): Promise<boolean>
+    }
+
+    class WebhookVerificationService {
+        +getUserSpecificWebhookUrl(): Promise<string>
+        +getUserVerificationToken(): Promise<string>
+        +refreshVerificationToken(userId: string): Promise<string>
+        +validateWebhookToken(token: string, userId: string): Promise<boolean>
+    }
+
+    class StyleService {
+        +getAvailableTemplates(): Promise<StyleTemplate[]>
+        +applyTemplate(userId: string, templateId: string): Promise<boolean>
+        +updateCustomStyles(userId: string, styles: JsonB): Promise<boolean>
+        +generateStylePreview(styles: JsonB): Promise<PreviewData>
+        +validateStyles(styles: JsonB): boolean
+    }
+
+    class WebsiteService {
+        +getWebsiteSettings(userId: string): Promise<WebsiteSettings>
+        +updateWebsiteSettings(userId: string, settings: WebsiteSettings): Promise<boolean>
+        +generateSitePreview(settings: WebsiteSettings): Promise<PreviewData>
+        +validateSettings(settings: WebsiteSettings): boolean
     }
 
     SupabaseClient <-- NotionSyncService
@@ -289,12 +422,16 @@ classDiagram
     SupabaseClient <-- EmbeddingService
     SupabaseClient <-- AdminService
     SupabaseClient <-- UrlParamService
+    SupabaseClient <-- WebhookVerificationService
+    SupabaseClient <-- StyleService
+    SupabaseClient <-- WebsiteService
     NotionSyncService --> EmbeddingService
     TranslationService --> NotionSyncService
     AdminService --> NotionSyncService
     AdminService --> EmbeddingService
     AdminService --> TranslationService
     UrlParamService --> AdminService
+    StyleService --> WebsiteService
 ```
 
 ## 4. Edge Function Architecture
@@ -316,6 +453,7 @@ classDiagram
         +queryDatabase(): Promise<NotionPage[]>
         +processPages(pages: NotionPage[]): Promise<ProcessedPage[]>
         +handleRemovedPages(existingPages: string[], processedPages: string[]): Promise<RemovedPage[]>
+        +updateEmbeddings(contentItems: ContentItem[]): Promise<boolean>
     }
 
     class NotionWebhook {
@@ -323,6 +461,8 @@ classDiagram
         +extractPageId(payload: WebhookPayload): string
         +findContentItem(pageId: string): Promise<ContentItem|null>
         +updateContent(contentItem: ContentItem, pageId: string): Promise<boolean>
+        +validateUserToken(token: string, userId: string): Promise<boolean>
+        +handlePageDeletion(pageId: string): Promise<boolean>
     }
 
     class GenerateEmbeddings {
@@ -355,63 +495,94 @@ classDiagram
     EdgeFunction <|-- GetTranslationKey
 ```
 
-## 5. Relationship Between Domain Models and UI Components
+## 5. Authentication and Authorization Flow
 
 ```mermaid
 classDiagram
-    class ContentItem {
-        +UUID id
-        +String title
-        +String description
-        +JsonB content
-        +getContent(): ProcessedContent
+    class AuthenticationFlow {
+        +login(credentials: Credentials): Promise<Session>
+        +logout(): Promise<void>
+        +validateSession(): Promise<boolean>
+        +refreshToken(): Promise<string>
     }
 
-    class NotionBlock {
-        +String type
-        +String text
-        +Object annotations
-        +Boolean is_list_item
-        +String list_type
-        +Boolean is_heic
-        +String media_url
-        +NotionBlock[] children
+    class AuthGuard {
+        +checkAuthentication(): Promise<boolean>
+        +redirectToLogin(): void
+        +handleAuthStateChange(): void
     }
 
-    class NotionRenderer {
-        +renderBlock(block: NotionBlock): JSX.Element
-        +renderNestedContent(block: NotionBlock, depth: number): JSX.Element
+    class AdminGuard {
+        +checkAdminStatus(userId: string): Promise<boolean>
+        +redirectToHome(): void
+        +validateAdminAccess(): Promise<boolean>
     }
 
-    class BlockRenderer {
-        +block: NotionBlock
-        +render(): JSX.Element
+    class PublicRoute {
+        +allowAnonymousAccess(): boolean
+        +handlePublicContent(): void
     }
 
-    class MediaRenderer {
-        +block: NotionBlock
-        +handleHeicImage(): JSX.Element
-        +render(): JSX.Element
+    class RoleBasedAccess {
+        +userRoles: string[]
+        +requiredRole: string
+        +checkPermission(action: string): boolean
+        +enforceAccess(): boolean
     }
 
-    class ListRenderer {
-        +items: NotionBlock[]
-        +listType: string
-        +render(): JSX.Element
-    }
-
-    class TextRenderer {
-        +text: string
-        +annotations: Object
-        +renderAnnotatedText(): JSX.Element
-    }
-
-    ContentItem --> NotionBlock: contains
-    NotionRenderer --> BlockRenderer: uses
-    BlockRenderer --> MediaRenderer: uses for media
-    BlockRenderer --> ListRenderer: uses for lists
-    BlockRenderer --> TextRenderer: uses for text
-    NotionBlock --> NotionBlock: has children
+    AuthenticationFlow --> AuthGuard
+    AuthGuard --> AdminGuard
+    AdminGuard --> RoleBasedAccess
+    AuthenticationFlow --> PublicRoute
 ```
 
-These class diagrams provide a comprehensive view of the Vista platform architecture, covering domain models, frontend components, backend services, edge functions, and their relationships. They serve as a foundation for the Document-driven Test-driven Development (DTDD) approach, guiding implementation and testing efforts.
+## 6. Testing Architecture
+
+```mermaid
+classDiagram
+    class TestRunner {
+        +framework: "Vitest"
+        +configFile: "vite.config.ts"
+        +runTests(): Promise<TestResult>
+        +runCoverage(): Promise<CoverageReport>
+        +watchMode(): void
+    }
+
+    class CIWorkflow {
+        +name: "CI/CD Pipeline"
+        +triggers: string[]
+        +runOn: "ubuntu-latest"
+        +steps: WorkflowStep[]
+        +execute(): Promise<WorkflowResult>
+    }
+
+    class PreCommitHooks {
+        +huskyConfig: Object
+        +lintStaged: Object
+        +runLinting(): Promise<boolean>
+        +runTests(): Promise<boolean>
+        +preventBadCommits(): boolean
+    }
+
+    class TestSuite {
+        +unitTests: Test[]
+        +integrationTests: Test[]
+        +e2eTests: Test[]
+        +runSuite(type: string): Promise<TestResult[]>
+    }
+
+    class CodeQuality {
+        +eslintConfig: Object
+        +prettierConfig: Object
+        +coverageThreshold: number
+        +checkQuality(): Promise<QualityReport>
+    }
+
+    TestRunner --> TestSuite
+    CIWorkflow --> TestRunner
+    PreCommitHooks --> TestRunner
+    PreCommitHooks --> CodeQuality
+    CIWorkflow --> CodeQuality
+```
+
+These class diagrams provide a comprehensive view of the Vista platform architecture, including the new website customization features, updated authentication flows, testing infrastructure, and webhook verification system. They serve as a foundation for the Document-driven Test-driven Development (DTDD) approach, guiding implementation and testing efforts.
