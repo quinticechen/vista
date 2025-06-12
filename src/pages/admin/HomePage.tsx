@@ -160,7 +160,7 @@ const HomePage = () => {
   };
 
   return (
-    <div className="container p-6">
+    <div>
       <h1 className="text-3xl font-bold mb-6">Home Page Settings</h1>
       
       <Form {...form}>
