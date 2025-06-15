@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from "@/integrations/supabase/types";
 
@@ -166,12 +165,22 @@ export const checkAdminStatus = async (userId: string): Promise<boolean> => {
   }
 };
 
-// Fetch embedding jobs
+// Fetch embedding jobs for the current user
 export const fetchEmbeddingJobs = async (): Promise<EmbeddingJob[]> => {
   try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('No authenticated user found');
+      return [];
+    }
+    
+    // Fetch only jobs created by the current user
     const { data, error } = await supabase
       .from('embedding_jobs')
       .select('*')
+      .eq('created_by', user.id)
       .order('started_at', { ascending: false });
 
     if (error) {
@@ -189,10 +198,18 @@ export const fetchEmbeddingJobs = async (): Promise<EmbeddingJob[]> => {
 // Get a single embedding job by ID
 export const getEmbeddingJob = async (jobId: string): Promise<EmbeddingJob | null> => {
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('No authenticated user found');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('embedding_jobs')
       .select('*')
       .eq('id', jobId)
+      .eq('created_by', user.id)
       .maybeSingle();
 
     if (error) {
@@ -210,9 +227,11 @@ export const getEmbeddingJob = async (jobId: string): Promise<EmbeddingJob | nul
 // Create a new embedding job
 export const createEmbeddingJob = async (userId: string): Promise<EmbeddingJob | null> => {
   try {
+    // Count only content items belonging to this user
     const { data: contentCount, error: countError } = await supabase
       .from('content_items')
-      .select('id', { count: 'exact', head: true });
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
 
     if (countError) {
       console.error('Error counting content items:', countError);
@@ -249,8 +268,19 @@ export const createEmbeddingJob = async (userId: string): Promise<EmbeddingJob |
 // Start the embedding process
 export const startEmbeddingProcess = async (jobId: string): Promise<boolean> => {
   try {
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('No authenticated user found');
+      return false;
+    }
+    
     const { error } = await supabase.functions.invoke('generate-embeddings', {
-      body: { jobId }
+      body: { 
+        jobId,
+        userId: user.id
+      }
     });
 
     if (error) {
@@ -264,4 +294,3 @@ export const startEmbeddingProcess = async (jobId: string): Promise<boolean> => 
     return false;
   }
 };
-

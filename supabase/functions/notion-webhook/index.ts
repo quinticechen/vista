@@ -1,638 +1,719 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// Follow this setup guide to integrate the Deno language server with your editor:
+// https://deno.land/manual/getting_started/setup_your_environment
+// This enables autocomplete, go to definition, etc.
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.5.0';
 import { Client } from 'https://deno.land/x/notion_sdk/src/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Global image counter map to track images per page for webhook
+const webhookImageCounterMap = new Map<string, number>();
+
+// Get and increment image index for webhook processing
+function getAndIncrementWebhookImageIndex(pageId: string): number {
+  const currentCount = webhookImageCounterMap.get(pageId) || 0;
+  const newCount = currentCount + 1;
+  webhookImageCounterMap.set(pageId, newCount);
+  return newCount;
 }
 
-interface NotionWebhookPayload {
-  type?: string;
-  challenge?: string;
-  verification_token?: string;
-  entity?: {
-    id: string;
-    type: string;
-  };
-  data?: {
-    parent?: {
-      id: string;
-      type: string;
-    };
-    updated_properties?: string[];
-    updated_blocks?: Array<{ id: string; type: string }>;
-  };
-  workspace?: {
-    id: string;
-  };
-}
-
-// Helper function to extract property values (copied from sync-notion-database)
-function extractProperty(properties: any, propertyName: string, propertyType: string): any {
-  const property = properties[propertyName];
-  if (!property) return null;
-
-  switch (propertyType) {
-    case 'title':
-      return property.title?.[0]?.plain_text || null;
-    case 'rich_text':
-      return property.rich_text?.[0]?.plain_text || null;
-    case 'select':
-      return property.select?.name || null;
-    case 'multi_select':
-      return property.multi_select?.map((item: any) => item.name) || [];
-    case 'date':
-      return property.date?.start || null;
-    default:
-      return null;
+// ENHANCED: Backup image to Supabase Storage for webhook
+async function backupWebhookImageToStorage(
+  imageUrl: string, 
+  options: {
+    supabase: any;
+    bucketName: string;
+    userId: string;
+    pageId: string;
+    imageIndex: number;
+  }
+): Promise<string | null> {
+  const { supabase, bucketName, userId, pageId, imageIndex } = options;
+  
+  try {
+    console.log(`[Webhook] Starting backup for image ${imageIndex} from page ${pageId}: ${imageUrl}`);
+    
+    // Skip backup if URL doesn't look like a Notion expiring URL
+    if (!imageUrl || (!imageUrl.includes('notion.so') && !imageUrl.includes('amazonaws.com'))) {
+      console.log(`[Webhook] Skipping backup for non-expiring URL: ${imageUrl}`);
+      return imageUrl;
+    }
+    
+    // Fetch the image from the original URL
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.error(`[Webhook] Failed to fetch image: ${response.status} ${response.statusText}`);
+      return imageUrl; // Return original URL if backup fails
+    }
+    
+    const imageBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    
+    // Create a unique filename using page ID and image index
+    const fileExtension = contentType.split('/')[1] || 'jpg';
+    const fileName = `${userId}/${pageId}/image-${imageIndex}.${fileExtension}`;
+    
+    console.log(`[Webhook] Uploading image to storage: ${fileName}`);
+    
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, imageBuffer, {
+        contentType,
+        upsert: true // Overwrite if exists
+      });
+    
+    if (error) {
+      console.error('[Webhook] Storage upload error:', error);
+      return imageUrl; // Return original URL if backup fails
+    }
+    
+    // Get the public URL for the uploaded image
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+    
+    const backupUrl = publicUrlData.publicUrl;
+    console.log(`[Webhook] Image ${imageIndex} successfully backed up to: ${backupUrl}`);
+    
+    return backupUrl;
+  } catch (error) {
+    console.error('[Webhook] Error backing up image:', error);
+    return imageUrl; // Return original URL if backup fails
   }
 }
 
-// Helper function to extract rich text (copied from sync-notion-database)
-function extractRichText(richTextArray: any[]): string {
-  if (!richTextArray || !Array.isArray(richTextArray)) return '';
-  return richTextArray.map(item => item.plain_text || '').join('');
+// FIXED: Extract annotations with proper background color handling - Enhanced version
+function extractAnnotationsSimplified(richTextArray: any[]): any[] {
+  if (!richTextArray || !Array.isArray(richTextArray) || richTextArray.length === 0) {
+    return [];
+  }
+  
+  const annotations: any[] = [];
+  let currentPosition = 0;
+  
+  for (const richText of richTextArray) {
+    if (!richText || !richText.annotations) {
+      currentPosition += (richText?.plain_text || "").length;
+      continue;
+    }
+    
+    const { bold, italic, strikethrough, underline, code, color } = richText.annotations;
+    const textLength = (richText.plain_text || "").length;
+    
+    // Check if any formatting is applied, if there's a background color, or if there's a link
+    const hasFormatting = bold || italic || strikethrough || underline || code;
+    const hasColor = color && color !== 'default';
+    const hasLink = richText.href;
+    
+    if (hasFormatting || hasColor || hasLink) {
+      const annotation: any = {
+        text: richText.plain_text,
+        start: currentPosition,
+        end: currentPosition + textLength,
+        bold: bold || false,
+        italic: italic || false,
+        strikethrough: strikethrough || false,
+        underline: underline || false,
+        code: code || false
+      };
+      
+      // Handle background colors properly (format: color_background)
+      if (color && color !== 'default') {
+        if (color.includes('_background')) {
+          const baseColor = color.replace('_background', '');
+          // Only add background_color if it's not default
+          if (baseColor && baseColor !== 'default') {
+            annotation.background_color = baseColor;
+          }
+        } else {
+          // Regular text color
+          annotation.color = color;
+        }
+      }
+      
+      // Handle links
+      if (richText.href) {
+        annotation.href = richText.href;
+      }
+      
+      annotations.push(annotation);
+    }
+    
+    currentPosition += textLength;
+  }
+  
+  return annotations;
 }
 
-// Helper function to extract annotations (simplified version)
-function extractAnnotationsSimplified(richTextArray: any[]): any[] {
-  if (!richTextArray || !Array.isArray(richTextArray)) return [];
+// Extract rich text content from Notion rich text array
+function extractRichText(richTextArray: any[]): string {
+  if (!richTextArray || !Array.isArray(richTextArray)) {
+    return "";
+  }
   
   return richTextArray
-    .filter(item => item.annotations && Object.values(item.annotations).some(val => val === true))
-    .map(item => ({
-      text: item.plain_text,
-      ...item.annotations
-    }));
+    .map((richText) => richText?.plain_text || "")
+    .join("");
 }
 
-// Helper function to process blocks (simplified version for webhook)
-async function processBlocksForWebhook(blocks: any[], notionClient: Client): Promise<any[]> {
-  const processedBlocks = [];
+// ENHANCED: Process a single block with image backup for webhook
+async function processBlockWithWebhook(
+  block: any,
+  supabase: any,
+  bucketName: string,
+  userId: string,
+  pageId: string
+): Promise<any> {
+  const blockType = block.type;
+  const baseBlock: any = { type: blockType };
   
-  for (const block of blocks) {
-    const blockType = block.type;
-    const baseBlock: any = { type: blockType };
-    
-    // Process specific block types
-    switch (blockType) {
-      case 'paragraph':
-        baseBlock.text = extractRichText(block.paragraph?.rich_text || []);
-        baseBlock.annotations = extractAnnotationsSimplified(block.paragraph?.rich_text || []);
-        break;
-      case 'heading_1':
-        baseBlock.text = extractRichText(block.heading_1?.rich_text || []);
-        baseBlock.annotations = extractAnnotationsSimplified(block.heading_1?.rich_text || []);
-        break;
-      case 'heading_2':
-        baseBlock.text = extractRichText(block.heading_2?.rich_text || []);
-        baseBlock.annotations = extractAnnotationsSimplified(block.heading_2?.rich_text || []);
-        break;
-      case 'heading_3':
-        baseBlock.text = extractRichText(block.heading_3?.rich_text || []);
-        baseBlock.annotations = extractAnnotationsSimplified(block.heading_3?.rich_text || []);
-        break;
-      case 'bulleted_list_item':
-        baseBlock.text = extractRichText(block.bulleted_list_item?.rich_text || []);
-        baseBlock.is_list_item = true;
-        baseBlock.list_type = 'bulleted_list';
-        baseBlock.annotations = extractAnnotationsSimplified(block.bulleted_list_item?.rich_text || []);
-        break;
-      case 'numbered_list_item':
-        baseBlock.text = extractRichText(block.numbered_list_item?.rich_text || []);
-        baseBlock.is_list_item = true;
-        baseBlock.list_type = 'numbered_list';
-        baseBlock.annotations = extractAnnotationsSimplified(block.numbered_list_item?.rich_text || []);
-        break;
-      case 'to_do':
-        baseBlock.text = extractRichText(block.to_do?.rich_text || []);
-        baseBlock.checked = block.to_do?.checked;
-        baseBlock.annotations = extractAnnotationsSimplified(block.to_do?.rich_text || []);
-        break;
-      case 'image':
-        baseBlock.media_type = 'image';
-        baseBlock.media_url = block.image?.type === 'external' ? 
-          block.image.external?.url : 
-          block.image?.type === 'file' ? block.image.file?.url : null;
-        baseBlock.caption = block.image?.caption ? extractRichText(block.image.caption) : null;
-        break;
-      default:
-        if (block[blockType]?.rich_text) {
-          baseBlock.text = extractRichText(block[blockType].rich_text);
-          baseBlock.annotations = extractAnnotationsSimplified(block[blockType].rich_text);
-        }
-        break;
-    }
-    
-    // Handle child blocks
-    if (block.has_children) {
-      try {
-        const { results: childBlocks } = await notionClient.blocks.children.list({
-          block_id: block.id,
-          page_size: 50,
-        });
-        baseBlock.children = await processBlocksForWebhook(childBlocks, notionClient);
-      } catch (error) {
-        console.error(`Error fetching children for block ${block.id}:`, error);
-        baseBlock.children = [];
+  // Process specific block types with background color support
+  switch (blockType) {
+    case 'paragraph':
+      baseBlock.text = extractRichText(block.paragraph.rich_text);
+      baseBlock.annotations = extractAnnotationsSimplified(block.paragraph.rich_text);
+      break;
+      
+    case 'heading_1':
+      baseBlock.text = extractRichText(block.heading_1.rich_text);
+      baseBlock.annotations = extractAnnotationsSimplified(block.heading_1.rich_text);
+      break;
+      
+    case 'heading_2':
+      baseBlock.text = extractRichText(block.heading_2.rich_text);
+      baseBlock.annotations = extractAnnotationsSimplified(block.heading_2.rich_text);
+      break;
+      
+    case 'heading_3':
+      baseBlock.text = extractRichText(block.heading_3.rich_text);
+      baseBlock.annotations = extractAnnotationsSimplified(block.heading_3.rich_text);
+      break;
+      
+    case 'bulleted_list_item':
+      baseBlock.text = extractRichText(block.bulleted_list_item.rich_text);
+      baseBlock.is_list_item = true;
+      baseBlock.list_type = 'bulleted_list';
+      baseBlock.annotations = extractAnnotationsSimplified(block.bulleted_list_item.rich_text);
+      break;
+      
+    case 'numbered_list_item':
+      baseBlock.text = extractRichText(block.numbered_list_item.rich_text);
+      baseBlock.is_list_item = true;
+      baseBlock.list_type = 'numbered_list';
+      baseBlock.annotations = extractAnnotationsSimplified(block.numbered_list_item.rich_text);
+      break;
+      
+    case 'to_do':
+      baseBlock.text = extractRichText(block.to_do.rich_text);
+      baseBlock.checked = block.to_do.checked;
+      baseBlock.annotations = extractAnnotationsSimplified(block.to_do.rich_text);
+      break;
+      
+    case 'toggle':
+      baseBlock.text = extractRichText(block.toggle.rich_text);
+      baseBlock.annotations = extractAnnotationsSimplified(block.toggle.rich_text);
+      break;
+      
+    case 'quote':
+      baseBlock.text = extractRichText(block.quote.rich_text);
+      baseBlock.annotations = extractAnnotationsSimplified(block.quote.rich_text);
+      break;
+      
+    case 'callout':
+      baseBlock.text = extractRichText(block.callout.rich_text);
+      baseBlock.icon = block.callout.icon;
+      baseBlock.annotations = extractAnnotationsSimplified(block.callout.rich_text);
+      break;
+      
+    case 'code':
+      baseBlock.text = extractRichText(block.code.rich_text);
+      baseBlock.language = block.code.language;
+      baseBlock.annotations = extractAnnotationsSimplified(block.code.rich_text);
+      break;
+      
+    case 'image':
+      // ENHANCED: Get unique image counter for this specific page and image
+      const imageIndex = getAndIncrementWebhookImageIndex(pageId);
+      
+      baseBlock.media_type = 'image';
+      
+      // Get original URL
+      const imageUrl = block.image.type === 'external' ? 
+        block.image.external.url : 
+        block.image.type === 'file' ? block.image.file.url : null;
+      
+      console.log(`[Webhook] Processing image ${imageIndex} for page ${pageId}: ${imageUrl}`);
+      
+      // Check if it's a HEIC image by examining the URL
+      const isHeic = imageUrl && (
+        imageUrl.toLowerCase().endsWith('.heic') || 
+        imageUrl.toLowerCase().includes('/heic') || 
+        imageUrl.toLowerCase().includes('heic.')
+      );
+      
+      // Mark HEIC images
+      if (isHeic) {
+        baseBlock.is_heic = true;
       }
-    }
-    
-    processedBlocks.push(baseBlock);
+      
+      // ENHANCED: Always attempt to backup the image with proper error handling
+      if (imageUrl) {
+        try {
+          const backupUrl = await backupWebhookImageToStorage(
+            imageUrl, 
+            { supabase, bucketName, userId, pageId, imageIndex }
+          );
+          baseBlock.media_url = backupUrl || imageUrl; // Use backup URL or fallback to original
+          console.log(`[Webhook] Image ${imageIndex} processed: ${baseBlock.media_url}`);
+        } catch (error) {
+          console.error(`[Webhook] Failed to backup image ${imageIndex}:`, error);
+          baseBlock.media_url = imageUrl; // Use original URL as fallback
+        }
+      } else {
+        baseBlock.media_url = null;
+      }
+      
+      baseBlock.caption = block.image.caption ? extractRichText(block.image.caption) : null;
+      break;
+      
+    case 'video':
+      // For videos, we don't download them but we try to backup thumbnails if needed
+      baseBlock.media_type = 'video';
+      baseBlock.media_url = block.video.type === 'external' ? block.video.external.url : block.video.file.url;
+      baseBlock.caption = block.video.caption ? extractRichText(block.video.caption) : null;
+      break;
+      
+    case 'embed':
+      // Handle embed blocks
+      baseBlock.media_type = 'embed';
+      baseBlock.media_url = block.embed.url;
+      baseBlock.caption = block.embed.caption ? extractRichText(block.embed.caption) : null;
+      break;
+      
+    case 'divider':
+      // Divider needs no additional properties
+      break;
+      
+    case 'table':
+      // Table needs no additional properties
+      break;
+      
+    case 'table_row':
+      // Table row needs no additional properties
+      break;
+      
+    default:
+      if (block[blockType]?.rich_text) {
+        baseBlock.text = extractRichText(block[blockType].rich_text);
+        baseBlock.annotations = extractAnnotationsSimplified(block[blockType].rich_text);
+      }
+      break;
   }
   
-  return processedBlocks;
+  return baseBlock;
 }
 
 Deno.serve(async (req) => {
   console.log('=== Notion Webhook Request ===');
   console.log('Method:', req.method);
   console.log('URL:', req.url);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Extract user_id from URL parameters for user-specific webhooks
+    // Extract user_id from URL parameters
     const url = new URL(req.url);
-    const userIdParam = url.searchParams.get('user_id');
+    const userId = url.searchParams.get('user_id');
+    console.log('User ID from URL:', userId);
+
+    if (!userId) {
+      console.error('Missing user_id parameter');
+      return new Response(
+        JSON.stringify({ error: 'user_id parameter is required' }),
+        { 
+          status: 400, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
+    }
+
+    // Check if request has content-length or body
+    const contentLength = req.headers.get('content-length');
+    console.log('Content-Length:', contentLength);
     
-    console.log('User ID from URL:', userIdParam);
-
-    const payload: NotionWebhookPayload = await req.json();
-    console.log('Webhook payload:', JSON.stringify(payload, null, 2));
-
-    // Handle Notion verification challenge (standard format)
-    if (payload.type === 'url_verification' && payload.challenge) {
-      console.log('Handling verification challenge:', payload.challenge);
-      
-      if (userIdParam) {
-        // User-specific webhook: update verification token in profiles table
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            verification_token: payload.challenge
-          })
-          .eq('id', userIdParam);
-        
-        if (updateError) {
-          console.error('Error updating verification token in profile:', updateError);
-        } else {
-          console.log('Verification token updated in profile for user:', userIdParam);
-        }
-      }
-      
-      // Return the challenge as required by Notion
+    // Handle empty requests or GET requests (like health checks)
+    if (req.method === 'GET' || contentLength === '0' || contentLength === null) {
+      console.log('Empty request or GET request - returning success for health check');
       return new Response(
-        JSON.stringify({ challenge: payload.challenge }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
+        JSON.stringify({ message: 'Webhook endpoint is healthy' }),
+        { 
+          status: 200, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
         }
       );
     }
 
-    // Handle direct verification token (Notion's actual format)
-    if (payload.verification_token) {
-      console.log('Handling direct verification token:', payload.verification_token);
+    // Parse the webhook payload with better error handling
+    let payload;
+    try {
+      const requestText = await req.text();
+      console.log('Raw request body:', requestText);
       
-      if (userIdParam) {
-        // User-specific webhook: update verification token in profiles table
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            verification_token: payload.verification_token
-          })
-          .eq('id', userIdParam);
-        
-        if (updateError) {
-          console.error('Error updating verification token in profile:', updateError);
-        } else {
-          console.log('Verification token updated in profile for user:', userIdParam);
-        }
+      if (!requestText || requestText.trim() === '') {
+        console.log('Empty request body - treating as health check');
+        return new Response(
+          JSON.stringify({ message: 'Webhook endpoint is healthy' }),
+          { 
+            status: 200, 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            } 
+          }
+        );
       }
       
-      // Return success response
+      payload = JSON.parse(requestText);
+      console.log('Webhook payload received:', JSON.stringify(payload, null, 2));
+    } catch (parseError) {
+      console.error('Failed to parse webhook payload:', parseError);
       return new Response(
-        JSON.stringify({ status: 'success', message: 'Verification token received' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
+        JSON.stringify({ error: 'Invalid JSON payload', details: parseError.message }),
+        { 
+          status: 400, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
         }
       );
     }
 
-    // Handle page events
-    if (payload.entity?.type === 'page') {
+    // Get the API keys from environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase environment variables');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { 
+          status: 500, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
+    }
+    
+    // Create a Supabase client with the service role key
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get user's Notion credentials from profile
+    console.log('Fetching user profile for user ID:', userId);
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('notion_database_id, notion_api_key')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      console.error('Profile not found:', profileError);
+      return new Response(
+        JSON.stringify({ error: 'User profile not found' }),
+        { 
+          status: 404, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
+    }
+
+    const { notion_database_id: notionDatabaseId, notion_api_key: notionApiKey } = profile;
+    console.log('User database ID:', notionDatabaseId);
+
+    if (!notionDatabaseId || !notionApiKey) {
+      console.error('User has not configured Notion credentials');
+      return new Response(
+        JSON.stringify({ error: 'User has not configured Notion credentials' }),
+        { 
+          status: 400, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
+    }
+
+    // Check if the webhook is for the user's database
+    const webhookDatabaseId = payload.data?.parent?.id;
+    const formattedUserDatabaseId = notionDatabaseId.replace(/-/g, '');
+    const formattedWebhookDatabaseId = webhookDatabaseId?.replace(/-/g, '');
+
+    console.log('Comparing database IDs:');
+    console.log('User database ID (formatted):', formattedUserDatabaseId);
+    console.log('Webhook database ID (formatted):', formattedWebhookDatabaseId);
+
+    if (formattedWebhookDatabaseId !== formattedUserDatabaseId) {
+      console.log('Webhook is not for this user\'s database, ignoring');
+      return new Response(
+        JSON.stringify({ message: 'Webhook ignored - not for this user\'s database' }),
+        { 
+          status: 200, 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          } 
+        }
+      );
+    }
+
+    // Log webhook verification record
+    try {
+      await supabase
+        .from('notion_webhook_verifications')
+        .insert({
+          verification_token: payload.id || 'unknown',
+          challenge_type: payload.type || 'unknown',
+          user_id: userId
+        });
+      console.log('Webhook verification logged successfully');
+    } catch (logError) {
+      console.error('Failed to log webhook verification:', logError);
+      // Continue processing even if logging fails
+    }
+
+    // Process the webhook based on the event type
+    if (payload.type === 'page.created' || payload.type === 'page.properties_updated' || payload.type === 'page.content_updated') {
       const pageId = payload.entity.id;
-      const eventType = payload.type;
-      
-      console.log('Processing page event:', eventType, 'for page:', pageId);
-      
-      let userId = userIdParam;
-      let userProfile = null;
-      
-      // Get user profile and API key
-      if (userId) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('notion_api_key, notion_database_id')
-          .eq('id', userId)
+      console.log(`Processing page event: ${payload.type} for page: ${pageId}`);
+
+      // Reset image counter for this page
+      webhookImageCounterMap.delete(pageId);
+
+      // Initialize the Notion client
+      const notion = new Client({ auth: notionApiKey });
+
+      try {
+        // Fetch the page details
+        console.log(`Fetching page details for: ${pageId}`);
+        const page = await notion.pages.retrieve({ page_id: pageId });
+
+        // Fetch the page blocks (content)
+        console.log(`Fetching page blocks for: ${pageId}`);
+        const { results: blocks } = await notion.blocks.children.list({
+          block_id: pageId,
+          page_size: 100,
+        });
+
+        // ENHANCED: Process blocks with reliable image backup
+        const processedBlocks = await processBlocksSimplifiedWithImageBackup(
+          blocks,
+          notion,
+          supabase,
+          'notion-images',
+          userId,
+          pageId
+        );
+
+        // Extract properties
+        const extractProperty = (properties: any, propertyName: string, propertyType: string): any => {
+          const property = properties[propertyName];
+          if (!property) return null;
+          
+          switch (propertyType) {
+            case 'title':
+              return property.title?.[0]?.plain_text || null;
+            case 'rich_text':
+              return extractRichText(property.rich_text);
+            case 'select':
+              return property.select?.name || null;
+            case 'multi_select':
+              return property.multi_select?.map((option: any) => option.name) || [];
+            case 'date':
+              return property.date?.start || null;
+            default:
+              return null;
+          }
+        };
+
+        // Prepare the content item
+        const contentItem = {
+          title: extractProperty(page.properties, 'Name', 'title') || extractProperty(page.properties, 'Title', 'title') || 'Untitled',
+          description: extractProperty(page.properties, 'Description', 'rich_text'),
+          category: extractProperty(page.properties, 'Category', 'select'),
+          tags: extractProperty(page.properties, 'Tags', 'multi_select'),
+          created_at: page.created_time,
+          updated_at: page.last_edited_time,
+          start_date: extractProperty(page.properties, 'Start date', 'date'),
+          end_date: extractProperty(page.properties, 'End date', 'date'),
+          notion_url: page.url,
+          user_id: userId,
+          content: processedBlocks,
+          notion_page_id: pageId,
+          notion_created_time: page.created_time,
+          notion_last_edited_time: page.last_edited_time,
+          notion_page_status: 'active'
+        };
+
+        console.log('Prepared content item:', JSON.stringify(contentItem, null, 2));
+
+        // Check if the content item already exists
+        const { data: existingItem } = await supabase
+          .from('content_items')
+          .select('id')
+          .eq('notion_page_id', pageId)
+          .eq('user_id', userId)
           .single();
-        
-        if (error || !profile) {
-          console.error('Error fetching user profile:', error);
-          return new Response(
-            JSON.stringify({ status: 'error', message: 'User profile not found' }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 404,
-            }
-          );
-        }
-        
-        userProfile = profile;
-      } else {
-        // Legacy support: lookup user by database ID if parent is database
-        if (payload.data?.parent?.type === 'database') {
-          const databaseId = payload.data.parent.id;
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('id, notion_api_key, notion_database_id')
-            .eq('notion_database_id', databaseId)
-            .single();
-          
-          if (error || !profile) {
-            console.log('No user found for database:', databaseId);
-            return new Response(
-              JSON.stringify({ status: 'success', message: 'No user configuration found for database' }),
-              {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200,
-              }
-            );
-          }
-          
-          userId = profile.id;
-          userProfile = profile;
-        }
-      }
 
-      // Handle page deletion events
-      if (eventType === 'page.deleted') {
-        console.log('Handling page deletion event for page:', pageId);
-        
-        try {
-          // Update the content item status to 'removed' without fetching page details
-          const { error: updateError } = await supabase
-            .from('content_items')
-            .update({
-              notion_page_status: 'removed',
-              updated_at: new Date().toISOString()
-            })
-            .eq('notion_page_id', pageId)
-            .eq('user_id', userId);
-          
-          if (updateError) {
-            console.error('Error updating content item status to removed:', updateError);
-            throw updateError;
-          }
-          
-          console.log('Content item marked as removed successfully for page:', pageId);
-          
-          return new Response(
-            JSON.stringify({ 
-              status: 'success', 
-              message: `Page marked as removed successfully`,
-              page_id: pageId,
-              user_id: userId,
-              operation: 'removed'
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            }
-          );
-          
-        } catch (error) {
-          console.error('Error handling page deletion:', error);
-          return new Response(
-            JSON.stringify({ 
-              status: 'error', 
-              message: 'Failed to mark page as removed',
-              error: error.message 
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 500,
-            }
-          );
-        }
-      }
-
-      // Handle page moved events (when page is moved out of database)
-      if (eventType === 'page.moved') {
-        console.log('Handling page moved event for page:', pageId);
-        
-        try {
-          // Update the content item status to 'removed' since page moved out of database
-          const { error: updateError } = await supabase
-            .from('content_items')
-            .update({
-              notion_page_status: 'removed',
-              updated_at: new Date().toISOString()
-            })
-            .eq('notion_page_id', pageId)
-            .eq('user_id', userId);
-          
-          if (updateError) {
-            console.error('Error updating content item status to removed:', updateError);
-            throw updateError;
-          }
-          
-          console.log('Content item marked as removed successfully for moved page:', pageId);
-          
-          return new Response(
-            JSON.stringify({ 
-              status: 'success', 
-              message: `Page marked as removed successfully`,
-              page_id: pageId,
-              user_id: userId,
-              operation: 'removed'
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            }
-          );
-          
-        } catch (error) {
-          console.error('Error handling page move:', error);
-          return new Response(
-            JSON.stringify({ 
-              status: 'error', 
-              message: 'Failed to mark page as removed',
-              error: error.message 
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 500,
-            }
-          );
-        }
-      }
-
-      // Handle page restoration event
-      if (eventType === 'page.undeleted') {
-        console.log('Handling page restoration event for page:', pageId);
-        
-        if (!userProfile.notion_api_key) {
-          console.error('No Notion API key configured for user:', userId);
-          return new Response(
-            JSON.stringify({ status: 'error', message: 'Notion API key not configured' }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 400,
-            }
-          );
-        }
-        
-        try {
-          // Initialize Notion client with user's API key
-          const notion = new Client({ auth: userProfile.notion_api_key });
-          
-          // Fetch the restored page details and process it like a normal content sync
-          console.log('Fetching restored page details for:', pageId);
-          const page = await notion.pages.retrieve({ page_id: pageId });
-          
-          // Fetch page blocks
-          console.log('Fetching page blocks for:', pageId);
-          const { results: blocks } = await notion.blocks.children.list({
-            block_id: pageId,
-            page_size: 100,
-          });
-          
-          // Process blocks using simplified processing for webhook
-          const processedBlocks = await processBlocksForWebhook(blocks, notion);
-          
-          // Extract page properties
-          const props = (page as any).properties || {};
-          
-          // Prepare content item data (matching sync-notion-database format)
-          const contentItem = {
-            title: extractProperty(props, 'Name', 'title') || extractProperty(props, 'Title', 'title') || 'Untitled',
-            description: extractProperty(props, 'Description', 'rich_text'),
-            category: extractProperty(props, 'Category', 'select'),
-            tags: extractProperty(props, 'Tags', 'multi_select'),
-            created_at: (page as any).created_time,
-            updated_at: (page as any).last_edited_time,
-            start_date: extractProperty(props, 'Start date', 'date'),
-            end_date: extractProperty(props, 'End date', 'date'),
-            notion_url: (page as any).url,
-            user_id: userId,
-            content: processedBlocks,
-            notion_page_id: pageId,
-            notion_created_time: (page as any).created_time,
-            notion_last_edited_time: (page as any).last_edited_time,
-            notion_page_status: 'active' // Restore to active status
-          };
-          
-          console.log('Prepared restored content item:', JSON.stringify(contentItem, null, 2));
-          
-          // Update existing item with restored content
+        if (existingItem) {
+          // Update existing item
           const { error: updateError } = await supabase
             .from('content_items')
             .update(contentItem)
-            .eq('notion_page_id', pageId)
-            .eq('user_id', userId);
-          
+            .eq('id', existingItem.id);
+
           if (updateError) {
-            console.error('Error updating restored content item:', updateError);
+            console.error('Error updating content item:', updateError);
             throw updateError;
           }
-          
-          console.log('Content item restored successfully:', pageId);
-          
-          return new Response(
-            JSON.stringify({ 
-              status: 'success', 
-              message: `Page restored successfully`,
-              page_id: pageId,
-              user_id: userId,
-              operation: 'restored'
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            }
-          );
-          
-        } catch (notionError) {
-          console.error('Error processing restored Notion page:', notionError);
-          return new Response(
-            JSON.stringify({ 
-              status: 'error', 
-              message: 'Failed to restore Notion content',
-              error: notionError.message 
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 500,
-            }
-          );
-        }
-      }
 
-      // Handle content update events (existing logic)
-      if (eventType === 'page.created' || eventType === 'page.properties_updated' || eventType === 'page.content_updated') {
-        if (!userProfile.notion_api_key) {
-          console.error('No Notion API key configured for user:', userId);
-          return new Response(
-            JSON.stringify({ status: 'error', message: 'Notion API key not configured' }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 400,
-            }
-          );
-        }
-        
-        try {
-          // Initialize Notion client with user's API key
-          const notion = new Client({ auth: userProfile.notion_api_key });
-          
-          // Fetch the updated page details
-          console.log('Fetching page details for:', pageId);
-          const page = await notion.pages.retrieve({ page_id: pageId });
-          
-          // Fetch page blocks
-          console.log('Fetching page blocks for:', pageId);
-          const { results: blocks } = await notion.blocks.children.list({
-            block_id: pageId,
-            page_size: 100,
-          });
-          
-          // Process blocks using simplified processing for webhook
-          const processedBlocks = await processBlocksForWebhook(blocks, notion);
-          
-          // Extract page properties
-          const props = (page as any).properties || {};
-          
-          // Prepare content item data (matching sync-notion-database format)
-          const contentItem = {
-            title: extractProperty(props, 'Name', 'title') || extractProperty(props, 'Title', 'title') || 'Untitled',
-            description: extractProperty(props, 'Description', 'rich_text'),
-            category: extractProperty(props, 'Category', 'select'),
-            tags: extractProperty(props, 'Tags', 'multi_select'),
-            created_at: (page as any).created_time,
-            updated_at: (page as any).last_edited_time,
-            start_date: extractProperty(props, 'Start date', 'date'),
-            end_date: extractProperty(props, 'End date', 'date'),
-            notion_url: (page as any).url,
-            user_id: userId,
-            content: processedBlocks,
-            notion_page_id: pageId,
-            notion_created_time: (page as any).created_time,
-            notion_last_edited_time: (page as any).last_edited_time,
-            notion_page_status: 'active'
-          };
-          
-          console.log('Prepared content item:', JSON.stringify(contentItem, null, 2));
-          
-          // Check if content item already exists
-          const { data: existingItem } = await supabase
+          console.log(`Content item updated successfully: ${existingItem.id}`);
+        } else {
+          // Insert new item
+          const { data: newItem, error: insertError } = await supabase
             .from('content_items')
-            .select('id')
-            .eq('notion_page_id', pageId)
-            .eq('user_id', userId)
-            .single();
-          
-          let operation = '';
-          if (existingItem) {
-            // Update existing item
-            const { error: updateError } = await supabase
-              .from('content_items')
-              .update(contentItem)
-              .eq('id', existingItem.id);
-            
-            if (updateError) {
-              console.error('Error updating content item:', updateError);
-              throw updateError;
-            }
-            operation = 'updated';
-            console.log('Content item updated successfully:', existingItem.id);
-          } else {
-            // Insert new item
-            const { error: insertError } = await supabase
-              .from('content_items')
-              .insert(contentItem);
-            
-            if (insertError) {
-              console.error('Error inserting content item:', insertError);
-              throw insertError;
-            }
-            operation = 'inserted';
-            console.log('Content item inserted successfully');
+            .insert(contentItem)
+            .select();
+
+          if (insertError) {
+            console.error('Error inserting content item:', insertError);
+            throw insertError;
           }
-          
-          return new Response(
-            JSON.stringify({ 
-              status: 'success', 
-              message: `Page ${operation} successfully`,
-              page_id: pageId,
-              user_id: userId,
-              operation: operation
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            }
-          );
-          
-        } catch (notionError) {
-          console.error('Error processing Notion page:', notionError);
-          return new Response(
-            JSON.stringify({ 
-              status: 'error', 
-              message: 'Failed to sync Notion content',
-              error: notionError.message 
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 500,
-            }
-          );
+
+          console.log(`Content item created successfully: ${newItem?.[0]?.id}`);
         }
+      } catch (notionError) {
+        console.error('Error processing Notion content:', notionError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to process Notion content',
+            message: notionError.message 
+          }),
+          { 
+            status: 500, 
+            headers: { 
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            } 
+          }
+        );
       }
+    } else {
+      console.log(`Unhandled webhook event type: ${payload.type}`);
     }
 
-    // Log webhook type but don't error for unknown types
-    console.log('Webhook payload type:', payload.type || 'undefined');
+    console.log('Webhook processed successfully');
     return new Response(
-      JSON.stringify({ status: 'success', message: 'Webhook received and processed' }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+      JSON.stringify({ message: 'Webhook processed successfully' }),
+      { 
+        status: 200, 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        } 
       }
     );
 
   } catch (error) {
     console.error('Webhook processing error:', error);
+    
     return new Response(
       JSON.stringify({ 
-        error: 'Internal server error',
-        message: error.message 
+        error: 'Failed to process webhook',
+        message: error.message,
+        stack: error.stack
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+      { 
+        status: 500, 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        } 
       }
     );
   }
 });
+
+// ENHANCED: Process blocks recursively with image backup and background color support
+async function processBlocksSimplifiedWithImageBackup(
+  blocks: any[],
+  notionClient: any,
+  supabase: any,
+  bucketName: string,
+  userId: string,
+  pageId?: string
+): Promise<any[]> {
+  const processedBlocks = [];
+  
+  for (const block of blocks) {
+    const currentPageId = pageId || block.id;
+    
+    // Process the current block based on its type with simplified format
+    const processedBlock = await processBlockWithWebhook(
+      block, 
+      supabase, 
+      bucketName, 
+      userId, 
+      currentPageId
+    );
+    
+    // Check if block has children
+    if (block.has_children) {
+      try {
+        const { results: childBlocks } = await notionClient.blocks.children.list({
+          block_id: block.id,
+          page_size: 100,
+        });
+        
+        const processedChildren = await processBlocksSimplifiedWithImageBackup(
+          childBlocks, 
+          notionClient, 
+          supabase, 
+          bucketName, 
+          userId, 
+          currentPageId
+        );
+        
+        processedBlock.children = processedChildren;
+      } catch (error) {
+        console.error(`Error fetching children for block ${block.id}:`, error);
+        processedBlock.children = [];
+      }
+    }
+    
+    processedBlocks.push(processedBlock);
+  }
+  
+  return processedBlocks;
+}

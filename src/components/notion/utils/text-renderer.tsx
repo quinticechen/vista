@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { NotionAnnotation } from "../types";
@@ -130,11 +129,11 @@ const renderTextBasedAnnotations = (text: string, annotations: NotionAnnotation[
 
 // Create a styled React node for a text segment based on its annotation
 const createStyledNode = (text: string, annotation: NotionAnnotation, key: string): React.ReactNode => {
-  const { bold, italic, underline, strikethrough, code, color, href } = annotation;
+  const { bold, italic, underline, strikethrough, code, color, background_color, href } = annotation;
   
   // Get style classes
   const colorClass = getColorClass(color);
-  const bgColorClass = getBackgroundColorClass(color);
+  const bgColorClass = getBackgroundColorClass(background_color);
   
   const styles = cn(
     bold && "font-bold",
@@ -174,7 +173,7 @@ const createStyledNode = (text: string, annotation: NotionAnnotation, key: strin
 
 // Helper function to get the correct text color class based on the color string
 const getColorClass = (color?: string): string => {
-  if (!color || color === "default" || color.includes("_background")) return '';
+  if (!color || color === "default") return '';
   
   switch (color) {
     case "red": return "text-red-500";
@@ -190,22 +189,22 @@ const getColorClass = (color?: string): string => {
   }
 };
 
-// Helper function to get the correct background color class based on the color string
-const getBackgroundColorClass = (color?: string): string => {
-  if (!color || !color.includes("_background")) return '';
+// ENHANCED: Helper function to get the correct background color class with all supported colors
+const getBackgroundColorClass = (background_color?: string): string => {
+  if (!background_color) return '';
   
-  const colorName = color.replace('_background', '');
-  switch (colorName) {
-    case "red": return "bg-red-100";
-    case "blue": return "bg-blue-100";
-    case "green": return "bg-green-100";
-    case "yellow": return "bg-yellow-100";
-    case "orange": return "bg-orange-100";
-    case "purple": return "bg-purple-100";
-    case "pink": return "bg-pink-100";
-    case "gray": return "bg-gray-100";
-    case "brown": return "bg-amber-100";
-    default: return "bg-gray-100";
+  switch (background_color) {
+    case "red": return "bg-red-100 dark:bg-red-900/30";
+    case "blue": return "bg-blue-100 dark:bg-blue-900/30";
+    case "green": return "bg-green-100 dark:bg-green-900/30";
+    case "yellow": return "bg-yellow-100 dark:bg-yellow-900/30";
+    case "orange": return "bg-orange-100 dark:bg-orange-900/30";
+    case "purple": return "bg-purple-100 dark:bg-purple-900/30";
+    case "pink": return "bg-pink-100 dark:bg-pink-900/30";
+    case "gray": return "bg-gray-100 dark:bg-gray-800/50";
+    case "brown": return "bg-amber-100 dark:bg-amber-900/30";
+    case "default": return "bg-gray-100 dark:bg-gray-800/50";
+    default: return "bg-gray-100 dark:bg-gray-800/50";
   }
 };
 

@@ -1,45 +1,59 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { GithubIcon, LinkedinIcon, TwitterIcon } from "lucide-react";
-import LanguageSwitcher from "./LanguageSwitcher";
+
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface FooterProps {
   userLanguage?: string;
   supportedLanguages?: string[];
+  customName?: string;
 }
 
-const Footer = ({ userLanguage, supportedLanguages }: FooterProps) => {
-  // If we have user-specific language settings, set them
-  useEffect(() => {
-    if (userLanguage) {
-      // Set default language in localStorage for language switcher
-      localStorage.setItem('preferredLanguage', userLanguage);
-    }
-    
-    if (supportedLanguages && supportedLanguages.length > 0) {
-      // Set supported languages in localStorage for language switcher
-      localStorage.setItem('supportedLanguages', JSON.stringify(supportedLanguages));
-    }
-  }, [userLanguage, supportedLanguages]);
+const Footer = ({ userLanguage, supportedLanguages, customName }: FooterProps) => {
+  const [year] = useState(() => new Date().getFullYear());
 
   return (
-    <footer className="bg-beige-900 text-beige-200">
-      <div className="container py-6 flex justify-between items-center">
-        <div>
-          <p>&copy; {new Date().getFullYear()} Chen Quintice. All rights reserved.</p>
+    <footer className="bg-beige-900 text-beige-100 py-16">
+      <div className="container mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          
+          {/* Logo and description */}
+          <div>
+            <h3 className="text-xl font-bold mb-4">{customName || "Chen Quintice"}</h3>
+            <p className="max-w-xs opacity-80">
+              Helping organizations strategize, implement, and optimize AI solutions for business growth.
+            </p>
+          </div>
+          
+          {/* Quick links */}
+          <div>
+            <h3 className="text-xl font-bold mb-4">Quick Links</h3>
+            <ul className="space-y-2">
+              <li><Link to="/" className="opacity-80 hover:opacity-100">Home</Link></li>
+              <li><Link to="/vista" className="opacity-80 hover:opacity-100">Content</Link></li>
+              <li><Link to="/about" className="opacity-80 hover:opacity-100">About</Link></li>
+              <li><Link to="/auth" className="opacity-80 hover:opacity-100">Sign In</Link></li>
+            </ul>
+          </div>
+          
+          {/* Language */}
+          <div>
+            <h3 className="text-xl font-bold mb-4">Language</h3>
+            <div className="max-w-xs">
+              {supportedLanguages && supportedLanguages.length > 0 && (
+                <LanguageSwitcher 
+                  defaultLanguage={userLanguage || 'en'}
+                  supportedLanguages={supportedLanguages}
+                />
+              )}
+            </div>
+          </div>
+          
         </div>
-        <div className="flex items-center gap-4">
-          <a href="https://github.com/chenquintice" target="_blank" rel="noopener noreferrer">
-            <GithubIcon className="h-5 w-5 hover:text-beige-300 transition-colors" />
-          </a>
-          <a href="https://linkedin.com/in/chenquintice" target="_blank" rel="noopener noreferrer">
-            <LinkedinIcon className="h-5 w-5 hover:text-beige-300 transition-colors" />
-          </a>
-          <a href="https://twitter.com/chenquintice" target="_blank" rel="noopener noreferrer">
-            <TwitterIcon className="h-5 w-5 hover:text-beige-300 transition-colors" />
-          </a>
-          <LanguageSwitcher />
+        
+        {/* Copyright */}
+        <div className="mt-12 pt-8 border-t border-beige-800 text-center opacity-60">
+          <p>&copy; {year} {customName || "Chen Quintice"}. All rights reserved.</p>
         </div>
       </div>
     </footer>

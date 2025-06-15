@@ -10,20 +10,35 @@ import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
 import { useTranslation } from '@/hooks/use-translation';
 
-const LanguageSwitcher = () => {
+interface LanguageSwitcherProps {
+  defaultLanguage?: string;
+  supportedLanguages?: string[];
+}
+
+const LanguageSwitcher = ({ defaultLanguage, supportedLanguages }: LanguageSwitcherProps) => {
   const { currentLanguage, changeLanguage, languages, isInitialized } = useTranslation();
-  const [supportedLanguages, setSupportedLanguages] = useState<string[]>(["en"]);
+  const [supportedLangs, setSupportedLangs] = useState<string[]>(supportedLanguages || ["en"]);
   
   useEffect(() => {
-    // Load supported languages from local storage
-    const saved = localStorage.getItem("supportedLanguages");
-    if (saved) {
-      setSupportedLanguages(JSON.parse(saved));
+    if (supportedLanguages) {
+      setSupportedLangs(supportedLanguages);
+    } else {
+      // Load supported languages from local storage if not provided via props
+      const saved = localStorage.getItem("supportedLanguages");
+      if (saved) {
+        setSupportedLangs(JSON.parse(saved));
+      }
     }
-  }, []);
+  }, [supportedLanguages]);
+
+  useEffect(() => {
+    if (defaultLanguage && defaultLanguage !== currentLanguage) {
+      changeLanguage(defaultLanguage);
+    }
+  }, [defaultLanguage, currentLanguage, changeLanguage]);
   
   // If only one language is supported and it's the current language, don't show the switcher
-  if (supportedLanguages.length <= 1) {
+  if (supportedLangs.length <= 1) {
     return null;
   }
   
@@ -38,7 +53,7 @@ const LanguageSwitcher = () => {
   
   // Filter languages to only show supported ones
   const filteredLanguages = languages.filter(lang => 
-    supportedLanguages.includes(lang.code)
+    supportedLangs.includes(lang.code)
   );
   
   // Get current language object

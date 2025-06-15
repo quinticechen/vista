@@ -5,6 +5,8 @@ import { ContentItem } from "@/services/adminService";
 export async function getProfileByUrlParam(urlParam: string) {
   try {
     console.log(`Looking up profile for URL parameter: ${urlParam}`);
+    
+    // With the new RLS policy, this should work for public access
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -13,9 +15,26 @@ export async function getProfileByUrlParam(urlParam: string) {
     
     if (error) {
       console.error('Error fetching profile by URL parameter:', error);
+      
+      // Handle specific error cases
+      if (error.code === 'PGRST116') {
+        // No rows found - profile doesn't exist
+        console.log(`No profile found for URL parameter: ${urlParam}`);
+        return null;
+      }
+      
+      // This should no longer happen with the new RLS policy
+      if (error.message?.includes('406') || error.code === '406') {
+        console.error('Unexpected 406 error - RLS policy may need verification');
+        return null;
+      }
+      
+      // For other errors, still return null but log them
+      console.error(`Unexpected error fetching profile: ${error.code} - ${error.message}`);
       return null;
     }
     
+    console.log(`Successfully found profile for ${urlParam}:`, data);
     return data;
   } catch (error) {
     console.error('Exception fetching profile by URL parameter:', error);

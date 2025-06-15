@@ -7,9 +7,10 @@ interface HeroProps {
   scrollProgress?: number;
   customTitle?: string;
   customSubtitle?: string;
+  customDescription?: string;
 }
 
-const Hero = ({ scrollToInput, scrollProgress = 0, customTitle, customSubtitle }: HeroProps) => {
+const Hero = ({ scrollToInput, scrollProgress = 0, customTitle, customSubtitle, customDescription }: HeroProps) => {
   return (
     <motion.section 
       className="min-h-screen flex flex-col justify-center items-center px-4 md:px-8 lg:px-16 py-16 bg-beige-50 relative"
@@ -30,8 +31,7 @@ const Hero = ({ scrollToInput, scrollProgress = 0, customTitle, customSubtitle }
           {customSubtitle ? customSubtitle : "AI Product Management Expert & Consultant"}
         </h2>
         <p className="text-base md:text-lg text-beige-600 max-w-2xl mx-auto mb-12">
-          Specialized in AI implementation strategies, team training, and product development 
-          with over 10 years of experience helping businesses integrate cutting-edge technologies.
+          {customDescription ? customDescription : "Specialized in AI implementation strategies, team training, and product development with over 10 years of experience helping businesses integrate cutting-edge technologies."}
         </p>
       </div>
       

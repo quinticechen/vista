@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
@@ -21,8 +20,8 @@ serve(async (req) => {
   }
 
   try {
-    // Get the job ID from the request body
-    const { jobId } = await req.json();
+    // Get the job ID and user ID from the request body
+    const { jobId, userId } = await req.json();
 
     if (!jobId) {
       return new Response(
@@ -31,8 +30,15 @@ serve(async (req) => {
       );
     }
 
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'User ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Start processing in the background
-    EdgeRuntime.waitUntil(processContentEmbedding(jobId));
+    EdgeRuntime.waitUntil(processContentEmbedding(jobId, userId));
 
     return new Response(
       JSON.stringify({ message: 'Embedding process started' }),
@@ -47,7 +53,7 @@ serve(async (req) => {
   }
 });
 
-async function processContentEmbedding(jobId: string) {
+async function processContentEmbedding(jobId: string, userId: string) {
   try {
     // Update job status to processing
     await supabase
@@ -58,10 +64,40 @@ async function processContentEmbedding(jobId: string) {
       })
       .eq('id', jobId);
 
-    // Get all content items
-    const { data: contentItems, error: contentError } = await supabase
+    // Find the last successful embedding job's started_at timestamp
+    const { data: lastSuccessfulJob, error: jobError } = await supabase
+      .from('embedding_jobs')
+      .select('started_at')
+      .eq('status', 'completed')
+      .eq('created_by', userId)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    if (jobError) {
+      console.warn('Error fetching last successful job:', jobError.message);
+    }
+
+    // Use the last successful job's started_at time as the cutoff for updates
+    // If no previous successful job, process all content items for the user
+    const lastEmbeddingTime = lastSuccessfulJob?.started_at || null;
+    
+    console.log(`Processing content updated after: ${lastEmbeddingTime || 'All content (no previous job found)'}`);
+    
+    // Query for content items to be processed - only those updated after last embedding started_at
+    // and only those belonging to the current user
+    let contentQuery = supabase
       .from('content_items')
-      .select('*');
+      .select('*')
+      .eq('user_id', userId);
+
+    // Add timestamp filter if we have a previous successful embedding
+    if (lastEmbeddingTime) {
+      contentQuery = contentQuery.gt('updated_at', lastEmbeddingTime);
+    }
+
+    // Get the content items
+    const { data: contentItems, error: contentError } = await contentQuery;
 
     if (contentError) {
       throw new Error(`Error fetching content items: ${contentError.message}`);
@@ -72,6 +108,21 @@ async function processContentEmbedding(jobId: string) {
       .from('embedding_jobs')
       .update({ total_items: contentItems.length })
       .eq('id', jobId);
+      
+    if (contentItems.length === 0) {
+      await supabase
+        .from('embedding_jobs')
+        .update({ 
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          error: 'No new or updated content found since last embedding job'
+        })
+        .eq('id', jobId);
+        
+      console.log(`No content to process for job ${jobId}. Marking as completed.`);
+      return;
+    }
 
     // Process each content item
     let itemsProcessed = 0;
@@ -100,7 +151,7 @@ async function processContentEmbedding(jobId: string) {
         // First convert the embedding array to a string
         const embeddingString = JSON.stringify(embedding);
         
-        // Use the store_content_embedding function we just fixed
+        // Use the store_content_embedding function
         const { data, error } = await supabase.rpc(
           'store_content_embedding',
           { 

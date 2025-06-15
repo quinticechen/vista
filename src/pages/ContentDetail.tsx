@@ -36,7 +36,9 @@ const ContentDetail = () => {
 
         setContent(data);
       } catch (error) {
-        console.error("Error fetching content detail:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Error fetching content detail:", error);
+        }
         toast.error("Failed to load content details");
         navigate("/vista");
       } finally {

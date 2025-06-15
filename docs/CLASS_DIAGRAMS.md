@@ -1,417 +1,334 @@
 
-# Vista Platform - Class Diagrams
+# Class Diagrams
 
-This document provides comprehensive class diagrams for the Vista platform, supporting the Document-driven Test-driven Development (DTDD) approach.
+This document outlines the class structure of the Vista platform, showing key relationships between data models and components.
 
-## 1. Core Domain Models
+## Data Models
 
-```mermaid
-classDiagram
-    class ContentItem {
-        +UUID id
-        +String title
-        +String description
-        +String category
-        +String[] tags
-        +Date createdAt
-        +Date updatedAt
-        +Date startDate
-        +Date endDate
-        +JsonB content
-        +Vector embedding
-        +UUID userId
-        +String notionPageId
-        +String notionUrl
-        +String notionPageStatus
-        +String translationStatus
-        +String[] translatedLanguages
-        +JsonB titleTranslations
-        +JsonB descriptionTranslations
-        +JsonB contentTranslations
-        +search(query: String): ContentItem[]
-        +translate(language: String): boolean
-        +generateEmbedding(): Vector
-    }
+### Profile
 
-    class Profile {
-        +UUID id
-        +Date createdAt
-        +Boolean isAdmin
-        +String urlParam
-        +String[] supportedAiLanguages
-        +String defaultLanguage
-        +String notionApiKey
-        +String notionDatabaseId
-        +getPreferences(): UserPreferences
-        +updateLanguageSettings(settings: LanguageSettings): boolean
-        +hasNotionIntegration(): boolean
-    }
-
-    class TextContent {
-        +UUID id
-        +UUID contentId
-        +String body
-        +String format
-        +render(): RenderResult
-    }
-
-    class ImageContent {
-        +UUID id
-        +UUID contentId
-        +String imageUrl
-        +String altText
-        +String caption
-        +detectOrientation(): Orientation
-        +isHeic(): boolean
-    }
-
-    class VideoContent {
-        +UUID id
-        +UUID contentId
-        +String videoUrl
-        +String thumbnailUrl
-        +String provider
-        +getEmbedUrl(): String
-    }
-
-    class ProductService {
-        +UUID id
-        +UUID contentId
-        +String name
-        +String details
-        +String imageUrl
-        +Number price
-        +format(): FormattedProduct
-    }
-
-    class Testimonial {
-        +UUID id
-        +UUID contentId
-        +String quote
-        +String authorName
-        +String authorTitle
-        +String authorAvatar
-        +Number rating
-        +formatRating(): String
-    }
-
-    class EmbeddingJob {
-        +UUID id
-        +Date startedAt
-        +Date completedAt
-        +Number itemsProcessed
-        +Number totalItems
-        +UUID createdBy
-        +Date updatedAt
-        +String error
-        +String status
-        +startJob(): boolean
-        +updateProgress(count: Number): boolean
-        +completeJob(): boolean
-        +failJob(error: String): boolean
-    }
-
-    ContentItem "1" -- "0..n" TextContent: contains
-    ContentItem "1" -- "0..n" ImageContent: contains
-    ContentItem "1" -- "0..n" VideoContent: contains
-    ContentItem "1" -- "0..n" ProductService: contains
-    ContentItem "1" -- "0..n" Testimonial: contains
-    ContentItem "*" -- "1" Profile: owned by
-    EmbeddingJob "*" -- "1" Profile: created by
+```
++------------------+
+|     Profile      |
++------------------+
+| id: UUID         |
+| created_at: Date |
+| is_admin: Boolean|
+| url_param: String|
+| supported_ai_languages: String[]|
+| default_language: String |
+| notion_api_key: String |
+| notion_database_id: String |
+| verification_token: String |
++------------------+
 ```
 
-## 2. Frontend Component Architecture
+### ContentItem
 
-```mermaid
-classDiagram
-    class App {
-        +render(): JSX.Element
-    }
-
-    class Router {
-        +routes: Route[]
-        +renderRoutes(): JSX.Element
-    }
-
-    class AuthGuard {
-        +children: ReactNode
-        +redirectTo: string
-        +checkAuth(): boolean
-        +render(): JSX.Element
-    }
-
-    class AdminGuard {
-        +children: ReactNode
-        +redirectTo: string
-        +checkAdminStatus(): boolean
-        +render(): JSX.Element
-    }
-
-    class AdminLayout {
-        +children: ReactNode
-        +render(): JSX.Element
-    }
-
-    class ContentDisplay {
-        +contentId: string
-        +language: string
-        +loadContent(): void
-        +render(): JSX.Element
-    }
-
-    class ContentBody {
-        +content: ContentItem
-        +language: string
-        +render(): JSX.Element
-    }
-
-    class ContentMetadata {
-        +content: ContentItem
-        +showCategory: boolean
-        +showDate: boolean
-        +formatDate(date: Date): string
-        +render(): JSX.Element
-    }
-
-    class ContentCoverImage {
-        +content: ContentItem
-        +aspectRatio: number
-        +priority: boolean
-        +render(): JSX.Element
-    }
-
-    class NotionRenderer {
-        +blocks: Block[]
-        +renderBlock(block: Block): JSX.Element
-        +groupListItems(blocks: Block[]): Block[]
-        +fixNumberedLists(blocks: Block[]): Block[]
-        +render(): JSX.Element
-    }
-
-    class MediaRenderer {
-        +block: MediaBlock
-        +handleImageError(): void
-        +render(): JSX.Element
-    }
-
-    class ListRenderer {
-        +items: ListItem[]
-        +listType: string
-        +renderItems(): JSX.Element
-    }
-
-    class PurposeInput {
-        +onSubmit: Function
-        +placeholder: string
-        +defaultValue: string
-        +handleSubmit(): void
-        +render(): JSX.Element
-    }
-
-    class LanguageSwitcher {
-        +languages: string[]
-        +currentLanguage: string
-        +onLanguageChange: Function
-        +render(): JSX.Element
-    }
-
-    App *-- Router
-    Router *-- AuthGuard
-    Router *-- AdminGuard
-    AdminGuard *-- AdminLayout
-    Router *-- ContentDisplay
-    ContentDisplay *-- ContentBody
-    ContentDisplay *-- ContentMetadata
-    ContentDisplay *-- ContentCoverImage
-    ContentBody *-- NotionRenderer
-    NotionRenderer *-- MediaRenderer
-    NotionRenderer *-- ListRenderer
-    AdminLayout *-- PurposeInput
-    AdminLayout *-- LanguageSwitcher
+```
++-------------------+
+|    ContentItem    |
++-------------------+
+| id: UUID          |
+| user_id: UUID     |
+| title: String     |
+| description: String |
+| content: JSON     |
+| category: String  |
+| tags: String[]    |
+| embedding: Vector |
+| notion_page_id: String |
+| notion_url: String|
+| start_date: Date  |
+| end_date: Date    |
+| created_at: Date  |
+| updated_at: Date  |
+| translation_status: String |
+| translated_languages: String[] |
+| title_translations: JSON |
+| description_translations: JSON |
+| content_translations: JSON |
++-------------------+
 ```
 
-## 3. Backend Service Architecture
+### EmbeddingJob
 
-```mermaid
-classDiagram
-    class SupabaseClient {
-        +auth: AuthClient
-        +storage: StorageClient
-        +realtimeClient: RealtimeClient
-        +initialize(): boolean
-        +handleAuthStateChange(): void
-    }
-
-    class NotionSyncService {
-        +apiKey: string
-        +databaseId: string
-        +syncDatabase(): Promise<SyncResult>
-        +processPageBlocks(pageId: string): Promise<ProcessedBlocks>
-        +handleWebhook(payload: WebhookPayload): Promise<boolean>
-        +backupImages(blocks: Block[]): Promise<ProcessedBlocks>
-        +detectHeicImages(blocks: Block[]): Block[]
-    }
-
-    class TranslationService {
-        +supportedLanguages: string[]
-        +defaultLanguage: string
-        +translateContent(content: ContentItem, targetLanguage: string): Promise<TranslatedContent>
-        +extractTranslatableText(blocks: Block[]): string[]
-        +reconstructWithTranslations(blocks: Block[], translations: Translation[]): Block[]
-        +updateTranslationStatus(contentId: string, status: string): Promise<boolean>
-    }
-
-    class EmbeddingService {
-        +generateEmbeddings(items: ContentItem[]): Promise<EmbeddingResult[]>
-        +generateQueryEmbedding(query: string): Promise<Vector>
-        +semanticSearch(query: string): Promise<SearchResult[]>
-        +createEmbeddingJob(userId: string): Promise<EmbeddingJob>
-        +updateJobProgress(jobId: string, progress: number): Promise<boolean>
-    }
-
-    class AdminService {
-        +getUserProfile(userId: string): Promise<Profile>
-        +updateProfile(userId: string, profile: ProfileUpdate): Promise<Profile>
-        +getContentItems(userId: string): Promise<ContentItem[]>
-        +syncNotionContent(userId: string, notionConfig: NotionConfig): Promise<SyncResult>
-        +generateAllEmbeddings(userId: string): Promise<EmbeddingJob>
-    }
-
-    class UrlParamService {
-        +getContentByUrlParam(param: string): Promise<ContentItem[]>
-        +getProfileByUrlParam(param: string): Promise<Profile>
-        +validateUrlParam(param: string): boolean
-        +createUrlParam(userId: string, param: string): Promise<boolean>
-    }
-
-    SupabaseClient <-- NotionSyncService
-    SupabaseClient <-- TranslationService
-    SupabaseClient <-- EmbeddingService
-    SupabaseClient <-- AdminService
-    SupabaseClient <-- UrlParamService
-    NotionSyncService --> EmbeddingService
-    TranslationService --> NotionSyncService
-    AdminService --> NotionSyncService
-    AdminService --> EmbeddingService
-    AdminService --> TranslationService
-    UrlParamService --> AdminService
+```
++--------------------+
+|   EmbeddingJob    |
++--------------------+
+| id: UUID          |
+| created_by: UUID   |
+| status: String    |
+| total_items: Number |
+| items_processed: Number |
+| started_at: Date  |
+| completed_at: Date |
+| updated_at: Date   |
+| error: String      |
++--------------------+
 ```
 
-## 4. Edge Function Architecture
+### NotionWebhookVerification
 
-```mermaid
-classDiagram
-    class EdgeFunction {
-        +corsHeaders: Object
-        +handleOptions(): Response
-        +validateAuth(req: Request): User|null
-        +handleErrors(error: Error): Response
-    }
-
-    class SyncNotionDatabase {
-        +notionApiKey: string
-        +notionDatabaseId: string
-        +userId: string
-        +execute(): Promise<SyncResult>
-        +queryDatabase(): Promise<NotionPage[]>
-        +processPages(pages: NotionPage[]): Promise<ProcessedPage[]>
-        +handleRemovedPages(existingPages: string[], processedPages: string[]): Promise<RemovedPage[]>
-    }
-
-    class NotionWebhook {
-        +handleEvent(payload: WebhookPayload): Promise<Response>
-        +extractPageId(payload: WebhookPayload): string
-        +findContentItem(pageId: string): Promise<ContentItem|null>
-        +updateContent(contentItem: ContentItem, pageId: string): Promise<boolean>
-    }
-
-    class GenerateEmbeddings {
-        +userId: string
-        +execute(): Promise<EmbeddingJobResult>
-        +getUnembeddedItems(): Promise<ContentItem[]>
-        +createEmbedding(text: string): Promise<Vector>
-        +storeEmbedding(contentId: string, embedding: Vector): Promise<boolean>
-        +updateJobStatus(jobId: string, status: JobStatus): Promise<boolean>
-    }
-
-    class GenerateQueryEmbedding {
-        +query: string
-        +execute(): Promise<QueryEmbeddingResult>
-        +sanitizeQuery(query: string): string
-        +createEmbedding(query: string): Promise<Vector>
-    }
-
-    class GetTranslationKey {
-        +userId: string
-        +validateAdmin(userId: string): Promise<boolean>
-        +getTranslationApiKey(): Promise<string|null>
-        +execute(): Promise<TranslationKeyResult>
-    }
-
-    EdgeFunction <|-- SyncNotionDatabase
-    EdgeFunction <|-- NotionWebhook
-    EdgeFunction <|-- GenerateEmbeddings
-    EdgeFunction <|-- GenerateQueryEmbedding
-    EdgeFunction <|-- GetTranslationKey
+```
++---------------------------+
+| NotionWebhookVerification |
++---------------------------+
+| id: UUID                 |
+| verification_token: String |
+| challenge_type: String    |
+| created_at: Date          |
+| received_at: Date         |
+| user_id: UUID            |
++---------------------------+
 ```
 
-## 5. Relationship Between Domain Models and UI Components
+### HomePageSettings
 
-```mermaid
-classDiagram
-    class ContentItem {
-        +UUID id
-        +String title
-        +String description
-        +JsonB content
-        +getContent(): ProcessedContent
-    }
-
-    class NotionBlock {
-        +String type
-        +String text
-        +Object annotations
-        +Boolean is_list_item
-        +String list_type
-        +Boolean is_heic
-        +String media_url
-        +NotionBlock[] children
-    }
-
-    class NotionRenderer {
-        +renderBlock(block: NotionBlock): JSX.Element
-        +renderNestedContent(block: NotionBlock, depth: number): JSX.Element
-    }
-
-    class BlockRenderer {
-        +block: NotionBlock
-        +render(): JSX.Element
-    }
-
-    class MediaRenderer {
-        +block: NotionBlock
-        +handleHeicImage(): JSX.Element
-        +render(): JSX.Element
-    }
-
-    class ListRenderer {
-        +items: NotionBlock[]
-        +listType: string
-        +render(): JSX.Element
-    }
-
-    class TextRenderer {
-        +text: string
-        +annotations: Object
-        +renderAnnotatedText(): JSX.Element
-    }
-
-    ContentItem --> NotionBlock: contains
-    NotionRenderer --> BlockRenderer: uses
-    BlockRenderer --> MediaRenderer: uses for media
-    BlockRenderer --> ListRenderer: uses for lists
-    BlockRenderer --> TextRenderer: uses for text
-    NotionBlock --> NotionBlock: has children
+```
++-------------------------+
+|    HomePageSettings     |
++-------------------------+
+| id: UUID                |
+| profileId: UUID         |
+| heroTitle: String       |
+| heroSubtitle: String    |
+| heroDescription: String |
+| interactiveTitle: String |
+| interactiveSubtitle: String |
+| customInputPlaceholder: String |
+| submitButtonText: String |
+| footerName: String      |
+| optionButtons: OptionButton[] |
+| updatedAt: Date         |
++-------------------------+
 ```
 
-These class diagrams provide a comprehensive view of the Vista platform architecture, covering domain models, frontend components, backend services, edge functions, and their relationships. They serve as a foundation for the Document-driven Test-driven Development (DTDD) approach, guiding implementation and testing efforts.
+### OptionButton
+
+```
++-------------------+
+|    OptionButton   |
++-------------------+
+| id: Number        |
+| text: String      |
+| defaultText: String |
++-------------------+
+```
+
+### StyleTemplate
+
+```
++-------------------+
+|   StyleTemplate   |
++-------------------+
+| id: UUID          |
+| name: String      |
+| description: String |
+| category: String  |
+| styles: JSON      |
+| previewImageUrl: String |
+| isActive: Boolean |
+| createdAt: Date   |
++-------------------+
+```
+
+### WebsiteSettings
+
+```
++-------------------+
+|  WebsiteSettings  |
++-------------------+
+| id: UUID          |
+| profileId: UUID   |
+| heroTitle: String |
+| heroSubtitle: String |
+| aboutText: String |
+| contactEmail: String |
+| logoUrl: String   |
+| primaryColor: String |
+| secondaryColor: String |
+| fontFamily: String |
+| customCss: JSON   |
+| updatedAt: Date   |
++-------------------+
+```
+
+## Component Structure
+
+### Core Components
+
+```
++-------------------+
+|       App         |
++-------------------+
+| Routes            |
+| QueryClient       |
+| TooltipProvider   |
+| Toaster           |
++-------------------+
+        |
+        v
++-------------------+
+|      Layout       |
++-------------------+
+| Header            |
+| Main Content      |
+| Footer            |
++-------------------+
+        |
+        v
++------------------------------------------+
+|                                          |
+|              Page Components             |
+|                                          |
++------------+------------+----------------+
+|   Index    |    Vista   |  ContentDetail |
++------------+------------+----------------+
+       |           |             |
+       v           v             v
++------------+------------+----------------+
+|    Hero    | PurposeInput| ContentDisplay |
++------------+------------+----------------+
+```
+
+### Admin Components
+
+```
++-------------------+
+|    AdminLayout    |
++-------------------+
+| Navigation        |
+| Outlet            |
+| Sign Out Button   |
++-------------------+
+        |
+        v
++---------------------------------------------------------------+
+|                                                               |
+|                     Admin Page Components                      |
+|                                                               |
++---------+----------+-------------+--------------+-------------+
+|  Index  |  HomePage | UrlSettings | LanguageSetting| Embedding |
++---------+----------+-------------+--------------+-------------+
+     |         |            |              |             |
+     v         v            v              v             v
++---------+----------+-------------+--------------+-------------+
+| AdminDash|HomePageForm|UrlParamSetting|LanguageSetting|EmbeddingJobs|
++---------+----------+-------------+--------------+-------------+
+```
+
+## Service Layer
+
+```
++-------------------+
+|  AdminService     |
++-------------------+
+| checkAdminStatus()  |
+| fetchEmbeddingJobs()|
+| createEmbeddingJob()|
+| startEmbeddingProcess() |
++-------------------+
+
++-------------------+
+| UrlParamService   |
++-------------------+
+| getProfileByUrlParam() |
+| setUrlParam()     |
+| getContentItemById() |
+| getUserContentItems() |
+| searchUserContent() |
++-------------------+
+
++-------------------+
+| TranslationService|
++-------------------+
+| translateText()   |
+| getTranslation()  |
+| getLanguageName() |
++-------------------+
+
++-------------------+
+| HomePageService   |
++-------------------+
+| getHomePageSettingsByProfileId() |
+| saveHomePageSettings() |
+| getHomePageSettingsByUrlParam() |
++-------------------+
+
++----------------------------+
+| WebhookVerificationService |
++----------------------------+
+| createVerificationToken()   |
+| getVerificationToken()     |
+| verifyWebhookChallenge()   |
++----------------------------+
+```
+
+## Relationships
+
+1. **Profile to ContentItem**: One-to-many relationship. A profile can have multiple content items.
+
+2. **Profile to EmbeddingJob**: One-to-many relationship. A user can create multiple embedding jobs.
+
+3. **Profile to NotionWebhookVerification**: One-to-many relationship. A profile can have multiple webhook verifications.
+
+4. **Profile to HomePageSettings**: One-to-one relationship. Each profile has one set of home page settings.
+
+5. **HomePageSettings to OptionButtons**: One-to-many relationship. A home page settings can have 0-6 option buttons.
+
+6. **Profile to WebsiteSettings**: One-to-one relationship. Each profile has one set of website settings.
+
+## Authentication Flow
+
+```
++----------------+     +----------------+     +----------------+
+|                |     |                |     |                |
+|   Auth Page    | --> | Supabase Auth  | --> |   Redirect     |
+|                |     |                |     |                |
++----------------+     +----------------+     +----------------+
+        ^                                           |
+        |                                           v
++----------------+                         +----------------+
+|                |                         |                |
+|   Admin Guard  | <---------------------- |  Admin Page    |
+|                |                         |                |
++----------------+                         +----------------+
+```
+
+## URL Parameter Flow
+
+```
++----------------+     +----------------+     +----------------+
+|                |     |                |     |                |
+|   /:urlParam   | --> | Profile Lookup | --> | Custom Content |
+|                |     |                |     |                |
++----------------+     +----------------+     +----------------+
+        |                                           |
+        v                                           v
++----------------+                         +----------------+
+|                |                         |                |
+| UrlParamVista  | ----------------------> | User Content   |
+|                |                         |                |
++----------------+                         +----------------+
+```
+
+## Home Page Customization Flow
+
+```
++------------------+      +------------------+      +------------------+
+|                  |      |                  |      |                  |
+| Admin HomePage   | ---> | HomePageSettings | ---> | Save to Database |
+|                  |      | Form             |      |                  |
++------------------+      +------------------+      +------------------+
+         |                                                |
+         |                                                v
++------------------+                            +------------------+
+|                  |                            |                  |
+| URL Parameter    | <------------------------- | Apply Settings   |
+| Index Page       |                            | to Frontend      |
++------------------+                            +------------------+
+```
+
+These class diagrams provide a high-level overview of the Vista platform's architecture, showing key components, their relationships, and data flows. As the application evolves, these diagrams will be updated to reflect changes in the system design.

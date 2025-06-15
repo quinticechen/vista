@@ -1,4 +1,3 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
@@ -140,22 +139,31 @@ export const ToggleRenderer: React.FC<BlockRendererProps> = ({ block, index, lis
   );
 };
 
-// Component for table blocks
-export const TableRenderer: React.FC<BlockRendererProps> = ({ block, index, listPath }) => {
-  const { children, has_column_header, has_row_header } = block;
+// FIXED: Component for table blocks with improved rendering and proper typing
+export const TableRenderer: React.FC<BlockRendererProps> = ({ block, index, listPath, renderNested }) => {
+  const { children, rows, has_column_header, has_row_header, table_width } = block;
   
-  if (!children || children.length === 0) return null;
+  // Use rows if available (new format), fallback to children (old format)
+  const tableRows = rows || children;
+  
+  if (!tableRows || tableRows.length === 0) return null;
   
   return (
     <div key={`table-${listPath}-${index}`} className="my-4 overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200 border">
         <tbody>
-          {children.map((row, rowIndex) => (
+          {tableRows.map((row, rowIndex) => (
             <tr key={`row-${rowIndex}`} className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-              {row.children && row.children.map((cell, cellIndex) => {
+              {/* Handle both new format (row.cells) and old format (row.children) */}
+              {(row.cells || row.children || []).map((cell, cellIndex) => {
                 const isHeader = (has_column_header && rowIndex === 0) || 
                                 (has_row_header && cellIndex === 0);
                 const CellTag = isHeader ? 'th' : 'td';
+                
+                // Handle both new format (cell.text/annotations) and old format (cell.text)
+                const cellContent = cell.text || cell.content || '';
+                const cellAnnotations = cell.annotations || [];
+                
                 return (
                   <CellTag 
                     key={`cell-${cellIndex}`}
@@ -164,7 +172,11 @@ export const TableRenderer: React.FC<BlockRendererProps> = ({ block, index, list
                       isHeader && "font-semibold bg-gray-100"
                     )}
                   >
-                    {cell.text && renderTextWithLineBreaks(cell)}
+                    {cellAnnotations.length > 0 ? (
+                      renderTextWithLineBreaks({ text: cellContent, annotations: cellAnnotations })
+                    ) : (
+                      cellContent
+                    )}
                   </CellTag>
                 );
               })}

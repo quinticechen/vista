@@ -120,6 +120,97 @@ export type Database = {
         }
         Relationships: []
       }
+      home_page_settings: {
+        Row: {
+          created_at: string | null
+          custom_input_placeholder: string | null
+          footer_name: string
+          hero_description: string | null
+          hero_subtitle: string
+          hero_title: string
+          id: string
+          interactive_subtitle: string | null
+          interactive_title: string
+          option_buttons: Json | null
+          profile_id: string
+          submit_button_text: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_input_placeholder?: string | null
+          footer_name: string
+          hero_description?: string | null
+          hero_subtitle: string
+          hero_title: string
+          id?: string
+          interactive_subtitle?: string | null
+          interactive_title: string
+          option_buttons?: Json | null
+          profile_id: string
+          submit_button_text: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_input_placeholder?: string | null
+          footer_name?: string
+          hero_description?: string | null
+          hero_subtitle?: string
+          hero_title?: string
+          id?: string
+          interactive_subtitle?: string | null
+          interactive_title?: string
+          option_buttons?: Json | null
+          profile_id?: string
+          submit_button_text?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_page_settings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notion_webhook_verifications: {
+        Row: {
+          challenge_type: string | null
+          created_at: string | null
+          id: string
+          received_at: string | null
+          user_id: string | null
+          verification_token: string
+        }
+        Insert: {
+          challenge_type?: string | null
+          created_at?: string | null
+          id?: string
+          received_at?: string | null
+          user_id?: string | null
+          verification_token: string
+        }
+        Update: {
+          challenge_type?: string | null
+          created_at?: string | null
+          id?: string
+          received_at?: string | null
+          user_id?: string | null
+          verification_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notion_webhook_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null

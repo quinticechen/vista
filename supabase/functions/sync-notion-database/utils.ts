@@ -1,214 +1,189 @@
 
-import { Client } from 'https://deno.land/x/notion_sdk/src/mod.ts';
-import { ImageBackupOptions } from './types.ts';
+// Utility functions for sync-notion-database Edge Function
 
-// Counter for tracking image counts per page to ensure unique filenames
-const pageImageCounts = new Map<string, number>();
+// Global image counter map to track images per page
+const imageCounterMap = new Map<string, number>();
 
-// Helper function to extract properties from Notion page object based on property type
-export function extractProperty(props: Record<string, any>, propertyName: string, propertyType: string): any {
-  if (!props || !propertyName) return null;
-  
-  // Try to find the property (case-insensitive)
-  const property = Object.entries(props).find(([key]) => 
-    key.toLowerCase() === propertyName.toLowerCase()
-  );
-  
-  if (!property) return null;
-  
-  const [_, value] = property;
-  
-  switch (propertyType) {
-    case 'title':
-      return value.title?.[0]?.plain_text || null;
-    case 'rich_text':
-      return value.rich_text?.[0]?.plain_text || null;
-    case 'select':
-      return value.select?.name || null;
-    case 'multi_select':
-      return value.multi_select?.map(item => item.name) || [];
-    case 'date':
-      return value.date?.start || null;
-    default:
-      return null;
-  }
+// FIXED: Reset image counters for new sync session
+export function resetImageCounters(): void {
+  imageCounterMap.clear();
 }
 
-// Helper function to check if a URL is a Notion asset URL that might expire
-export function isExpiringAssetUrl(url: string): boolean {
-  if (!url) return false;
-  
-  // Check for signatures of expiring URLs
-  return (
-    url.includes('s3.') && 
-    (url.includes('amazonaws.com') || url.includes('X-Amz-')) ||
-    (url.includes('file.notion.so') && url.includes('secure='))
-  );
+// FIXED: Get and increment image index for a specific page
+export function getAndIncrementImageIndex(pageId: string): number {
+  const currentCount = imageCounterMap.get(pageId) || 0;
+  const newCount = currentCount + 1;
+  imageCounterMap.set(pageId, newCount);
+  return newCount;
 }
 
-// Generate a filename for storage from an image URL
-export function generateImageFilename(imageUrl: string, pageId: string, index: number): string {
-  // Extract original filename if available
-  let filename = '';
-  try {
-    const urlObj = new URL(imageUrl);
-    const pathname = urlObj.pathname;
-    const pathParts = pathname.split('/');
-    const originalFilename = pathParts[pathParts.length - 1];
-    
-    // Clean up any query parameters
-    const filenameParts = originalFilename.split('?');
-    filename = filenameParts[0];
-    
-    // If we couldn't extract a meaningful filename, generate one
-    if (!filename || filename.length < 5) {
-      throw new Error('Invalid filename');
-    }
-  } catch (error) {
-    // Generate a filename with page ID, timestamp, and image index
-    const timestamp = Date.now();
-    const extension = imageUrl.match(/\.(jpe?g|png|gif|webp)/i) 
-      ? imageUrl.match(/\.(jpe?g|png|gif|webp)/i)![0]
-      : '.jpg';
-    
-    filename = `notion-${pageId.substring(0, 8)}-${timestamp}-${index}${extension}`;
+// Extract rich text content from Notion rich text array
+export function extractRichText(richTextArray: any[]): string {
+  if (!richTextArray || !Array.isArray(richTextArray)) {
+    return "";
   }
   
-  return filename;
+  return richTextArray
+    .map((richText) => richText?.plain_text || "")
+    .join("");
 }
 
-// Download an image from a URL and upload it to Supabase Storage
-export async function backupImageToStorage(
-  imageUrl: string,
-  options: ImageBackupOptions
-): Promise<string | null> {
-  const { supabase, bucketName, userId, pageId, imageIndex } = options;
-  
-  try {
-    // Skip if not an expiring asset URL
-    if (!isExpiringAssetUrl(imageUrl)) {
-      return imageUrl;
-    }
-    
-    // Generate a unique filename for storage that includes the image index
-    const filename = generateImageFilename(imageUrl, pageId, imageIndex);
-    const filePath = `${userId}/${pageId}/${filename}`;
-    
-    // Check if file already exists in storage - using more specific search
-    const { data: existingFiles } = await supabase.storage
-      .from(bucketName)
-      .list(`${userId}/${pageId}`, {
-        search: filename
-      });
-    
-    if (existingFiles && existingFiles.length > 0) {
-      // File exists, return the public URL
-      const { data: publicUrl } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-      
-      console.log(`Using existing image file: ${filename}`);
-      return publicUrl.publicUrl;
-    }
-    
-    // Download the image from the URL
-    console.log(`Downloading image from: ${imageUrl}`);
-    const imageResponse = await fetch(imageUrl);
-    
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to download image: ${imageResponse.status}`);
-    }
-    
-    // Get the image binary data
-    const imageBlob = await imageResponse.blob();
-    
-    // Upload the image to Supabase Storage
-    console.log(`Uploading image to: ${bucketName}/${filePath}`);
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, imageBlob, {
-        contentType: imageBlob.type,
-        upsert: true
-      });
-    
-    if (uploadError) {
-      throw uploadError;
-    }
-    
-    // Get the public URL for the uploaded image
-    const { data: publicUrlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(filePath);
-    
-    console.log(`Image backed up successfully: ${publicUrlData.publicUrl}`);
-    return publicUrlData.publicUrl;
-  } catch (error) {
-    console.error("Error backing up image:", error);
-    // If backup fails, return the original URL
-    return imageUrl;
+// FIXED: Extract annotations with proper background color handling - Enhanced version
+export function extractAnnotationsSimplified(richTextArray: any[]): any[] {
+  if (!richTextArray || !Array.isArray(richTextArray) || richTextArray.length === 0) {
+    return [];
   }
-}
-
-// Helper function to extract text content from rich_text arrays
-export function extractRichText(richText: any[]): string {
-  if (!richText || richText.length === 0) return '';
-  return richText.map(rt => rt.plain_text).join('');
-}
-
-// Helper function to extract simplified annotations from rich_text arrays with correct positioning
-export function extractAnnotationsSimplified(richText: any[]): any[] {
-  if (!richText || richText.length === 0) return [];
   
-  const annotations = [];
+  const annotations: any[] = [];
   let currentPosition = 0;
   
-  // Process each rich text segment
-  for (const rt of richText) {
-    if (!rt || !rt.annotations) {
-      // Even if no annotations, we need to advance the position
-      currentPosition += (rt.plain_text || '').length;
+  for (const richText of richTextArray) {
+    if (!richText || !richText.annotations) {
+      currentPosition += (richText?.plain_text || "").length;
       continue;
     }
     
-    const {
-      bold, italic, strikethrough, underline, code, color
-    } = rt.annotations;
+    const { bold, italic, strikethrough, underline, code, color } = richText.annotations;
+    const textLength = (richText.plain_text || "").length;
     
-    // Only create an annotation if there's formatting applied
-    if (bold || italic || strikethrough || underline || code || (color && color !== 'default') || rt.href) {
-      const textLength = (rt.plain_text || '').length;
-      annotations.push({
-        text: rt.plain_text,
+    // Check if any formatting is applied, if there's a background color, or if there's a link
+    const hasFormatting = bold || italic || strikethrough || underline || code;
+    const hasColor = color && color !== 'default';
+    const hasLink = richText.href;
+    
+    if (hasFormatting || hasColor || hasLink) {
+      const annotation: any = {
+        text: richText.plain_text,
         start: currentPosition,
         end: currentPosition + textLength,
-        bold,
-        italic,
-        strikethrough,
-        underline,
-        code,
-        color: color !== 'default' ? color : undefined,
-        href: rt.href || undefined
-      });
+        bold: bold || false,
+        italic: italic || false,
+        strikethrough: strikethrough || false,
+        underline: underline || false,
+        code: code || false
+      };
+      
+      // Handle background colors properly (format: color_background)
+      if (color && color !== 'default') {
+        if (color.includes('_background')) {
+          const baseColor = color.replace('_background', '');
+          // Only add background_color if it's not default
+          if (baseColor && baseColor !== 'default') {
+            annotation.background_color = baseColor;
+          }
+        } else {
+          // Regular text color
+          annotation.color = color;
+        }
+      }
+      
+      // Handle links
+      if (richText.href) {
+        annotation.href = richText.href;
+      }
+      
+      annotations.push(annotation);
     }
     
-    // Always advance position by the text length
-    currentPosition += (rt.plain_text || '').length;
+    currentPosition += textLength;
   }
   
   return annotations;
 }
 
-// Increment and get image count for a page - FIXED: Ensure unique indices per page
-export function getAndIncrementImageIndex(pageId: string): number {
-  const currentCount = pageImageCounts.get(pageId) || 0;
-  const nextCount = currentCount + 1;
-  pageImageCounts.set(pageId, nextCount);
-  console.log(`Page ${pageId}: Image index ${currentCount} assigned`);
-  return currentCount;
+// Extract property values from Notion properties
+export function extractProperty(properties: any, propertyName: string, propertyType: string): any {
+  const property = properties[propertyName];
+  if (!property) return null;
+  
+  switch (propertyType) {
+    case 'title':
+      return property.title?.[0]?.plain_text || null;
+    case 'rich_text':
+      return extractRichText(property.rich_text);
+    case 'select':
+      return property.select?.name || null;
+    case 'multi_select':
+      return property.multi_select?.map((option: any) => option.name) || [];
+    case 'date':
+      return property.date?.start || null;
+    case 'number':
+      return property.number || null;
+    case 'checkbox':
+      return property.checkbox || false;
+    case 'url':
+      return property.url || null;
+    case 'email':
+      return property.email || null;
+    case 'phone_number':
+      return property.phone_number || null;
+    default:
+      return null;
+  }
 }
 
-// Reset image counters (useful for tests or when starting new sync)
-export function resetImageCounters(): void {
-  pageImageCounts.clear();
-  console.log('Image counters reset');
+// ENHANCED: Backup image to Supabase Storage and return the new URL
+export async function backupImageToStorage(
+  imageUrl: string, 
+  options: {
+    supabase: any;
+    bucketName: string;
+    userId: string;
+    pageId: string;
+    imageIndex: number;
+  }
+): Promise<string | null> {
+  const { supabase, bucketName, userId, pageId, imageIndex } = options;
+  
+  try {
+    console.log(`Starting backup for image ${imageIndex} from page ${pageId}: ${imageUrl}`);
+    
+    // Skip backup if URL doesn't look like a Notion expiring URL
+    if (!imageUrl || (!imageUrl.includes('notion.so') && !imageUrl.includes('amazonaws.com'))) {
+      console.log(`Skipping backup for non-expiring URL: ${imageUrl}`);
+      return imageUrl;
+    }
+    
+    // Fetch the image from the original URL
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      return imageUrl; // Return original URL if backup fails
+    }
+    
+    const imageBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    
+    // Create a unique filename using page ID and image index
+    const fileExtension = contentType.split('/')[1] || 'jpg';
+    const fileName = `${userId}/${pageId}/image-${imageIndex}.${fileExtension}`;
+    
+    console.log(`Uploading image to storage: ${fileName}`);
+    
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, imageBuffer, {
+        contentType,
+        upsert: true // Overwrite if exists
+      });
+    
+    if (error) {
+      console.error('Storage upload error:', error);
+      return imageUrl; // Return original URL if backup fails
+    }
+    
+    // Get the public URL for the uploaded image
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+    
+    const backupUrl = publicUrlData.publicUrl;
+    console.log(`Image ${imageIndex} successfully backed up to: ${backupUrl}`);
+    
+    return backupUrl;
+  } catch (error) {
+    console.error('Error backing up image:', error);
+    return imageUrl; // Return original URL if backup fails
+  }
 }

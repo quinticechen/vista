@@ -22,6 +22,7 @@ Vista is an AI-powered content experience platform that enables businesses and c
 - Engage with content seamlessly across devices and platforms
 - Easily publish, manage, and analyze content in a unified dashboard
 - Avoid unwanted personalization based on hidden tracking or cookies
+- Customize their website appearance with intuitive editing tools and style options
 
 ### Non-Goals
 
@@ -38,6 +39,7 @@ Vista is an AI-powered content experience platform that enables businesses and c
 - As a Content Creator, I want to organize and publish all my content in one place, so my workflow is efficient and all my assets are accessible.
 - As a Content Creator, I want to target content to explicit audience needs or responses, so engagement is higher and relevance is improved.
 - As a Content Creator, I want to auto-translate my content into different languages, so I can target more users across diverse language groups
+- As a Content Creator, I want to edit my basic website content and choose from provided style options, so I can customize my site's appearance without technical expertise.
 
 **Marketing Team Member**
 
@@ -47,6 +49,7 @@ Vista is an AI-powered content experience platform that enables businesses and c
 **Business User**
 
 - As a Business User, I want to customize the interface and integrate Vista with my current tools, so adoption is seamless and brand consistency is maintained.
+- As a Business User, I want to easily modify my website's basic content and select professional styling options, so I can maintain a polished online presence.
 
 **End Content Consumer**
 
@@ -94,6 +97,14 @@ Vista is an AI-powered content experience platform that enables businesses and c
 - **Ownership & Access Tracking:** Ties content to owner and manages authorization.
 - **Indexing Automation:** Option to customize how and when content embeddings and indexing occur.
 
+### 7. Website Customization & Styling (Priority: Should)
+
+- **Basic Content Editor:** In-admin editing capabilities for essential website content including titles, descriptions, hero sections, and contact information.
+- **Style Selection System:** Curated collection of professional styling options including color schemes, typography, and layout variations.
+- **Real-Time Preview:** Live preview of changes before publishing to ensure visual consistency.
+- **Responsive Design Templates:** Pre-built responsive templates that automatically adapt to different devices.
+- **Brand Consistency Tools:** Options to upload logos, set brand colors, and maintain consistent styling across all content.
+
 ---
 
 ## User Experience
@@ -110,7 +121,8 @@ Vista is an AI-powered content experience platform that enables businesses and c
     - Step 1: Sign in and land on central dashboard—input necessary information for linking Notion, previewing content, and managing assets.
     - Step 2: Initiate Notion sync; review imported content, resolve conflicts if flagged (with simple review UI).
     - Step 3: Organize and publish content, select audience segment/purpose, set translation options, configure delivery.
-    - Step 4: View performance metrics in dashboard; adjust or A/B test content rules as needed.
+    - Step 4: Customize website appearance using the style editor and content management tools.
+    - Step 5: View performance metrics in dashboard; adjust or A/B test content rules as needed.
 2. **For End Content Consumers**
     - Step 1: Land on Vista-powered site; if anonymous, can immediately browse/search content or sign up for extra personalization
     - Step 2: Use natural language search or guided purpose selector to specify needs/interests.
@@ -119,27 +131,29 @@ Vista is an AI-powered content experience platform that enables businesses and c
 
 **Advanced Features & Edge Cases**
 
-- Power users: Bulk content upload and tagging; custom Notion database mapping.
+- Power users: Bulk content upload and tagging; custom Notion database mapping; advanced styling customization.
 - Edge: Notion sync failures trigger clear error messages and offer manual re-try; all analytics data preserved during system outages.
 - Consumers can revoke data and reset their personalization profile at any time.
+- Style changes are automatically saved with version history for easy rollback.
 
 **UI/UX Highlights**
 
 - Clear language and minimal steps for onboarding
 - High-contrast, accessible layouts; always mobile-responsive
 - Explicit privacy/data use disclosures for content consumers
-- Real-time feedback after every major action (e.g., sync complete, recommendation updated)
+- Real-time feedback after every major action (e.g., sync complete, recommendation updated, style applied)
 - Simple admin toggles to enable/disable features per workspace
+- Intuitive drag-and-drop interface for content editing and style selection
 
 ---
 
 ## Narrative
 
-Jane is a marketing lead for an international SaaS provider. Her team creates tons of valuable resources in Notion but struggles with delivering the right piece to the right audience—especially as privacy regulations rise and cookie-based personalization becomes unreliable. With Vista, Jane connects her Notion workspace to the platform in minutes. She selects content relevant to specific audience pain points and sets up a welcome flow where visitors can easily express their needs, all without intrusive tracking.
+Jane is a marketing lead for an international SaaS provider. Her team creates tons of valuable resources in Notion but struggles with delivering the right piece to the right audience—especially as privacy regulations rise and cookie-based personalization becomes unreliable. With Vista, Jane connects her Notion workspace to the platform in minutes. She selects content relevant to specific audience pain points, customizes her website's appearance using the built-in style editor, and sets up a welcome flow where visitors can easily express their needs, all without intrusive tracking.
 
-When a new visitor, Sam, lands on their Vista-powered product page, he's prompted with a simple "What are you looking to achieve today?" field. By stating his goals, Sam instantly sees resources most relevant to his interests—and can switch to his native language for clarity. No forms, no third-party cookies, just guided discovery and value.
+When a new visitor, Sam, lands on their Vista-powered product page, he's prompted with a simple "What are you looking to achieve today?" field. By stating his goals, Sam instantly sees resources most relevant to his interests—and can switch to his native language for clarity. The professional styling Jane selected ensures a consistent, branded experience. No forms, no third-party cookies, just guided discovery and value.
 
-Jane now tracks exactly how each resource performs, iterates content based on real engagement data, and confidently reports ROI—all while respecting her users' privacy and boosting conversions for the business.
+Jane now tracks exactly how each resource performs, iterates content based on real engagement data, updates her site's styling seasonally, and confidently reports ROI—all while respecting her users' privacy and boosting conversions for the business.
 
 ---
 
@@ -150,18 +164,21 @@ Jane now tracks exactly how each resource performs, iterates content based on re
 - Content engagement rate (percentage of sessions with ≥2 content interactions)
 - User satisfaction score (prompted micro-surveys, aim: avg ≥4/5)
 - Time-to-content (average time from landing to finding relevant resource)
+- Style customization adoption rate (percentage of users who modify default styling)
 
 ### Business Metrics
 
 - Number of explicit user signups/profiles created per month (target: 25% of unique visitors)
 - Conversion uplift (goal-based actions completed vs. baseline)
 - Content operations efficiency (self-reported effort or system audit)
+- Website customization completion rate
 
 ### Technical Metrics
 
 - Uptime: 99.9% for content display and serving
 - Average search latency: ≤2 seconds
 - Notion sync reliability: ≤1% failure rate per 1000 syncs
+- Style rendering performance: ≤1 second for theme changes
 
 ### Tracking Plan
 
@@ -172,6 +189,8 @@ Jane now tracks exactly how each resource performs, iterates content based on re
 - Search query and result logs
 - Engagement (bookmark, share, export)
 - Language/format toggle events
+- Style selection and customization events
+- Website content editing sessions
 
 ---
 
@@ -179,10 +198,11 @@ Jane now tracks exactly how each resource performs, iterates content based on re
 
 ### Technical Needs
 
-- APIs for content sync (Notion), search, analytics, and user management
-- Core data models: Content, User, Segment, Analytics Event
-- Responsive, mobile-first web UI
+- APIs for content sync (Notion), search, analytics, user management, and style management
+- Core data models: Content, User, Segment, Analytics Event, Style Templates, Website Configuration
+- Responsive, mobile-first web UI with real-time preview capabilities
 - Robust error handling and real-time data sync
+- Template engine for dynamic style application
 
 ### Integration Points
 
@@ -190,17 +210,20 @@ Jane now tracks exactly how each resource performs, iterates content based on re
 - Analytics partners (optional, e.g., Mixpanel, GA)
 - OpenAI or equivalent for vector embedding/translation
 - Auth provider (Supabase, or similar)
+- CSS/Theme generation system for dynamic styling
 
 ### Data Storage & Privacy
 
 - All persistent user and content data encrypted at rest
 - Only explicit user-stated preferences/purpose are stored; no behind-the-scenes behavioral tracking
 - GDPR and CCPA compliance for data access, export, deletion
+- Style preferences and website configurations stored securely per user
 
 ### Scalability & Performance
 
 - Support scaling to 100 concurrent creator seats; 10,000+ content items
 - Automated jobs for Notion syncs and embedding refreshes
+- Style rendering optimization for fast theme switches
 - Storage and performance targets increase with each phase
 
 ### Potential Challenges
@@ -208,6 +231,8 @@ Jane now tracks exactly how each resource performs, iterates content based on re
 - Handling large, change-heavy Notion databases (rate limits/conflicts)
 - Delivering accurate translations at scale
 - Real-time analytics performance under peak user load
+- Ensuring consistent styling across different content types and devices
+- Managing style conflicts when users customize multiple elements
 
 ---
 
@@ -231,14 +256,20 @@ Jane now tracks exactly how each resource performs, iterates content based on re
 - Translation services integration
 - Analytics dashboard foundation
 
-### Phase 4: Advanced Features (Weeks 13-16)
-- Real-time analytics and reporting
-- A/B testing framework
-- Advanced user segmentation
-- Performance optimization
+### Phase 4: Website Customization (Weeks 13-16)
+- Basic content editor implementation
+- Style template system development
+- Real-time preview functionality
+- Responsive design templates
 
-### Phase 5: Scale & Polish (Weeks 17-20)
+### Phase 5: Advanced Features & Polish (Weeks 17-20)
+- Advanced styling options and customization
+- A/B testing framework for styles
+- Performance optimization
+- Security audit and compliance verification
+
+### Phase 6: Scale & Polish (Weeks 21-24)
 - Load testing and performance tuning
 - Advanced admin controls
 - API documentation and external integrations
-- Security audit and compliance verification
+- Brand consistency tools and advanced customization

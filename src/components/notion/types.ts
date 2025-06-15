@@ -7,10 +7,20 @@ export type NotionAnnotation = {
   strikethrough?: boolean;
   code?: boolean;
   color?: string;
+  background_color?: string; // Added background_color property
   text?: string;
   start?: number;
   end?: number;
   href?: string;
+};
+
+export type NotionTableCell = {
+  text: string;
+  annotations: NotionAnnotation[];
+};
+
+export type NotionTableRow = {
+  cells: NotionTableCell[];
 };
 
 export type NotionBlock = {
@@ -33,6 +43,8 @@ export type NotionBlock = {
   table_width?: number;
   has_row_header?: boolean;
   has_column_header?: boolean;
+  rows?: NotionTableRow[]; // Added rows property for table data
+  cells?: NotionTableCell[]; // Added cells property for table row data
   is_heic?: boolean; // New property to indicate HEIC images
   width?: number; // Width of the image
   height?: number; // Height of the image

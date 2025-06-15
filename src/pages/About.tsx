@@ -26,7 +26,9 @@ const About = () => {
           throw error;
         }
 
-        console.log(`Fetched ${data?.length || 0} content items for About page`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Fetched ${data?.length || 0} content items for About page`);
+        }
         
         // Process the data to match ContentItem interface
         const processedData = (data || []).map((item: any) => ({
@@ -42,7 +44,9 @@ const About = () => {
         
         setContentItems(processedData);
       } catch (error) {
-        console.error("Error fetching content for About page:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("Error fetching content for About page:", error);
+        }
         toast.error("Failed to load content items");
       } finally {
         setLoading(false);
