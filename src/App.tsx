@@ -28,6 +28,12 @@ import HomePage from "./pages/admin/HomePage";
 
 const queryClient = new QueryClient();
 
+// Helper function to determine if a path segment is a reserved route
+const isReservedRoute = (segment: string): boolean => {
+  const reservedRoutes = ['admin', 'vista', 'about', 'auth'];
+  return reservedRoutes.includes(segment.toLowerCase());
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -43,11 +49,6 @@ const App = () => (
           <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
           <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />
           
-          {/* URL parameter routes - public access */}
-          <Route path="/:urlParam" element={<PublicRoute><Index /></PublicRoute>} />
-          <Route path="/:urlParam/vista" element={<PublicRoute><UrlParamVista /></PublicRoute>} />
-          <Route path="/:urlParam/vista/:contentId" element={<PublicRoute><UrlParamContentDetail /></PublicRoute>} />
-          
           {/* Admin routes - protected by AdminGuard */}
           <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
           
@@ -60,6 +61,13 @@ const App = () => (
             <Route path="embedding" element={<Embedding />} />
             <Route path="content" element={<Content />} />
           </Route>
+          
+          {/* URL parameter routes - public access
+              These routes handle dynamic user profiles like /quintice, /company-brand, etc.
+              They must come after reserved routes to avoid conflicts */}
+          <Route path="/:urlParam" element={<PublicRoute><Index /></PublicRoute>} />
+          <Route path="/:urlParam/vista" element={<PublicRoute><UrlParamVista /></PublicRoute>} />
+          <Route path="/:urlParam/vista/:contentId" element={<PublicRoute><UrlParamContentDetail /></PublicRoute>} />
           
           {/* Catch-all route */}
           <Route path="*" element={<PublicRoute><NotFound /></PublicRoute>} />
