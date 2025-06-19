@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from 'react-helmet-async';
 import ScrollToTop from "./components/ScrollToTop";
 import Index from "./pages/Index";
 import Vista from "./pages/Vista";
@@ -35,46 +36,48 @@ const isReservedRoute = (segment: string): boolean => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop />
-        <Routes>
-          {/* Public routes - accessible to everyone */}
-          <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
-          <Route path="/vista" element={<PublicRoute><Vista /></PublicRoute>} />
-          <Route path="/vista/:contentId" element={<PublicRoute><ContentDetail /></PublicRoute>} />
-          <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
-          <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />
-          
-          {/* Admin routes - protected by AdminGuard */}
-          <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
-          
-          {/* New admin routes with layout - all protected */}
-          <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
-            <Route path="" element={<AdminHome />} />
-            <Route path="home-page" element={<HomePage />} />
-            <Route path="url-settings" element={<UrlSettings />} />
-            <Route path="language-setting" element={<LanguageSettings />} />
-            <Route path="embedding" element={<Embedding />} />
-            <Route path="content" element={<Content />} />
-          </Route>
-          
-          {/* URL parameter routes - public access
-              These routes handle dynamic user profiles like /quintice, /company-brand, etc.
-              They must come after reserved routes to avoid conflicts */}
-          <Route path="/:urlParam" element={<PublicRoute><Index /></PublicRoute>} />
-          <Route path="/:urlParam/vista" element={<PublicRoute><UrlParamVista /></PublicRoute>} />
-          <Route path="/:urlParam/vista/:contentId" element={<PublicRoute><UrlParamContentDetail /></PublicRoute>} />
-          
-          {/* Catch-all route */}
-          <Route path="*" element={<PublicRoute><NotFound /></PublicRoute>} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ScrollToTop />
+          <Routes>
+            {/* Public routes - accessible to everyone */}
+            <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+            <Route path="/vista" element={<PublicRoute><Vista /></PublicRoute>} />
+            <Route path="/vista/:contentId" element={<PublicRoute><ContentDetail /></PublicRoute>} />
+            <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
+            <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />
+            
+            {/* Admin routes - protected by AdminGuard */}
+            <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
+            
+            {/* New admin routes with layout - all protected */}
+            <Route path="/admin" element={<AdminGuard><AdminLayout /></AdminGuard>}>
+              <Route path="" element={<AdminHome />} />
+              <Route path="home-page" element={<HomePage />} />
+              <Route path="url-settings" element={<UrlSettings />} />
+              <Route path="language-setting" element={<LanguageSettings />} />
+              <Route path="embedding" element={<Embedding />} />
+              <Route path="content" element={<Content />} />
+            </Route>
+            
+            {/* URL parameter routes - public access
+                These routes handle dynamic user profiles like /quintice, /company-brand, etc.
+                They must come after reserved routes to avoid conflicts */}
+            <Route path="/:urlParam" element={<PublicRoute><Index /></PublicRoute>} />
+            <Route path="/:urlParam/vista" element={<PublicRoute><UrlParamVista /></PublicRoute>} />
+            <Route path="/:urlParam/vista/:contentId" element={<PublicRoute><UrlParamContentDetail /></PublicRoute>} />
+            
+            {/* Catch-all route */}
+            <Route path="*" element={<PublicRoute><NotFound /></PublicRoute>} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

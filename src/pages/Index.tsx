@@ -5,6 +5,8 @@ import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
+import SEOHead from '@/components/SEOHead';
+import SEOContent from '@/components/SEOContent';
 import { Toaster } from '@/components/ui/toaster';
 import { getProfileByUrlParam } from '@/services/urlParamService';
 import { getHomePageSettingsByUrlParam, DEFAULT_HOME_PAGE_SETTINGS } from '@/services/homePageService';
@@ -18,6 +20,48 @@ const Index = () => {
   const [homePageSettings, setHomePageSettings] = useState<any>(DEFAULT_HOME_PAGE_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [profileNotFound, setProfileNotFound] = useState(false);
+  
+  // SEO data generation
+  const generateSEOData = () => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const currentPath = urlParam ? `/${urlParam}` : '/';
+    const canonicalUrl = `${baseUrl}${currentPath}`;
+    
+    if (urlParam && ownerProfile) {
+      // User-specific SEO
+      const userTitle = `${ownerProfile.full_name || urlParam} - AI Content & Insights Platform`;
+      const userDescription = `Explore curated content, insights, and AI-powered recommendations from ${ownerProfile.full_name || urlParam}. Discover personalized articles and resources.`;
+      
+      return {
+        title: userTitle,
+        description: userDescription,
+        keywords: ['AI content', 'insights', urlParam, 'personalized content', 'articles', 'recommendations'],
+        canonicalUrl,
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "Person",
+          "name": ownerProfile.full_name || urlParam,
+          "url": canonicalUrl,
+          "description": userDescription
+        }
+      };
+    }
+    
+    // Default home page SEO
+    return {
+      title: "Vista Content Platform - AI-Powered Content Discovery & Insights",
+      description: "Discover personalized content and insights through our AI-powered platform. Access curated articles, expert recommendations, and tailored content experiences.",
+      keywords: ['AI content platform', 'content discovery', 'personalized insights', 'article recommendations', 'curated content'],
+      canonicalUrl,
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Vista Content Platform",
+        "url": canonicalUrl,
+        "description": "AI-powered content discovery and insights platform"
+      }
+    };
+  };
   
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -114,23 +158,33 @@ const Index = () => {
   if (urlParam && profileNotFound) {
     return (
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
+        <SEOHead
+          title="Page Not Found - Vista Content Platform"
+          description="The requested page could not be found. Please check the URL or return to our homepage."
+          noIndex={true}
+        />
         <Toaster />
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Page Not Found</h1>
-          <p className="text-gray-600 mb-4">The page for /{urlParam} does not exist.</p>
+        <SEOContent
+          h1="Page Not Found"
+          h2={`The page for /${urlParam} does not exist`}
+        >
+          <p className="text-gray-600 mb-4">Please check the URL or return to our homepage.</p>
           <button 
             onClick={() => navigate('/')}
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
           >
             Go to Home
           </button>
-        </div>
+        </SEOContent>
       </div>
     );
   }
   
+  const seoData = generateSEOData();
+  
   return (
     <div className="min-h-screen bg-beige-50">
+      <SEOHead {...seoData} />
       <Toaster />
       {/* <Header /> */}
       
@@ -150,15 +204,21 @@ const Index = () => {
         {/* Add spacer to push PurposeInput down one viewport height */}
         <div className="h-screen"></div>
         
-        <PurposeInput 
-          onPurposeSubmit={handlePurposeSubmit} 
-          scrollProgress={scrollProgress}
-          placeholder={homePageSettings.customInputPlaceholder || `Search ${urlParam || ''}'s content...`}
-          interactiveTitle={homePageSettings.interactiveTitle}
-          interactiveSubtitle={homePageSettings.interactiveSubtitle}
-          submitButtonText={homePageSettings.submitButtonText}
-          optionButtons={homePageSettings.optionButtons}
-        />
+        <SEOContent
+          h1={urlParam ? `${ownerProfile?.full_name || urlParam}'s Content Platform` : "Vista Content Discovery Platform"}
+          h2="Find Relevant Content Through AI-Powered Search"
+          h3="Discover Personalized Insights and Articles"
+        >
+          <PurposeInput 
+            onPurposeSubmit={handlePurposeSubmit} 
+            scrollProgress={scrollProgress}
+            placeholder={homePageSettings.customInputPlaceholder || `Search ${urlParam || ''}'s content...`}
+            interactiveTitle={homePageSettings.interactiveTitle}
+            interactiveSubtitle={homePageSettings.interactiveSubtitle}
+            submitButtonText={homePageSettings.submitButtonText}
+            optionButtons={homePageSettings.optionButtons}
+          />
+        </SEOContent>
       </div>
       
       {/* Footer with proper z-index to appear after PurposeInput */}

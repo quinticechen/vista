@@ -4,6 +4,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
+import SEOContent from "@/components/SEOContent";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +20,46 @@ const ContentDetail = () => {
   const [content, setContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Generate SEO data for content
+  const generateContentSEO = () => {
+    if (!content) return {};
+    
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const canonicalUrl = `${baseUrl}/vista/${contentId}`;
+    
+    const title = `${content.title} - Vista Content Platform`;
+    const description = content.description || `Read "${content.title}" and discover insights on Vista Content Platform. Explore curated content and articles.`;
+    const keywords = content.tags || ['article', 'content', 'insights'];
+    const ogImage = content.cover_image || '/placeholder.svg';
+    
+    return {
+      title,
+      description,
+      keywords,
+      canonicalUrl,
+      ogImage,
+      ogType: 'article',
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": content.title,
+        "description": description,
+        "image": ogImage,
+        "url": canonicalUrl,
+        "datePublished": content.created_at,
+        "dateModified": content.updated_at || content.created_at,
+        "author": {
+          "@type": "Organization",
+          "name": "Vista Content Platform"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Vista Content Platform"
+        }
+      }
+    };
+  };
 
   useEffect(() => {
     const fetchContentDetail = async () => {
@@ -57,6 +99,11 @@ const ContentDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
+        <SEOHead
+          title="Loading Content - Vista Content Platform"
+          description="Loading content details from Vista Content Platform"
+          noIndex={true}
+        />
         <Header />
         <main className="container py-8">
           <div className="flex justify-center items-center h-64">
@@ -71,20 +118,32 @@ const ContentDetail = () => {
   if (!content) {
     return (
       <div className="min-h-screen bg-white">
+        <SEOHead
+          title="Content Not Found - Vista Content Platform"
+          description="The requested content could not be found. Browse our content library for more articles and insights."
+          noIndex={true}
+        />
         <Header />
         <main className="flex-1 container py-8 max-w-4xl">
-          <div>Content not found</div>
-          <Button onClick={() => navigate("/vista")} className="mt-4">
-            Back to Content List
-          </Button>
+          <SEOContent
+            h1="Content Not Found"
+            h2="The requested article could not be found"
+          >
+            <Button onClick={() => navigate("/vista")} className="mt-4">
+              Back to Content List
+            </Button>
+          </SEOContent>
         </main>
         <Footer />
       </div>
     );
   }
 
+  const seoData = generateContentSEO();
+
   return (
     <div className="min-h-screen bg-white">
+      <SEOHead {...seoData} />
 
       {/* <Header /> */}
       
@@ -98,80 +157,79 @@ const ContentDetail = () => {
           Back to All Content
         </Button>
         
-        <h1 className="text-3xl font-bold mb-2">{content.title}</h1>
-        
-        <div className="flex flex-wrap gap-2 mb-4">
-          {content.category && (
-            <Badge variant="outline">{content.category}</Badge>
-          )}
-          
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Clock className="mr-1 h-4 w-4" />
-            <span>Created: {formatDate(content?.created_at)}</span>
-          </div>
-          
-          {content?.updated_at && content.updated_at !== content.created_at && (
+        <SEOContent
+          h1={content.title}
+          h2={content.description}
+        >
+          <div className="flex flex-wrap gap-2 mb-4">
+            {content.category && (
+              <Badge variant="outline">{content.category}</Badge>
+            )}
+            
             <div className="flex items-center text-sm text-muted-foreground">
               <Clock className="mr-1 h-4 w-4" />
-              <span>Updated: {formatDate(content?.updated_at)}</span>
+              <span>Created: {formatDate(content?.created_at)}</span>
             </div>
-          )}
-          
-          {content.start_date && (
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Calendar className="mr-1 h-4 w-4" />
-              <span>Starts: {formatDate(content.start_date)}</span>
-            </div>
-          )}
-          
-          {content.end_date && (
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Calendar className="mr-1 h-4 w-4" />
-              <span>Ends: {formatDate(content.end_date)}</span>
-            </div>
-          )}
-        </div>
-        
-        {content.description && (
-          <p className="text-lg mb-6">{content.description}</p>
-        )}
-        
-        {content.tags && content.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            <span className="flex items-center mr-1">
-              <Tag className="h-4 w-4 mr-1" />
-            </span>
-            {content.tags.map((tag: string, index: number) => (
-              <Badge key={index} variant="secondary">{tag}</Badge>
-            ))}
-          </div>
-        )}
-        
-        {/* Display cover image if available */}
-        {content.cover_image && (
-          <div className="mb-8">
-            <AspectRatio ratio={16/9} className="overflow-hidden rounded-md border border-gray-200">
-              <img 
-                src={content.cover_image} 
-                alt={content.title} 
-                className={cn(
-                  "object-cover w-full h-full",
-                  "transition-all hover:scale-105 duration-500"
-                )}
-              />
-            </AspectRatio>
-          </div>
-        )}
-        
-        <Card className="mb-8 border rounded-md shadow-sm">
-          <CardContent className="p-6">
-            {content.content ? (
-              <NotionRenderer blocks={content.content} />
-            ) : (
-              <p className="text-gray-500 italic">No content available</p>
+            
+            {content?.updated_at && content.updated_at !== content.created_at && (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Clock className="mr-1 h-4 w-4" />
+                <span>Updated: {formatDate(content?.updated_at)}</span>
+              </div>
             )}
-          </CardContent>
-        </Card>
+            
+            {content.start_date && (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Calendar className="mr-1 h-4 w-4" />
+                <span>Starts: {formatDate(content.start_date)}</span>
+              </div>
+            )}
+            
+            {content.end_date && (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Calendar className="mr-1 h-4 w-4" />
+                <span>Ends: {formatDate(content.end_date)}</span>
+              </div>
+            )}
+          </div>
+          
+          {content.tags && content.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              <span className="flex items-center mr-1">
+                <Tag className="h-4 w-4 mr-1" />
+              </span>
+              {content.tags.map((tag: string, index: number) => (
+                <Badge key={index} variant="secondary">{tag}</Badge>
+              ))}
+            </div>
+          )}
+          
+          {/* Display cover image if available */}
+          {content.cover_image && (
+            <div className="mb-8">
+              <AspectRatio ratio={16/9} className="overflow-hidden rounded-md border border-gray-200">
+                <img 
+                  src={content.cover_image} 
+                  alt={`Cover image for ${content.title}`}
+                  className={cn(
+                    "object-cover w-full h-full",
+                    "transition-all hover:scale-105 duration-500"
+                  )}
+                />
+              </AspectRatio>
+            </div>
+          )}
+          
+          <Card className="mb-8 border rounded-md shadow-sm">
+            <CardContent className="p-6">
+              {content.content ? (
+                <NotionRenderer blocks={content.content} />
+              ) : (
+                <p className="text-gray-500 italic">No content available</p>
+              )}
+            </CardContent>
+          </Card>
+        </SEOContent>
       </main>
       
       <Footer />
