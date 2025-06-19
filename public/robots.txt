@@ -17,7 +17,7 @@ Disallow: /admin
 Disallow: /admin/*
 
 # Sitemap location
-Sitemap: https://yourdomain.com/sitemap.xml
+Sitemap: https://vista.qwizai.com/sitemap.xml
 
 # Crawl-delay for being respectful to servers
 Crawl-delay: 1
