@@ -1,9 +1,12 @@
+
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentDisplayItem } from "@/components/ContentDisplay";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
+import SEOContent from "@/components/SEOContent";
 import { toast } from "@/components/ui/sonner";
 import { ContentItem, semanticSearch } from "@/services/adminService";
 import { Loader2 } from "lucide-react";
@@ -27,6 +30,46 @@ const Vista = () => {
   const searchResults = location.state?.searchResults as ContentItem[] | undefined;
   const searchPurpose = location.state?.purpose as string | undefined;
   const searchTimestamp = location.state?.searchQuery; // Used to force re-render
+
+  // Generate SEO data based on search state
+  const generateSEOData = () => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const canonicalUrl = `${baseUrl}/vista`;
+    const searchTerm = searchParams.get("search") || searchPurpose;
+    
+    if (searchTerm) {
+      return {
+        title: `Search Results for "${searchTerm}" - Vista Content Platform`,
+        description: `Browse content and articles related to "${searchTerm}". Find relevant insights and information through our AI-powered content discovery.`,
+        keywords: ['search results', searchTerm, 'content discovery', 'articles', 'insights'],
+        canonicalUrl: `${canonicalUrl}?search=${encodeURIComponent(searchTerm)}`,
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "SearchResultsPage",
+          "name": `Search Results for "${searchTerm}"`,
+          "url": canonicalUrl,
+          "mainEntity": {
+            "@type": "ItemList",
+            "numberOfItems": contentItems.length
+          }
+        }
+      };
+    }
+    
+    return {
+      title: "Vista Content Library - Browse All Articles & Insights",
+      description: "Explore our comprehensive library of curated content, articles, and insights. Discover valuable resources across various topics and categories.",
+      keywords: ['content library', 'articles', 'insights', 'browse content', 'curated resources'],
+      canonicalUrl,
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Vista Content Library",
+        "url": canonicalUrl,
+        "description": "Comprehensive library of curated content and insights"
+      }
+    };
+  };
 
   // Centralized content processing function to ensure consistency with UrlParamVista
   const processContentItem = (item: ContentItem): ContentItem => {
@@ -253,28 +296,35 @@ const Vista = () => {
   const sortedItems = getSortedItems();
   console.log(`Vista page rendering with ${sortedItems.length} content items, loading = ${loading}`);
 
+  const seoData = generateSEOData();
+
   return (
     <div className="min-h-screen flex flex-col bg-beige-100 dark:bg-gray-900">
+      <SEOHead {...seoData} />
       <Header />
       
       <main className="flex-1 container py-8 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Content Vista</h1>
-          
-          {searchPurpose && showingSearchResults ? (
-            <p className="text-gray-600 dark:text-gray-400">
-              Content for: <span className="italic">"{searchPurpose}"</span>
-            </p>
-          ) : searchParams.get("search") ? (
-            <p className="text-gray-600 dark:text-gray-400">
-              Search results for "{searchParams.get("search")}"
-            </p>
-          ) : (
-            <p className="text-gray-600 dark:text-gray-400">
-              Browse all content
-            </p>
-          )}
-        </div>
+        <SEOContent
+          h1="Content Vista"
+          h2={searchParams.get("search") ? `Search Results for "${searchParams.get("search")}"` : "Browse All Content"}
+          h3="Discover Articles, Insights, and Resources"
+        >
+          <div className="mb-8">
+            {searchPurpose && showingSearchResults ? (
+              <p className="text-gray-600 dark:text-gray-400">
+                Content for: <span className="italic">"{searchPurpose}"</span>
+              </p>
+            ) : searchParams.get("search") ? (
+              <p className="text-gray-600 dark:text-gray-400">
+                Search results for "{searchParams.get("search")}"
+              </p>
+            ) : (
+              <p className="text-gray-600 dark:text-gray-400">
+                Browse all content
+              </p>
+            )}
+          </div>
+        </SEOContent>
         
         <Card className="mb-8">
           <CardContent className="p-4">
