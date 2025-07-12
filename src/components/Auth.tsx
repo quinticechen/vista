@@ -185,8 +185,8 @@ const Auth = () => {
       ) : (
                 // Start of changes for unauthenticated user
         <>
-          <CardContent className="space-y-4"> {/* Added CardContent for consistent padding */}
-            <div className="mt-0 px-6"> {/* Adjusted margin-top, was mt-4, now moved inside CardContent */}
+          <CardContent className="space-y-2"> {/* Added CardContent for consistent padding */}
+            <div className="mt-0"> {/* Adjusted margin-top, was mt-4, now moved inside CardContent */}
               <Button
                 variant="outline"
                 className="w-full flex items-center justify-center gap-2"
@@ -215,7 +215,7 @@ const Auth = () => {
 
             <form onSubmit={handleSubmit}>
               {/* CardContent removed from here as it's now wrapped outside */}
-              <div className="space-y-4 px-6"> {/* This div now acts as the CardContent for the form elements */}
+              <div className="space-y-4"> {/* This div now acts as the CardContent for the form elements */}
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium">Email</label>
                   <Input
