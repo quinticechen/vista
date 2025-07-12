@@ -28,7 +28,7 @@ const Hero = ({ scrollToInput, scrollProgress = 0, customTitle, customSubtitle, 
           {customTitle ? customTitle : "Chen Quintice 💖💖"}
         </h1>
         <h2 className="text-xl md:text-2xl lg:text-3xl font-light text-beige-700 mb-8">
-          {customSubtitle ? customSubtitle : "Custom your Subtitle"}
+          {customSubtitle ? customSubtitle : "Custom yout Subtitle"}
         </h2>
         <p className="text-base md:text-lg text-beige-600 max-w-2xl mx-auto mb-12">
           {customDescription ? customDescription : "Specialized in AI implementation strategies, team training, and product development with over 10 years of experience helping businesses integrate cutting-edge technologies."}
