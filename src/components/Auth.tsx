@@ -185,8 +185,8 @@ const Auth = () => {
       ) : (
                 // Start of changes for unauthenticated user
         <>
-          <CardContent className="space-y-2 pb-4"> {/* Added CardContent for consistent padding */}
-            <div className="mt-0"> {/* Adjusted margin-top, was mt-4, now moved inside CardContent */}
+          <CardContent className="space-y-2"> {/* Added CardContent for consistent padding */}
+            <div className="mt-0 pb-4"> {/* Adjusted margin-top, was mt-4, now moved inside CardContent */}
               <Button
                 variant="outline"
                 className="w-full flex items-center justify-center gap-2"
@@ -241,7 +241,7 @@ const Auth = () => {
                 </div>
               </div>
 
-              <CardFooter className="flex flex-col space-y-2 mt-6">
+              <CardFooter className="flex flex-col py-0 space-y-2 mt-6">
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
                 </Button>
