@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
 import ScrollToTop from "./components/ScrollToTop";
-import Index from "./pages/Index";
+import Index from "./pages/VistaProductHome";
+import UrlParam from "./pages/UrlParam";
 import Vista from "./pages/Vista";
 import ContentDetail from "./pages/ContentDetail";
 import Admin from "./pages/Admin";
@@ -67,7 +68,7 @@ const App = () => (
             {/* URL parameter routes - public access
                 These routes handle dynamic user profiles like /quintice, /company-brand, etc.
                 They must come after reserved routes to avoid conflicts */}
-            <Route path="/:urlParam" element={<PublicRoute><Index /></PublicRoute>} />
+            <Route path="/:urlParam" element={<PublicRoute><UrlParam /></PublicRoute>} />
             <Route path="/:urlParam/vista" element={<PublicRoute><UrlParamVista /></PublicRoute>} />
             <Route path="/:urlParam/vista/:contentId" element={<PublicRoute><UrlParamContentDetail /></PublicRoute>} />
             

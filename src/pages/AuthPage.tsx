@@ -12,13 +12,13 @@ const AuthPage = () => {
         keywords={['sign in', 'authentication', 'login', 'account access']}
         noIndex={true}
       />
-      <SEOContent
+      {/* <SEOContent
         h1="Authentication"
         h2="Sign in to access your personalized content"
         h3="Secure access to Vista Content Platform"
-      >
+      > */}
         <Auth />
-      </SEOContent>
+      {/* </SEOContent> */}
     </div>
   );
 };

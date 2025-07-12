@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +5,6 @@ import { ContentDisplayItem } from "@/components/ContentDisplay";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
-import SEOContent from "@/components/SEOContent";
 import { toast } from "@/components/ui/sonner";
 import { ContentItem, semanticSearch } from "@/services/adminService";
 import { Loader2 } from "lucide-react";
@@ -304,11 +302,16 @@ const Vista = () => {
       <Header />
       
       <main className="flex-1 container py-8 max-w-6xl">
-        <SEOContent
-          h1="Content Vista"
-          h2={searchParams.get("search") ? `Search Results for "${searchParams.get("search")}"` : "Browse All Content"}
-          h3="Discover Articles, Insights, and Resources"
-        >
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900 dark:text-white">
+            Content Vista
+          </h1>
+          <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+            {searchParams.get("search") ? `Search Results for "${searchParams.get("search")}"` : "Browse All Content"}
+          </h2>
+          <h3 className="text-xl md:text-2xl font-medium mb-3 text-gray-700 dark:text-gray-300">
+            Discover Articles, Insights, and Resources
+          </h3>
           <div className="mb-8">
             {searchPurpose && showingSearchResults ? (
               <p className="text-gray-600 dark:text-gray-400">
@@ -324,7 +327,7 @@ const Vista = () => {
               </p>
             )}
           </div>
-        </SEOContent>
+        </div>
         
         <Card className="mb-8">
           <CardContent className="p-4">

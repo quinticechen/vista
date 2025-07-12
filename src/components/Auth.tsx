@@ -47,17 +47,10 @@ const Auth = () => {
   
   const checkAdminAndRedirect = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', userId)
-        .single();
-      
-      if (!error && data?.is_admin) {
-        navigate('/admin');
-      }
+      // Redirect all authenticated users to admin page
+      navigate('/admin');
     } catch (error) {
-      console.error("Error checking admin status:", error);
+      console.error("Error during redirect:", error);
     }
   };
 
@@ -190,64 +183,12 @@ const Auth = () => {
           </div>
         </CardContent>
       ) : (
+                // Start of changes for unauthenticated user
         <>
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">Email</label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="your@email.com"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">Password</label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                />
-              </div>
-            </CardContent>
-            
-            <CardFooter className="flex flex-col space-y-2">
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
-              </Button>
+          <CardContent className="space-y-2"> {/* Added CardContent for consistent padding */}
+            <div className="mt-0 pb-4"> {/* Adjusted margin-top, was mt-4, now moved inside CardContent */}
               <Button
-                type="button"
-                variant="link"
-                onClick={() => setIsLogin(!isLogin)}
-                className="w-full"
-              >
-                {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
-              </Button>
-            </CardFooter>
-          </form>
-          
-          <div className="px-6 pb-4">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-            
-            <div className="mt-4">
-              <Button 
-                variant="outline" 
+                variant="outline"
                 className="w-full flex items-center justify-center gap-2"
                 onClick={handleGoogleSignIn}
                 disabled={loading}
@@ -260,7 +201,61 @@ const Auth = () => {
                 Sign in with Google
               </Button>
             </div>
-          </div>
+
+            <div className="relative"> {/* No longer need px-6 pb-4 here, as CardContent handles padding */}
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              {/* CardContent removed from here as it's now wrapped outside */}
+              <div className="space-y-4"> {/* This div now acts as the CardContent for the form elements */}
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">Email</label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="your@email.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-medium">Password</label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <CardFooter className="flex flex-col py-0 space-y-2 mt-6">
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="w-full"
+                >
+                  {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
+                </Button>
+              </CardFooter>
+            </form>
+          </CardContent> {/* Close CardContent here */}
         </>
       )}
     </Card>
