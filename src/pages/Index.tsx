@@ -204,6 +204,11 @@ const Index = () => {
         {/* Add spacer to push PurposeInput down one viewport height */}
         <div className="h-screen"></div>
         
+        <SEOContent
+          h1={urlParam ? `${ownerProfile?.full_name || urlParam}'s Content Platform` : "Vista Content Discovery Platform"}
+          h2="Find Relevant Content Through AI-Powered Search"
+          h3="Discover Personalized Insights and Articles"
+        >
           <PurposeInput 
             onPurposeSubmit={handlePurposeSubmit} 
             scrollProgress={scrollProgress}
@@ -213,6 +218,7 @@ const Index = () => {
             submitButtonText={homePageSettings.submitButtonText}
             optionButtons={homePageSettings.optionButtons}
           />
+        </SEOContent>
       </div>
       
       {/* Footer with proper z-index to appear after PurposeInput */}
