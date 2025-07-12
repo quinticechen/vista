@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import UserOnboardingGuide from "@/components/UserOnboardingGuide";
 
 const AdminHome = () => {
   const [user, setUser] = useState<any>(null);
@@ -49,6 +50,18 @@ const AdminHome = () => {
     }
   };
 
+  const handleVisitMainSite = () => {
+    const baseUrl = "https://vista.qwizai.com";
+    
+    if (profile?.url_param) {
+      // Redirect to custom URL with url_param
+      window.location.href = `${baseUrl}/${profile.url_param}`;
+    } else {
+      // Fallback to main site
+      window.location.href = baseUrl;
+    }
+  };
+
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold">Admin Dashboard</h1>
@@ -67,13 +80,17 @@ const AdminHome = () => {
             </p>
             <Button
               className="w-full sm:w-auto"
-              onClick={() => window.location.href = "/"}
+              onClick={handleVisitMainSite}
             >
               Visit Main Site
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {user && profile && (
+        <UserOnboardingGuide user={user} profile={profile} />
+      )}
     </div>
   );
 };

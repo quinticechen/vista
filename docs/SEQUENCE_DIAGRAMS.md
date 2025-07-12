@@ -3,12 +3,12 @@
 
 This document contains sequence diagrams that illustrate the key flows and interactions within the Vista platform.
 
-## Authentication Flow
+## Authentication & Admin Redirect Flow
 
 ```
 ┌────────┐          ┌─────────────┐          ┌─────────┐          ┌─────────────┐
-│  User  │          │ Auth Page   │          │Supabase │          │ Protected   │
-│        │          │             │          │  Auth   │          │   Page      │
+│  User  │          │ Auth Page   │          │Supabase │          │ Admin       │
+│        │          │             │          │  Auth   │          │ Dashboard   │
 └───┬────┘          └──────┬──────┘          └────┬────┘          └──────┬──────┘
     │                      │                      │                      │
     │  Visit Auth Page     │                      │                      │
@@ -20,26 +20,62 @@ This document contains sequence diagrams that illustrate the key flows and inter
     │                      │  Auth Token Response │                      │
     │                      │<─────────────────────│                      │
     │                      │                      │                      │
-    │                      │      Redirect        │                      │
-    │<─────────────────────│                      │                      │
-    │                      │                      │                      │
-    │  Visit Protected Page│                      │                      │
-    │───────────────────────────────────────────────────────────────────>│
-    │                      │                      │                      │
-    │                      │                      │   Verify Token       │
-    │                      │                      │<─────────────────────│
-    │                      │                      │                      │
-    │                      │                      │   Token Valid        │
-    │                      │                      │─────────────────────>│
+    │                      │ Auto Redirect to Admin                      │
+    │                      │─────────────────────────────────────────────>│
     │                      │                      │                      │
     │                      │                      │                      │
-    │  Return Protected Content                   │                      │
-    │<───────────────────────────────────────────────────────────────────│
+    │  Welcome & Onboarding│                      │                      │
+    │<─────────────────────────────────────────────────────────────────────│
     │                      │                      │                      │
 ┌───┴────┐          ┌──────┴──────┐          ┌────┴────┐          ┌──────┴──────┐
-│  User  │          │ Auth Page   │          │Supabase │          │ Protected   │
-│        │          │             │          │  Auth   │          │   Page      │
+│  User  │          │ Auth Page   │          │Supabase │          │ Admin       │
+│        │          │             │          │  Auth   │          │ Dashboard   │
 └────────┘          └─────────────┘          └─────────┘          └─────────────┘
+```
+
+## User Onboarding Flow
+
+```
+┌────────┐          ┌─────────────┐          ┌─────────────┐          ┌─────────────┐
+│  User  │          │ Admin       │          │ Onboarding  │          │  Setup      │
+│        │          │ Dashboard   │          │  Component  │          │   Pages     │
+└───┬────┘          └──────┬──────┘          └──────┬──────┘          └──────┬──────┘
+    │                      │                        │                        │
+    │ View Dashboard       │                        │                        │
+    │─────────────────────>│                        │                        │
+    │                      │                        │                        │
+    │                      │  Check Completion      │                        │
+    │                      │───────────────────────>│                        │
+    │                      │                        │                        │
+    │                      │  Show Progress         │                        │
+    │                      │<───────────────────────│                        │
+    │                      │                        │                        │
+    │  View Progress       │                        │                        │
+    │<─────────────────────│                        │                        │
+    │                      │                        │                        │
+    │  Click Setup Step    │                        │                        │
+    │─────────────────────>│                        │                        │
+    │                      │                        │                        │
+    │                      │  Navigate to Setup     │                        │
+    │                      │───────────────────────────────────────────────>│
+    │                      │                        │                        │
+    │                      │                        │                        │
+    │  Complete Setup      │                        │                        │
+    │<───────────────────────────────────────────────────────────────────────│
+    │                      │                        │                        │
+    │  Return to Dashboard │                        │                        │
+    │─────────────────────>│                        │                        │
+    │                      │                        │                        │
+    │                      │  Update Progress       │                        │
+    │                      │───────────────────────>│                        │
+    │                      │                        │                        │
+    │  Show Updated Status │                        │                        │
+    │<─────────────────────────────────────────────│                        │
+    │                      │                        │                        │
+┌───┴────┐          ┌──────┴──────┐          ┌──────┴──────┐          ┌──────┴──────┐
+│  User  │          │ Admin       │          │ Onboarding  │          │  Setup      │
+│        │          │ Dashboard   │          │  Component  │          │   Pages     │
+└────────┘          └─────────────┘          └─────────────┘          └─────────────┘
 ```
 
 ## Content Search Flow

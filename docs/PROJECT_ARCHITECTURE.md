@@ -15,6 +15,7 @@ Vista is a modern web application built with React, TypeScript, and Supabase, de
 4. **URL Parameter Pages** - Custom branded pages for each user
 5. **Home Page Customization** - User-configurable landing pages with interactive elements
 6. **Website Customization** - Style templates and theme options for personalized branding
+7. **User Onboarding System** - Guided setup process with completion tracking
 
 ## Architecture Diagram
 
@@ -109,6 +110,13 @@ Edge Functions handle complex business logic:
 3. Edge function processes content
 4. Content is stored in database
 5. Embeddings are generated for search
+
+### Authentication & Admin Access
+
+1. User logs in through authentication system
+2. All authenticated users are redirected to admin dashboard
+3. Admin dashboard displays user onboarding guide
+4. User can navigate to custom site via "Visit Main Site" button
 
 ### User Content Access
 

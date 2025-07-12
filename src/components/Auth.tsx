@@ -47,17 +47,10 @@ const Auth = () => {
   
   const checkAdminAndRedirect = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', userId)
-        .single();
-      
-      if (!error && data?.is_admin) {
-        navigate('/admin');
-      }
+      // Redirect all authenticated users to admin page
+      navigate('/admin');
     } catch (error) {
-      console.error("Error checking admin status:", error);
+      console.error("Error during redirect:", error);
     }
   };
 
