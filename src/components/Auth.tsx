@@ -1,12 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@//ui/button";
+import { Input } from "@//ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@//ui/card";
 import { toast } from "@/components/ui/sonner";
 import { useNavigate } from "react-router-dom";
-import { LucideGithub } from "lucide-react";
+import { LucideGithub } from "lucide-react"; // Not used, can be removed if not needed elsewhere
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -22,7 +21,7 @@ const Auth = () => {
       (event, session) => {
         if (session?.user) {
           setUser(session.user);
-          
+
           // Check if the user is admin and redirect to admin page
           setTimeout(() => {
             checkAdminAndRedirect(session.user.id);
@@ -36,7 +35,7 @@ const Auth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-        
+
         // Check if the user is admin and redirect to admin page
         checkAdminAndRedirect(session.user.id);
       }
@@ -44,7 +43,7 @@ const Auth = () => {
 
     return () => subscription.unsubscribe();
   }, []);
-  
+
   const checkAdminAndRedirect = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -52,7 +51,7 @@ const Auth = () => {
         .select('is_admin')
         .eq('id', userId)
         .single();
-      
+
       if (!error && data?.is_admin) {
         navigate('/admin');
       }
@@ -64,14 +63,14 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        
+
         if (error) throw error;
         toast.success("Logged in successfully");
       } else {
@@ -79,7 +78,7 @@ const Auth = () => {
           email,
           password,
         });
-        
+
         if (error) throw error;
         toast.success("Signed up successfully! Please check your email for verification.");
       }
@@ -99,7 +98,7 @@ const Auth = () => {
           redirectTo: `${window.location.origin}/auth`
         }
       });
-      
+
       if (error) throw error;
     } catch (error: any) {
       toast.error(`Failed to sign in with Google: ${error.message}`);
@@ -110,7 +109,7 @@ const Auth = () => {
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
-    
+
     if (error) {
       toast.error(error.message);
     } else {
@@ -121,32 +120,32 @@ const Auth = () => {
   const makeUserAdmin = async () => {
     try {
       setAdminLoading(true);
-      
+
       // First ensure the profile exists
       const { error: profileCheckError, count } = await supabase
         .from('profiles')
         .select('*', { count: 'exact' })
         .eq('id', user.id);
-        
+
       if (profileCheckError) throw profileCheckError;
-      
+
       // If profile doesn't exist, create it
       if (count === 0) {
         const { error: insertError } = await supabase
           .from('profiles')
           .insert({ id: user.id });
-          
+
         if (insertError) throw insertError;
       }
-      
+
       // Now update is_admin to true
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ is_admin: true })
         .eq('id', user.id);
-      
+
       if (updateError) throw updateError;
-      
+
       toast.success("You are now an admin! Try accessing the admin page.");
     } catch (error: any) {
       toast.error(`Failed to set admin status: ${error.message}`);
@@ -161,23 +160,23 @@ const Auth = () => {
       <CardHeader>
         <CardTitle>{user ? "Account" : (isLogin ? "Login" : "Sign Up")}</CardTitle>
         <CardDescription>
-          {user 
-            ? "You are currently logged in." 
-            : (isLogin 
-              ? "Sign in to your account." 
+          {user
+            ? "You are currently logged in."
+            : (isLogin
+              ? "Sign in to your account."
               : "Create a new account.")
           }
         </CardDescription>
       </CardHeader>
-      
+
       {user ? (
         <CardContent>
           <div className="space-y-2">
             <p><strong>Email:</strong> {user.email}</p>
             <p className="text-xs break-all"><strong>User ID:</strong> {user.id}</p>
             <div className="flex flex-col gap-2 mt-4">
-              <Button 
-                onClick={makeUserAdmin} 
+              <Button
+                onClick={makeUserAdmin}
                 className="w-full bg-green-600 hover:bg-green-700"
                 disabled={adminLoading}
               >
@@ -190,10 +189,12 @@ const Auth = () => {
           </div>
         </CardContent>
       ) : (
+        // Start of changes for unauthenticated user
         <>
-            <div className="mt-4">
-              <Button 
-                variant="outline" 
+          <CardContent className="space-y-4"> {/* Added CardContent for consistent padding */}
+            <div className="mt-0"> {/* Adjusted margin-top, was mt-4, now moved inside CardContent */}
+              <Button
+                variant="outline"
                 className="w-full flex items-center justify-center gap-2"
                 onClick={handleGoogleSignIn}
                 disabled={loading}
@@ -206,9 +207,8 @@ const Auth = () => {
                 Sign in with Google
               </Button>
             </div>
-          
-          <div className="px-6 pb-4">
-            <div className="relative">
+
+            <div className="relative"> {/* No longer need px-6 pb-4 here, as CardContent handles padding */}
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
               </div>
@@ -218,49 +218,50 @@ const Auth = () => {
                 </span>
               </div>
             </div>
-            <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">Email</label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="your@email.com"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">Password</label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                />
-              </div>
-            </CardContent>
-            
-            <CardFooter className="flex flex-col space-y-2">
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
-              </Button>
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => setIsLogin(!isLogin)}
-                className="w-full"
-              >
-                {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
-              </Button>
-            </CardFooter>
-          </form>
 
-          </div>
+            <form onSubmit={handleSubmit}>
+              {/* CardContent removed from here as it's now wrapped outside */}
+              <div className="space-y-4"> {/* This div now acts as the CardContent for the form elements */}
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">Email</label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder="your@email.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-sm font-medium">Password</label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <CardFooter className="flex flex-col space-y-2">
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="w-full"
+                >
+                  {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
+                </Button>
+              </CardFooter>
+            </form>
+          </CardContent> {/* Close CardContent here */}
         </>
       )}
     </Card>
