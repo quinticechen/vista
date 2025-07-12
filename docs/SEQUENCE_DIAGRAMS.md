@@ -78,12 +78,53 @@ This document contains sequence diagrams that illustrate the key flows and inter
 └────────┘          └─────────────┘          └─────────────┘          └─────────────┘
 ```
 
+## Vista Product Home Page Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as Browser
+    participant VP as VistaProductHome
+    participant A as Auth Page
+
+    U->>B: Visits application
+    B->>VP: Navigate to /
+    VP->>VP: Display product features and benefits
+    U->>VP: Clicks "Get Started Free"
+    VP->>A: Navigate to /auth
+    A->>A: User registration/login flow
+```
+
+## URL Parameter Page Flow (Customer Content)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant B as Browser
+    participant UP as UrlParam Page
+    participant UPS as UrlParamService
+    participant HPS as HomePageService
+    participant H as Hero Component
+    participant P as PurposeInput
+
+    U->>B: Visits /:urlParam
+    B->>UP: Navigate with urlParam
+    UP->>UPS: getProfileByUrlParam(urlParam)
+    UPS->>UP: Return profile data
+    UP->>HPS: getHomePageSettingsByUrlParam(urlParam)
+    HPS->>UP: Return customization settings
+    UP->>H: Render with custom settings
+    UP->>P: Render with custom placeholder/options
+    U->>P: Enters search purpose
+    P->>B: Navigate to /:urlParam/vista with search
+```
+
 ## Content Search Flow
 
 ```
 ┌────────┐          ┌─────────────┐          ┌─────────┐          ┌─────────────┐
-│  User  │          │ Index Page  │          │ Vista   │          │ Content     │
-│        │          │ (Search)    │          │  Page   │          │ Detail Page │
+│  User  │          │ UrlParam    │          │ Vista   │          │ Content     │
+│        │          │ Page        │          │  Page   │          │ Detail Page │
 └───┬────┘          └──────┬──────┘          └────┬────┘          └──────┬──────┘
     │                      │                      │                      │
     │  Enter Purpose       │                      │                      │
@@ -111,8 +152,8 @@ This document contains sequence diagrams that illustrate the key flows and inter
     │<───────────────────────────────────────────────────────────────────│
     │                      │                      │                      │
 ┌───┴────┐          ┌──────┴──────┐          ┌────┴────┐          ┌──────┴──────┐
-│  User  │          │ Index Page  │          │ Vista   │          │ Content     │
-│        │          │ (Search)    │          │  Page   │          │ Detail Page │
+│  User  │          │ UrlParam    │          │ Vista   │          │ Content     │
+│        │          │ Page        │          │  Page   │          │ Detail Page │
 └────────┘          └─────────────┘          └─────────┘          └─────────────┘
 ```
 

@@ -142,7 +142,16 @@ Edge Functions handle complex business logic:
 
 ## Technology Stack
 
-### Frontend
+### Page Components
+- `VistaProductHome.tsx` - Vista product sales and marketing page (root route)
+- `UrlParam.tsx` - User-specific content pages with customization (formerly Index.tsx)
+- `Vista.tsx` - Content discovery and search interface
+- `ContentDetail.tsx` - Individual content item display
+- `About.tsx` - About page information
+- `AuthPage.tsx` - Authentication interface
+- `NotFound.tsx` - 404 error page
+
+### Frontend Technology Stack
 
 - **React 18** - Component-based UI library
 - **TypeScript** - Type-safe JavaScript
