@@ -185,7 +185,7 @@ const Auth = () => {
       ) : (
                 // Start of changes for unauthenticated user
         <>
-          <CardContent className="space-y-2"> {/* Added CardContent for consistent padding */}
+          <CardContent className="space-y-2 pb-4"> {/* Added CardContent for consistent padding */}
             <div className="mt-0"> {/* Adjusted margin-top, was mt-4, now moved inside CardContent */}
               <Button
                 variant="outline"
