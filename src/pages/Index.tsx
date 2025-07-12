@@ -213,7 +213,6 @@ const Index = () => {
             submitButtonText={homePageSettings.submitButtonText}
             optionButtons={homePageSettings.optionButtons}
           />
-        </SEOContent>
       </div>
       
       {/* Footer with proper z-index to appear after PurposeInput */}
