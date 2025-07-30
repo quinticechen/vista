@@ -38,6 +38,7 @@ export type Database = {
           translation_status: string | null
           updated_at: string | null
           user_id: string | null
+          visitor_count: number | null
         }
         Insert: {
           category?: string | null
@@ -62,6 +63,7 @@ export type Database = {
           translation_status?: string | null
           updated_at?: string | null
           user_id?: string | null
+          visitor_count?: number | null
         }
         Update: {
           category?: string | null
@@ -86,6 +88,7 @@ export type Database = {
           translation_status?: string | null
           updated_at?: string | null
           user_id?: string | null
+          visitor_count?: number | null
         }
         Relationships: []
       }
@@ -292,6 +295,10 @@ export type Database = {
       hnswhandler: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      increment_visitor_count: {
+        Args: { content_id: string }
+        Returns: boolean
       }
       ivfflat_bit_support: {
         Args: { "": unknown }
