@@ -48,6 +48,7 @@ This document outlines the class structure of the Vista platform, showing key re
 | title_translations: JSON |
 | description_translations: JSON |
 | content_translations: JSON |
+| visitor_count: Integer |
 +-------------------+
 ```
 

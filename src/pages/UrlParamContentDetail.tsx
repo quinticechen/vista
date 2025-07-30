@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { getProfileByUrlParam, getContentItemById } from "@/services/urlParamService";
 import { processNotionContent, ContentItemFromDB, ExtendedContentItem } from "@/utils/notionContentProcessor";
 import { ContentMetadata } from "@/components/content/ContentMetadata";
@@ -26,6 +27,21 @@ const UrlParamContentDetail = () => {
   const [content, setContent] = useState<ExtendedContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
+
+  // Function to increment visitor count
+  const incrementVisitorCount = async (contentId: string) => {
+    try {
+      const { error } = await supabase.rpc('increment_visitor_count', {
+        content_id: contentId
+      });
+      
+      if (error) {
+        console.error('Error incrementing visitor count:', error);
+      }
+    } catch (error) {
+      console.error('Error calling increment_visitor_count:', error);
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -91,6 +107,11 @@ const UrlParamContentDetail = () => {
         }
         
         setContent(processedContent);
+        
+        // Increment visitor count after successfully loading content
+        if (contentItem?.id) {
+          await incrementVisitorCount(contentItem.id);
+        }
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error("Error loading content:", error);
