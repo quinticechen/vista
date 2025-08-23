@@ -211,3 +211,49 @@ export async function searchUserContent(userId: string, query: string): Promise<
     return [];
   }
 }
+
+export async function getContentOwnerUrlParam(contentId: string): Promise<string | null> {
+  try {
+    console.log(`Looking up owner URL parameter for content ID: ${contentId}`);
+    
+    // First get the content item to find the user_id
+    const { data: contentData, error: contentError } = await supabase
+      .from('content_items')
+      .select('user_id')
+      .eq('id', contentId)
+      .single();
+    
+    if (contentError) {
+      console.error('Error fetching content item:', contentError);
+      return null;
+    }
+    
+    if (!contentData?.user_id) {
+      console.error('Content item has no user_id');
+      return null;
+    }
+    
+    // Use the security definer function to get the URL parameter
+    const { data: profileData, error: profileError } = await supabase
+      .rpc('get_url_param_by_user_id', { target_user_id: contentData.user_id });
+    
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      return null;
+    }
+    
+    // The RPC function returns an array, get the first result
+    if (!profileData || profileData.length === 0) {
+      console.log(`No URL parameter found for user ID: ${contentData.user_id}`);
+      return null;
+    }
+    
+    const urlParam = profileData[0]?.url_param;
+    console.log(`Found URL parameter for content ${contentId}: ${urlParam}`);
+    
+    return urlParam || null;
+  } catch (error) {
+    console.error('Exception fetching content owner URL param:', error);
+    return null;
+  }
+}

@@ -9,7 +9,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import Index from "./pages/VistaProductHome";
 import UrlParam from "./pages/UrlParam";
 import Vista from "./pages/Vista";
-import ContentDetail from "./pages/ContentDetail";
+
 import Admin from "./pages/Admin";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
@@ -48,7 +48,6 @@ const App = () => (
             {/* Public routes - accessible to everyone */}
             <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
             <Route path="/vista" element={<PublicRoute><Vista /></PublicRoute>} />
-            <Route path="/vista/:contentId" element={<PublicRoute><ContentDetail /></PublicRoute>} />
             <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
             <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />
             

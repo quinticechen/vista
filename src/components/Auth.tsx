@@ -158,7 +158,7 @@ const Auth = () => {
             ? "You are currently logged in." 
             : (isLogin 
               ? "Sign in to your account." 
-              : "Create a new account.")
+              : "Create a new account for share your content.")
           }
         </CardDescription>
       </CardHeader>

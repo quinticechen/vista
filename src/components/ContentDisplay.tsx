@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+
 import { useI18n } from "@/hooks/use-i18n";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Calendar, Clock } from "lucide-react";
@@ -9,6 +9,8 @@ import { formatDate } from "@/lib/utils";
 import { ContentItem } from "@/services/adminService";
 import { Badge } from "@/components/ui/badge";
 import { Json } from "@/integrations/supabase/types";
+import { getContentOwnerUrlParam } from "@/services/urlParamService";
+import { useNavigate } from "react-router-dom";
 
 export interface ContentDisplayItemProps {
   content: ContentItem;
@@ -123,6 +125,7 @@ export const ContentDisplayItem = ({
   const isRTL = i18n.language === 'ar';
   const [imageError, setImageError] = useState(false);
   const [mediaLoaded, setMediaLoaded] = useState(false);
+  const navigate = useNavigate();
   
   // Deep check content's structure to find images
   const normalizedContent = { ...content };
@@ -149,12 +152,27 @@ export const ContentDisplayItem = ({
   const hasMedia = !!mediaUrl && !imageError && mediaLoaded;
   const isMediaRight = index % 2 === 0;
   
-  // Function to get the correct detail route
-  const getDetailRoute = () => {
+  // Function to handle navigation to content detail
+  const handleContentClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
     if (urlPrefix) {
-      return `${urlPrefix}/vista/${normalizedContent.id}`;
+      // Direct navigation when we have a urlPrefix
+      navigate(`${urlPrefix}/vista/${normalizedContent.id}`);
+    } else {
+      // For global vista page, get the content owner's urlParam first
+      try {
+        const ownerUrlParam = await getContentOwnerUrlParam(normalizedContent.id);
+        if (ownerUrlParam) {
+          navigate(`/${ownerUrlParam}/vista/${normalizedContent.id}`);
+        } else {
+          // Fallback: stay on vista page if we can't find owner
+          console.error('Could not find owner URL parameter for content:', normalizedContent.id);
+        }
+      } catch (error) {
+        console.error('Error getting content owner URL param:', error);
+      }
     }
-    return `/vista/${normalizedContent.id}`;
   };
 
   const handleImageError = () => {
@@ -244,11 +262,9 @@ export const ContentDisplayItem = ({
           <Button
             size="sm"
             className="w-full mt-2"
-            asChild
+            onClick={handleContentClick}
           >
-            <Link to={getDetailRoute()}>
-              Learn More
-            </Link>
+            Learn More
           </Button>
         </CardFooter>
       </div>
