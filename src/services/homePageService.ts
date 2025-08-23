@@ -171,19 +171,16 @@ export async function getHomePageSettingsByUrlParam(urlParam: string): Promise<H
   try {
     console.log(`Fetching home page settings for URL parameter: ${urlParam}`);
     
-    // First get the profile ID for this URL parameter
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('url_param', urlParam)
-      .single();
+    // Use security definer function to get profile ID for this URL parameter
+    const { data: profileId, error: profileError } = await supabase
+      .rpc('get_profile_id_by_url_param', { url_param_input: urlParam });
     
-    if (profileError || !profile) {
+    if (profileError || !profileId) {
       console.error('Error fetching profile by URL parameter:', profileError);
       return null;
     }
     
-    const settings = await getHomePageSettingsByProfileId(profile.id);
+    const settings = await getHomePageSettingsByProfileId(profileId);
     return settings;
   } catch (error) {
     console.error('Exception fetching home page settings by URL parameter:', error);
