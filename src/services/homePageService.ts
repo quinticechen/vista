@@ -47,9 +47,11 @@ export const DEFAULT_HOME_PAGE_SETTINGS: Omit<HomePageSettings, 'id' | 'profileI
 function isValidOptionButton(obj: any): obj is OptionButton {
   return obj && 
          typeof obj === 'object' && 
-         typeof obj.id === 'number' && 
+         (typeof obj.id === 'number' || typeof obj.id === 'string') && 
          typeof obj.text === 'string' && 
-         typeof obj.defaultText === 'string';
+         typeof obj.defaultText === 'string' &&
+         // Filter out corrupted data with 'lv' field
+         !obj.lv;
 }
 
 function transformToOptionButtons(data: any): OptionButton[] {
@@ -57,7 +59,13 @@ function transformToOptionButtons(data: any): OptionButton[] {
     return [];
   }
   
-  return data.filter(isValidOptionButton);
+  return data
+    .filter(isValidOptionButton)
+    .map((button, index) => ({
+      id: typeof button.id === 'string' ? parseInt(button.id) || (index + 1) : button.id,
+      text: button.text,
+      defaultText: button.defaultText
+    }));
 }
 
 export async function getHomePageSettingsByProfileId(profileId: string): Promise<HomePageSettings | null> {
