@@ -70,7 +70,7 @@ const App = () => (
                 They must come after reserved routes to avoid conflicts */}
             <Route path="/:urlParam" element={<PublicRoute><UrlParam /></PublicRoute>} />
             <Route path="/:urlParam/vista" element={<PublicRoute><UrlParamVista /></PublicRoute>} />
-            <Route path="/:urlParam/vista/content/:contentId" element={<PublicRoute><UrlParamContentDetail /></PublicRoute>} />
+            <Route path="/:urlParam/vista/:contentId" element={<PublicRoute><UrlParamContentDetail /></PublicRoute>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<PublicRoute><NotFound /></PublicRoute>} />
