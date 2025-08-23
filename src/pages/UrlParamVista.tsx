@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ContentDisplayItem } from "@/components/ContentDisplay";
 import { toast } from "@/components/ui/sonner";
-import { getProfileByUrlParam, getUserContentItems } from "@/services/urlParamService";
+import { getProfileByUrlParam, getUserContentItems, getUserContentByUrlParam } from "@/services/urlParamService";
 import { semanticSearch } from "@/services/adminService";
 import { ContentItem } from "@/services/adminService";
 import { processNotionContent } from "@/utils/notionContentProcessor";
@@ -95,9 +95,8 @@ const UrlParamVista = () => {
         setOwnerProfile(profile);
         
         // Load all content items for this user (for "View All" functionality)
-        const userId = profile.id;
-        console.log(`UrlParamVista - Loading all content items for user ID: ${userId}`);
-        let userContent = await getUserContentItems(userId);
+        console.log(`UrlParamVista - Loading all content items for URL parameter: ${urlParam}`);
+        let userContent = await getUserContentByUrlParam(urlParam);
         console.log('Raw content loaded:', userContent);
         
         // Apply consistent processing pipeline
@@ -254,7 +253,7 @@ const UrlParamVista = () => {
 
       // First get all content for this user if we don't have it yet
       if (allContentItems.length === 0) {
-        let userContent = await getUserContentItems(userId);
+        let userContent = await getUserContentByUrlParam(urlParam || "");
         // Apply consistent processing pipeline
         userContent = processContentItems(userContent);
         setAllContentItems(userContent);

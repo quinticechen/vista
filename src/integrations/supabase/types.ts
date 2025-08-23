@@ -273,6 +273,34 @@ export type Database = {
           url_param: string
         }[]
       }
+      get_user_content_by_url_param: {
+        Args: { url_param_value: string }
+        Returns: {
+          category: string
+          content: Json
+          content_translations: Json
+          created_at: string
+          description: string
+          description_translations: Json
+          embedding: string
+          end_date: string
+          id: string
+          notion_created_time: string
+          notion_last_edited_time: string
+          notion_page_id: string
+          notion_page_status: string
+          notion_url: string
+          start_date: string
+          tags: string[]
+          title: string
+          title_translations: Json
+          translated_languages: string[]
+          translation_status: string
+          updated_at: string
+          user_id: string
+          visitor_count: number
+        }[]
+      }
       halfvec_avg: {
         Args: { "": number[] }
         Returns: unknown

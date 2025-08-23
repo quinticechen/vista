@@ -106,6 +106,13 @@ export async function getContentItemById(contentId: string) {
 export async function getUserContentItems(userId: string): Promise<ContentItem[]> {
   try {
     console.log(`Fetching content items for user ID: ${userId}`);
+    
+    // If this is the public-access placeholder, we need to handle it differently
+    if (userId === 'public-access') {
+      console.error('Cannot fetch content for placeholder ID. Use getUserContentByUrlParam instead.');
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('content_items')
       .select('*')
@@ -136,6 +143,41 @@ export async function getUserContentItems(userId: string): Promise<ContentItem[]
     return processedData;
   } catch (error) {
     console.error('Exception fetching user content items:', error);
+    return [];
+  }
+}
+
+export async function getUserContentByUrlParam(urlParam: string): Promise<ContentItem[]> {
+  try {
+    console.log(`Fetching content items for URL parameter: ${urlParam}`);
+    
+    const { data, error } = await supabase
+      .rpc('get_user_content_by_url_param', { url_param_value: urlParam });
+    
+    if (error) {
+      console.error('Error fetching user content by URL param:', error);
+      return [];
+    }
+    
+    // Process the data to match ContentItem interface
+    const processedData = (data || []).map((item: any) => {
+      // Parse content if it's a string
+      if (item.content && typeof item.content === 'string') {
+        try {
+          item.content = JSON.parse(item.content);
+        } catch (e) {
+          console.error(`Error parsing content JSON for item ${item.id}:`, e);
+          // Keep as is if parsing fails
+        }
+      }
+      
+      return item as ContentItem;
+    });
+    
+    console.log(`Retrieved ${processedData.length} content items for URL parameter`);
+    return processedData;
+  } catch (error) {
+    console.error('Exception fetching user content by URL param:', error);
     return [];
   }
 }
