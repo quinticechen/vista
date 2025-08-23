@@ -14,7 +14,7 @@ import { ArrowLeft, Calendar, Tag, Clock, Eye } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { cn } from "@/lib/utils";
 import NotionRenderer from "@/components/NotionRenderer";
-import vistaLogo from "@/assets/vista-logo.png";
+import vistaLogo from "@/public/og-image.png";
 
 const ContentDetail = () => {
   const { contentId } = useParams<{ contentId: string }>();
