@@ -39,9 +39,9 @@ const Header = () => {
     <header className="py-4 px-6 bg-background/95 backdrop-blur-sm sticky top-0 z-10 border-b">
       <div className="container flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <NavLink to={homePath} className="text-lg font-bold">
+          {/* <NavLink to={homePath} className="text-lg font-bold">
             Vista
-          </NavLink>
+          </NavLink> */}
         </div>
         
         <nav className="flex flex-wrap gap-2 items-center">
