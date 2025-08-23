@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -264,6 +264,15 @@ export type Database = {
         Args: { "": string } | { "": unknown }
         Returns: unknown
       }
+      get_public_profile: {
+        Args: { profile_url_param: string }
+        Returns: {
+          created_at: string
+          default_language: string
+          supported_ai_languages: string[]
+          url_param: string
+        }[]
+      }
       halfvec_avg: {
         Args: { "": number[] }
         Returns: unknown
@@ -322,17 +331,17 @@ export type Database = {
       }
       match_content_items: {
         Args: {
-          query_embedding: string
-          match_threshold: number
           match_count: number
+          match_threshold: number
+          query_embedding: string
         }
         Returns: {
-          id: string
-          title: string
-          description: string
           category: string
-          tags: string[]
+          description: string
+          id: string
           similarity: number
+          tags: string[]
+          title: string
         }[]
       }
       sparsevec_out: {

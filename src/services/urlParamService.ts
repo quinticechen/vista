@@ -6,36 +6,30 @@ export async function getProfileByUrlParam(urlParam: string) {
   try {
     console.log(`Looking up profile for URL parameter: ${urlParam}`);
     
-    // With the new RLS policy, this should work for public access
+    // Use the new security definer function for public access to safe profile fields
     const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('url_param', urlParam)
-      .single();
+      .rpc('get_public_profile', { profile_url_param: urlParam });
     
     if (error) {
       console.error('Error fetching profile by URL parameter:', error);
-      
-      // Handle specific error cases
-      if (error.code === 'PGRST116') {
-        // No rows found - profile doesn't exist
-        console.log(`No profile found for URL parameter: ${urlParam}`);
-        return null;
-      }
-      
-      // This should no longer happen with the new RLS policy
-      if (error.message?.includes('406') || error.code === '406') {
-        console.error('Unexpected 406 error - RLS policy may need verification');
-        return null;
-      }
-      
-      // For other errors, still return null but log them
-      console.error(`Unexpected error fetching profile: ${error.code} - ${error.message}`);
       return null;
     }
     
-    console.log(`Successfully found profile for ${urlParam}:`, data);
-    return data;
+    // The RPC function returns an array, get the first result
+    if (!data || data.length === 0) {
+      console.log(`No profile found for URL parameter: ${urlParam}`);
+      return null;
+    }
+    
+    const profile = data[0];
+    console.log(`Successfully found profile for ${urlParam}:`, profile);
+    
+    // For backward compatibility, we need to add an id field for code that expects it
+    // We'll create a minimal profile object with the safe fields plus a placeholder id
+    return {
+      ...profile,
+      id: 'public-access', // Placeholder since we can't expose the real user ID
+    };
   } catch (error) {
     console.error('Exception fetching profile by URL parameter:', error);
     return null;
