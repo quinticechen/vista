@@ -12,7 +12,7 @@ import { getProfileByUrlParam, getContentItemById } from "@/services/urlParamSer
 import { processNotionContent, ContentItemFromDB, ExtendedContentItem } from "@/utils/notionContentProcessor";
 import { ContentMetadata } from "@/components/content/ContentMetadata";
 import { ContentBody } from "@/components/content/ContentBody";
-import vistaLogo from "@/assets/vista-logo.png";
+import vistaLogo from "@/public/og-image.png";
 
 // Type to represent a block in the content array
 interface ContentBlock {
