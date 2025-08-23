@@ -13,6 +13,8 @@ import { ContentItem } from "@/services/adminService";
 import { processNotionContent } from "@/utils/notionContentProcessor";
 import { Loader2 } from "lucide-react";
 import { SearchCache } from "@/utils/searchCache";
+import SEOHead from "@/components/SEOHead";
+import vistaLogo from "@/assets/vista-logo.png";
 
 const UrlParamVista = () => {
   const { urlParam } = useParams();
@@ -25,6 +27,49 @@ const UrlParamVista = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
+  
+  // Generate SEO data for URL param vista page
+  const generateSEOData = () => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const canonicalUrl = `${baseUrl}/${urlParam}/vista`;
+    const searchTerm = searchParams.get("search") || searchPurpose;
+    const ownerName = ownerProfile?.display_name || urlParam;
+    
+    if (searchTerm) {
+      return {
+        title: `Search Results for "${searchTerm}" - ${ownerName}'s Content`,
+        description: `Browse content and articles related to "${searchTerm}" from ${ownerName}. Find relevant insights and information.`,
+        keywords: ['search results', searchTerm, 'content discovery', 'articles', 'insights'],
+        canonicalUrl: `${canonicalUrl}?search=${encodeURIComponent(searchTerm)}`,
+        ogImage: vistaLogo,
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "SearchResultsPage",
+          "name": `Search Results for "${searchTerm}"`,
+          "url": canonicalUrl,
+          "mainEntity": {
+            "@type": "ItemList",
+            "numberOfItems": items.length
+          }
+        }
+      };
+    }
+    
+    return {
+      title: `${ownerName}'s Content Library - Browse Articles & Insights`,
+      description: `Explore ${ownerName}'s curated content library. Discover valuable articles, insights, and resources across various topics.`,
+      keywords: ['content library', 'articles', 'insights', 'browse content', 'curated resources'],
+      canonicalUrl,
+      ogImage: vistaLogo,
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": `${ownerName}'s Content Library`,
+        "url": canonicalUrl,
+        "description": `${ownerName}'s curated content and insights`
+      }
+    };
+  };
   
   // Check if we have search results from navigation state (from PurposeInput)
   const searchResults = location.state?.searchResults as ContentItem[] | undefined;
@@ -348,8 +393,11 @@ const UrlParamVista = () => {
   const sortedItems = getSortedItems();
   console.log(`UrlParamVista rendering with ${sortedItems.length} items, isLoading=${isLoading}`);
 
+  const seoData = generateSEOData();
+
   return (
     <div className="min-h-screen bg-beige-100 dark:bg-gray-900">
+      <SEOHead {...seoData} />
       <Header />
       
       <main className="container py-8 max-w-6xl">

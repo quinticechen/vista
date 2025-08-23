@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
@@ -11,6 +12,7 @@ import { getProfileByUrlParam, getContentItemById } from "@/services/urlParamSer
 import { processNotionContent, ContentItemFromDB, ExtendedContentItem } from "@/utils/notionContentProcessor";
 import { ContentMetadata } from "@/components/content/ContentMetadata";
 import { ContentBody } from "@/components/content/ContentBody";
+import vistaLogo from "@/assets/vista-logo.png";
 
 // Type to represent a block in the content array
 interface ContentBlock {
@@ -27,6 +29,63 @@ const UrlParamContentDetail = () => {
   const [content, setContent] = useState<ExtendedContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
+
+  // Generate SEO data for content
+  const generateContentSEO = () => {
+    if (!content || !urlParam) return {};
+    
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const canonicalUrl = `${baseUrl}/${urlParam}/content/${contentId}`;
+    
+    const title = content.title || 'Vista Content Platform';
+    const description = content.description || `Discover insights on Vista Content Platform. Explore curated content and articles.`;
+    const keywords = content.tags || ['article', 'content', 'insights'];
+    
+    // Use cover_image first, then preview_image, then Vista logo as fallback
+    let ogImage = vistaLogo;
+    if (content.cover_image) {
+      ogImage = content.cover_image;
+    } else if (content.preview_image) {
+      ogImage = content.preview_image;
+    } else if (content.content && Array.isArray(content.content)) {
+      // Look for the first image in content blocks
+      const firstImageBlock = content.content.find((block: any) => {
+        const typedBlock = block as ContentBlock;
+        return (typedBlock.type === 'image' || typedBlock.media_type === 'image') && 
+               (typedBlock.url || typedBlock.media_url);
+      }) as ContentBlock | undefined;
+      if (firstImageBlock) {
+        ogImage = firstImageBlock.url || firstImageBlock.media_url || vistaLogo;
+      }
+    }
+    
+    return {
+      title,
+      description,
+      keywords,
+      canonicalUrl,
+      ogImage,
+      ogType: 'article',
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": content.title,
+        "description": description,
+        "image": ogImage,
+        "url": canonicalUrl,
+        "datePublished": content.created_at,
+        "dateModified": content.updated_at || content.created_at,
+        "author": {
+          "@type": "Organization",
+          "name": "Vista Content Platform"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Vista Content Platform"
+        }
+      }
+    };
+  };
 
   // Function to increment visitor count
   const incrementVisitorCount = async (contentId: string) => {
@@ -129,6 +188,11 @@ const UrlParamContentDetail = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
+        <SEOHead
+          title="Loading Content - Vista Content Platform"
+          description="Loading content details from Vista Content Platform"
+          noIndex={true}
+        />
         <Header />
         <main className="container py-8">
           <div className="flex justify-center items-center h-64">
@@ -141,8 +205,11 @@ const UrlParamContentDetail = () => {
     );
   }
 
+  const seoData = generateContentSEO();
+
   return (
     <div className="min-h-screen bg-white">
+      <SEOHead {...seoData} />
       <Header />
       
       <main className="container py-8 max-w-4xl">
