@@ -146,7 +146,7 @@ Edge Functions handle complex business logic:
 - `VistaProductHome.tsx` - Vista product sales and marketing page (root route)
 - `UrlParam.tsx` - User-specific content pages with customization (formerly Index.tsx)
 - `Vista.tsx` - Content discovery and search interface
-- `ContentDetail.tsx` - Individual content item display
+- `UrlParamContentDetail.tsx` - Individual content item display for user-specific content
 - `About.tsx` - About page information
 - `AuthPage.tsx` - Authentication interface
 - `NotFound.tsx` - 404 error page

@@ -16,7 +16,7 @@ Vista uses dynamic URL parameters like `/:urlParam` to create personalized pages
 - `/admin/*` - Admin panel (protected)
 - `/:urlParam` - User profile page (e.g., `/quintice`, `/company-brand`)
 - `/:urlParam/vista` - User's content vista
-- `/:urlParam/vista/:contentId` - User's content detail
+- `/:urlParam/vista/:contentId` - User's content detail (only route for content details)
 
 ## Vercel Deployment
 

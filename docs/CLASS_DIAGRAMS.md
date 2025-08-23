@@ -184,9 +184,9 @@ This document outlines the class structure of the Vista platform, showing key re
 |                                          |
 |              Page Components             |
 |                                          |
-+------------+------------+----------------+
-|   Index    |    Vista   |  ContentDetail |
-+------------+------------+----------------+
++------------+------------+-------------------+
+|   Index    |    Vista   |UrlParamContentDetail|
++------------+------------+-------------------+
        |           |             |
        v           v             v
 +------------+------------+----------------+

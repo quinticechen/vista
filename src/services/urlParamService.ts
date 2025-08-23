@@ -211,3 +211,46 @@ export async function searchUserContent(userId: string, query: string): Promise<
     return [];
   }
 }
+
+export async function getContentOwnerUrlParam(contentId: string): Promise<string | null> {
+  try {
+    console.log(`Looking up owner URL parameter for content ID: ${contentId}`);
+    
+    // First get the content item to find the user_id
+    const { data: contentData, error: contentError } = await supabase
+      .from('content_items')
+      .select('user_id')
+      .eq('id', contentId)
+      .single();
+    
+    if (contentError) {
+      console.error('Error fetching content item:', contentError);
+      return null;
+    }
+    
+    if (!contentData?.user_id) {
+      console.error('Content item has no user_id');
+      return null;
+    }
+    
+    // Then get the profile to find the url_param
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('url_param')
+      .eq('id', contentData.user_id)
+      .single();
+    
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      return null;
+    }
+    
+    const urlParam = profileData?.url_param;
+    console.log(`Found URL parameter for content ${contentId}: ${urlParam}`);
+    
+    return urlParam || null;
+  } catch (error) {
+    console.error('Exception fetching content owner URL param:', error);
+    return null;
+  }
+}

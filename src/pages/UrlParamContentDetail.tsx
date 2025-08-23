@@ -133,12 +133,8 @@ const UrlParamContentDetail = () => {
           return;
         }
         
-        // Verify that this content belongs to this user
-        if (contentItem.user_id !== profile.id) {
-          toast.error("This content does not belong to this user");
-          navigate(`/${urlParam}/vista`);
-          return;
-        }
+        // Note: We removed ownership validation as Vista is a public blog platform
+        // Content can be accessed by anyone via the /:urlParam/vista/:contentId route
         
         if (process.env.NODE_ENV === 'development') {
           console.log("Content loaded successfully:", contentItem);
