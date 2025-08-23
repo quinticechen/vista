@@ -233,19 +233,22 @@ export async function getContentOwnerUrlParam(contentId: string): Promise<string
       return null;
     }
     
-    // Then get the profile to find the url_param
+    // Use the security definer function to get the URL parameter
     const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('url_param')
-      .eq('id', contentData.user_id)
-      .single();
+      .rpc('get_url_param_by_user_id', { target_user_id: contentData.user_id });
     
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
       return null;
     }
     
-    const urlParam = profileData?.url_param;
+    // The RPC function returns an array, get the first result
+    if (!profileData || profileData.length === 0) {
+      console.log(`No URL parameter found for user ID: ${contentData.user_id}`);
+      return null;
+    }
+    
+    const urlParam = profileData[0]?.url_param;
     console.log(`Found URL parameter for content ${contentId}: ${urlParam}`);
     
     return urlParam || null;

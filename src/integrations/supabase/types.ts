@@ -273,6 +273,12 @@ export type Database = {
           url_param: string
         }[]
       }
+      get_url_param_by_user_id: {
+        Args: { target_user_id: string }
+        Returns: {
+          url_param: string
+        }[]
+      }
       get_user_content_by_url_param: {
         Args: { url_param_value: string }
         Returns: {
