@@ -40,7 +40,7 @@ const Header = () => {
       <div className="container flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <NavLink to={homePath} className="text-lg font-bold">
-            Tailored Brand Flow
+            Vista
           </NavLink>
         </div>
         
