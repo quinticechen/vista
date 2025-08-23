@@ -14,7 +14,7 @@ import { processNotionContent } from "@/utils/notionContentProcessor";
 import { Loader2 } from "lucide-react";
 import { SearchCache } from "@/utils/searchCache";
 import SEOHead from "@/components/SEOHead";
-import vistaLogo from "@/assets/vista-logo.png";
+import vistaLogo from "@/public/og-image.png";
 
 const UrlParamVista = () => {
   const { urlParam } = useParams();
