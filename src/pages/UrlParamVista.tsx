@@ -360,11 +360,11 @@ const UrlParamVista = () => {
           </h1>
           
           {searchPurpose && showingSearchResults ? (
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-3xl font-bold mb-2">
               Content for: <span className="italic">"{searchPurpose}"</span>
             </p>
           ) : searchParams.get("search") ? (
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-3xl font-bold mb-2">
               Search results for "{searchParams.get("search")}"
             </p>
           ) : (
