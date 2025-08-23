@@ -264,6 +264,10 @@ export type Database = {
         Args: { "": string } | { "": unknown }
         Returns: unknown
       }
+      get_profile_id_by_url_param: {
+        Args: { url_param_input: string }
+        Returns: string
+      }
       get_public_profile: {
         Args: { profile_url_param: string }
         Returns: {
