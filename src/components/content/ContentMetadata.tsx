@@ -2,7 +2,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { Clock, Calendar, Tag } from "lucide-react";
+import { Clock, Calendar, Tag, Eye } from "lucide-react";
 import { ExtendedContentItem } from "@/utils/notionContentProcessor";
 
 interface ContentMetadataProps {
@@ -10,6 +10,15 @@ interface ContentMetadataProps {
 }
 
 export const ContentMetadata: React.FC<ContentMetadataProps> = ({ content }) => {
+  // Function to format visitor count for display
+  const formatVisitorCount = (count: number | null | undefined) => {
+    if (!count) return 0;
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}k`;
+    }
+    return count.toString();
+  };
+
   return (
     <div className="mb-6">
       {content?.category && (
@@ -42,6 +51,12 @@ export const ContentMetadata: React.FC<ContentMetadataProps> = ({ content }) => 
             <span>Ends: {formatDate(content?.end_date)}</span>
           </div>
         )}
+        
+        {/* Display visitor count */}
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Eye className="mr-1 h-4 w-4" />
+          <span>Views: {formatVisitorCount((content as any)?.visitor_count)}</span>
+        </div>
       </div>
       
       {content?.description && (

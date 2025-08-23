@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { processNotionContent } from "@/utils/notionContentProcessor";
 import { SearchCache } from "@/utils/searchCache";
+import vistaLogo from "@/public/og-image.png";
 
 const Vista = () => {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);

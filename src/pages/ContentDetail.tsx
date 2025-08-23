@@ -10,10 +10,11 @@ import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Calendar, Tag, Clock } from "lucide-react";
+import { ArrowLeft, Calendar, Tag, Clock, Eye } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { cn } from "@/lib/utils";
 import NotionRenderer from "@/components/NotionRenderer";
+import vistaLogo from "@/public/og-image.png";
 
 const ContentDetail = () => {
   const { contentId } = useParams<{ contentId: string }>();
@@ -28,10 +29,26 @@ const ContentDetail = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const canonicalUrl = `${baseUrl}/vista/${contentId}`;
     
-    const title = `${content.title} - Vista Content Platform`;
-    const description = content.description || `Read "${content.title}" and discover insights on Vista Content Platform. Explore curated content and articles.`;
+    const title = content.title || 'Vista Content Platform';
+    const description = content.description || `Discover insights on Vista Content Platform. Explore curated content and articles.`;
     const keywords = content.tags || ['article', 'content', 'insights'];
-    const ogImage = content.cover_image || '/placeholder.svg';
+    
+    // Use cover_image first, then preview_image, then Vista logo as fallback
+    let ogImage = vistaLogo;
+    if (content.cover_image) {
+      ogImage = content.cover_image;
+    } else if (content.preview_image) {
+      ogImage = content.preview_image;
+    } else if (content.content && Array.isArray(content.content)) {
+      // Look for the first image in content blocks
+      const firstImageBlock = content.content.find((block: any) => 
+        (block.type === 'image' || block.media_type === 'image') && 
+        (block.url || block.media_url)
+      );
+      if (firstImageBlock) {
+        ogImage = firstImageBlock.url || firstImageBlock.media_url;
+      }
+    }
     
     return {
       title,
@@ -61,6 +78,30 @@ const ContentDetail = () => {
     };
   };
 
+  // Function to increment visitor count
+  const incrementVisitorCount = async (contentId: string) => {
+    try {
+      const { error } = await supabase.rpc('increment_visitor_count', {
+        content_id: contentId
+      });
+      
+      if (error) {
+        console.error('Error incrementing visitor count:', error);
+      }
+    } catch (error) {
+      console.error('Error calling increment_visitor_count:', error);
+    }
+  };
+
+  // Function to format visitor count for display
+  const formatVisitorCount = (count: number | null | undefined) => {
+    if (!count) return 0;
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}k`;
+    }
+    return count.toString();
+  };
+
   useEffect(() => {
     const fetchContentDetail = async () => {
       if (!contentId) return;
@@ -77,6 +118,11 @@ const ContentDetail = () => {
         }
 
         setContent(data);
+        
+        // Increment visitor count after successfully loading content
+        if (data?.id) {
+          await incrementVisitorCount(data.id);
+        }
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error("Error fetching content detail:", error);
@@ -191,6 +237,12 @@ const ContentDetail = () => {
                 <span>Ends: {formatDate(content.end_date)}</span>
               </div>
             )}
+            
+            {/* Display visitor count */}
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Eye className="mr-1 h-4 w-4" />
+              <span>Views: {formatVisitorCount(content?.visitor_count)}</span>
+            </div>
           </div>
           
           {content.tags && content.tags.length > 0 && (
