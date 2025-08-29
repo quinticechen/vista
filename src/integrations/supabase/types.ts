@@ -255,6 +255,30 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          profile_url_param: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          profile_url_param: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          profile_url_param?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

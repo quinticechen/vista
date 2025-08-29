@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
-import Footer from '@/components/Footer';
-import Header from '@/components/Header';
+import PersonalHeader from '@/components/PersonalHeader';
+import PersonalFooter from '@/components/PersonalFooter';
 import SEOHead from '@/components/SEOHead';
 import SEOContent from '@/components/SEOContent';
 import { Toaster } from '@/components/ui/toaster';
@@ -185,7 +185,7 @@ const Index = () => {
     <div className="min-h-screen bg-beige-50">
       <SEOHead {...seoData} />
       <Toaster />
-      {/* <Header /> */}
+      <PersonalHeader />
       
       {/* Use a fixed positioned container for the Hero */}
       <div className="fixed inset-0 z-0">
@@ -216,10 +216,9 @@ const Index = () => {
       
       {/* Footer with proper z-index to appear after PurposeInput */}
       <div className="relative z-10">
-        <Footer 
+        <PersonalFooter 
           userLanguage={ownerProfile?.default_language} 
           supportedLanguages={ownerProfile?.supported_ai_languages}
-          customName={homePageSettings.footerName}
         />
       </div>
     </div>

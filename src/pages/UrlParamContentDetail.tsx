@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import PersonalHeader from "@/components/PersonalHeader";
+import PersonalFooter from "@/components/PersonalFooter";
 import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -189,13 +189,13 @@ const UrlParamContentDetail = () => {
           description="Loading content details from Vista Content Platform"
           noIndex={true}
         />
-        <Header />
+        <PersonalHeader />
         <main className="container py-8">
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
           </div>
         </main>
-        <Footer userLanguage={ownerProfile?.default_language} 
+        <PersonalFooter userLanguage={ownerProfile?.default_language} 
                 supportedLanguages={ownerProfile?.supported_ai_languages} />
       </div>
     );
@@ -206,7 +206,7 @@ const UrlParamContentDetail = () => {
   return (
     <div className="min-h-screen bg-white">
       <SEOHead {...seoData} />
-      <Header />
+      <PersonalHeader />
       
       <main className="container py-8 max-w-4xl">
         <Button
@@ -225,7 +225,7 @@ const UrlParamContentDetail = () => {
         {content && <ContentBody content={content} />}
       </main>
       
-      <Footer userLanguage={ownerProfile?.default_language} 
+      <PersonalFooter userLanguage={ownerProfile?.default_language} 
               supportedLanguages={ownerProfile?.supported_ai_languages} />
     </div>
   );
