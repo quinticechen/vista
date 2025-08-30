@@ -56,7 +56,7 @@ const PersonalFooter = ({ userLanguage, supportedLanguages }: PersonalFooterProp
           
           {/* Navigation links */}
           <div>
-            <h3 className="text-xl font-bold mb-4">Navigation</h3>
+            <h3 className="text-xl font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li><Link to={homePath} className="opacity-80 hover:opacity-100">Home</Link></li>
               <li><Link to={vistaPath} className="opacity-80 hover:opacity-100">Content</Link></li>
