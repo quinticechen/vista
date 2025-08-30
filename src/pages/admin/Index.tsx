@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import SEOHead from "@/components/SEOHead";
 import UserOnboardingGuide from "@/components/UserOnboardingGuide";
 
 const AdminHome = () => {
@@ -64,6 +65,11 @@ const AdminHome = () => {
 
   return (
     <div className="space-y-8">
+      <SEOHead 
+        title="Vista"
+        description="Transform Your Content Strategy with AI"
+        ogImage="/og-image.png"
+      />
       <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       
       <Card>

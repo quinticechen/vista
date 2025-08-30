@@ -42,7 +42,7 @@ const UrlParamContentDetail = () => {
     const keywords = content.tags || ['article', 'content', 'insights'];
     
     // Use cover_image first, then preview_image, then Vista logo as fallback
-    let ogImage = vistaLogo;
+    let ogImage = '/og-image.png';
     if (content.cover_image) {
       ogImage = content.cover_image;
     } else if (content.preview_image) {
@@ -55,7 +55,7 @@ const UrlParamContentDetail = () => {
                (typedBlock.url || typedBlock.media_url);
       }) as ContentBlock | undefined;
       if (firstImageBlock) {
-        ogImage = firstImageBlock.url || firstImageBlock.media_url || vistaLogo;
+        ogImage = firstImageBlock.url || firstImageBlock.media_url || '/og-image.png';
       }
     }
     

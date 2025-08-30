@@ -28,20 +28,25 @@ const UrlParamVista = () => {
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
   
+  // Home page settings state for SEO
+  const [homePageSettings, setHomePageSettings] = useState<any>(null);
+
   // Generate SEO data for URL param vista page
   const generateSEOData = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const canonicalUrl = `${baseUrl}/${urlParam}/vista`;
     const searchTerm = searchParams.get("search") || searchPurpose;
-    const ownerName = ownerProfile?.display_name || urlParam;
+    
+    const websiteName = homePageSettings?.footerName || urlParam;
+    const authorDescription = homePageSettings?.heroSubtitle || "Discover amazing content and insights";
     
     if (searchTerm) {
       return {
-        title: `Search Results for "${searchTerm}" - ${ownerName}'s Content`,
-        description: `Browse content and articles related to "${searchTerm}" from ${ownerName}. Find relevant insights and information.`,
+        title: `Search Results for "${searchTerm}" - ${websiteName}'s Content`,
+        description: `Browse content and articles related to "${searchTerm}" from ${websiteName}. Find relevant insights and information.`,
         keywords: ['search results', searchTerm, 'content discovery', 'articles', 'insights'],
         canonicalUrl: `${canonicalUrl}?search=${encodeURIComponent(searchTerm)}`,
-        ogImage: vistaLogo,
+        ogImage: '/og-image.png',
         structuredData: {
           "@context": "https://schema.org",
           "@type": "SearchResultsPage",
@@ -56,17 +61,17 @@ const UrlParamVista = () => {
     }
     
     return {
-      title: `${ownerName}'s Content Library - Browse Articles & Insights`,
-      description: `Explore ${ownerName}'s curated content library. Discover valuable articles, insights, and resources across various topics.`,
+      title: websiteName || 'Content Library',
+      description: authorDescription,
       keywords: ['content library', 'articles', 'insights', 'browse content', 'curated resources'],
       canonicalUrl,
-      ogImage: vistaLogo,
+      ogImage: '/og-image.png',
       structuredData: {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "name": `${ownerName}'s Content Library`,
+        "name": `${websiteName}'s Content Library`,
         "url": canonicalUrl,
-        "description": `${ownerName}'s curated content and insights`
+        "description": authorDescription
       }
     };
   };
@@ -138,6 +143,15 @@ const UrlParamVista = () => {
         }
         
         setOwnerProfile(profile);
+        
+        // Fetch home page settings for SEO
+        try {
+          const { getHomePageSettingsByUrlParam } = await import('@/services/homePageService');
+          const settings = await getHomePageSettingsByUrlParam(urlParam);
+          setHomePageSettings(settings);
+        } catch (error) {
+          console.error('Error fetching home page settings:', error);
+        }
         
         // Load all content items for this user (for "View All" functionality)
         console.log(`UrlParamVista - Loading all content items for URL parameter: ${urlParam}`);

@@ -26,38 +26,40 @@ const Index = () => {
     const currentPath = urlParam ? `/${urlParam}` : '/';
     const canonicalUrl = `${baseUrl}${currentPath}`;
     
-    if (urlParam && ownerProfile) {
-      // User-specific SEO
-      const userTitle = `${ownerProfile.full_name || urlParam} - AI Content & Insights Platform`;
-      const userDescription = `Explore curated content, insights, and AI-powered recommendations from ${ownerProfile.full_name || urlParam}. Discover personalized articles and resources.`;
+    if (urlParam && homePageSettings) {
+      // User-specific SEO using home page settings
+      const websiteName = homePageSettings.footerName || urlParam;
+      const authorDescription = homePageSettings.heroSubtitle || "Discover amazing content and insights";
       
       return {
-        title: userTitle,
-        description: userDescription,
+        title: websiteName,
+        description: authorDescription,
         keywords: ['AI content', 'insights', urlParam, 'personalized content', 'articles', 'recommendations'],
         canonicalUrl,
+        ogImage: '/og-image.png',
         structuredData: {
           "@context": "https://schema.org",
           "@type": "Person",
-          "name": ownerProfile.full_name || urlParam,
+          "name": websiteName,
           "url": canonicalUrl,
-          "description": userDescription
+          "description": authorDescription
         }
       };
     }
     
     // Default home page SEO
     return {
-      title: "Vista Content Platform - AI-Powered Content Discovery & Insights",
-      description: "Discover personalized content and insights through our AI-powered platform. Access curated articles, expert recommendations, and tailored content experiences.",
+      title: "Vista",
+      description: "Transform Your Content Strategy with AI",
       keywords: ['AI content platform', 'content discovery', 'personalized insights', 'article recommendations', 'curated content'],
       canonicalUrl,
+      ogImage: '/og-image.png',
       structuredData: {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "Vista Content Platform",
+        "name": "Vista",
         "url": canonicalUrl,
-        "description": "AI-powered content discovery and insights platform"
+        "description": "Transform Your Content Strategy with AI"
       }
     };
   };
