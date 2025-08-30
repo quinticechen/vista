@@ -19,9 +19,9 @@ const Footer = ({ userLanguage, supportedLanguages, customName }: FooterProps) =
           
           {/* Logo and description */}
           <div>
-            <h3 className="text-xl font-bold mb-4">{customName || "Chen Quintice"}</h3>
+            <h3 className="text-xl font-bold mb-4">Vista</h3>
             <p className="max-w-xs opacity-80">
-              Helping organizations strategize, implement, and optimize AI solutions for business growth.
+              Transform Your Content Strategy with AI
             </p>
           </div>
           
@@ -29,10 +29,10 @@ const Footer = ({ userLanguage, supportedLanguages, customName }: FooterProps) =
           <div>
             <h3 className="text-xl font-bold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li><Link to="/" className="opacity-80 hover:opacity-100">Home</Link></li>
+              <li><Link to="/" className="opacity-80 hover:opacity-100">Vista</Link></li>
               <li><Link to="/vista" className="opacity-80 hover:opacity-100">Content</Link></li>
+              <li><Link to="/auth" className="opacity-80 hover:opacity-100">Create</Link></li>
               <li><Link to="/about" className="opacity-80 hover:opacity-100">About</Link></li>
-              <li><Link to="/auth" className="opacity-80 hover:opacity-100">Sign In</Link></li>
             </ul>
           </div>
           
@@ -53,7 +53,7 @@ const Footer = ({ userLanguage, supportedLanguages, customName }: FooterProps) =
         
         {/* Copyright */}
         <div className="mt-12 pt-8 border-t border-beige-800 text-center opacity-60">
-          <p>&copy; {year} {customName || "Chen Quintice"}. All rights reserved.</p>
+          <p>&copy; {year} Vista. All rights reserved.</p>
         </div>
       </div>
     </footer>

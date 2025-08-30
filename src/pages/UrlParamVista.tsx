@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import PersonalHeader from "@/components/PersonalHeader";
+import PersonalFooter from "@/components/PersonalFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -398,7 +398,7 @@ const UrlParamVista = () => {
   return (
     <div className="min-h-screen bg-beige-100 dark:bg-gray-900">
       <SEOHead {...seoData} />
-      <Header />
+      <PersonalHeader />
       
       <main className="container py-8 max-w-6xl">
         <div className="mb-8">
@@ -497,7 +497,7 @@ const UrlParamVista = () => {
         )}
       </main>
       
-      <Footer userLanguage={ownerProfile?.default_language} 
+      <PersonalFooter userLanguage={ownerProfile?.default_language} 
               supportedLanguages={ownerProfile?.supported_ai_languages} />
     </div>
   );

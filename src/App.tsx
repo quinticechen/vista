@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import AdminGuard from "./components/AdminGuard";
 import PublicRoute from "./components/PublicRoute";
 import About from "./pages/About";
+import PurposeInput from "./pages/PurposeInput";
 import UrlParamVista from "./pages/UrlParamVista";
 import UrlParamContentDetail from "./pages/UrlParamContentDetail";
 
@@ -32,7 +33,7 @@ const queryClient = new QueryClient();
 
 // Helper function to determine if a path segment is a reserved route
 const isReservedRoute = (segment: string): boolean => {
-  const reservedRoutes = ['admin', 'vista', 'about', 'auth'];
+  const reservedRoutes = ['admin', 'vista', 'about', 'auth', 'purpose-input'];
   return reservedRoutes.includes(segment.toLowerCase());
 };
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/vista" element={<PublicRoute><Vista /></PublicRoute>} />
             <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
             <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />
+            <Route path="/purpose-input" element={<PublicRoute><PurposeInput /></PublicRoute>} />
             
             {/* Admin routes - protected by AdminGuard */}
             <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
