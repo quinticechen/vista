@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ContentDisplayItem } from "@/components/ContentDisplay";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 import { toast } from "@/components/ui/sonner";
 import { ContentItem } from "@/services/adminService";
 import { Loader2 } from "lucide-react";
@@ -58,6 +59,11 @@ const About = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <SEOHead 
+        title="Vista"
+        description="Transform Your Content Strategy with AI"
+        ogImage="/og-image.png"
+      />
       <Header />
       <main className="flex-1 container py-8">
         <h1 className="text-3xl font-bold mb-6">About Our Content</h1>

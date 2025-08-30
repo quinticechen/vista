@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import SEOHead from "@/components/SEOHead";
 import { 
   checkAdminStatus, 
   fetchEmbeddingJobs, 
@@ -171,6 +172,11 @@ const Admin = () => {
 
   return (
     <div className="container py-8">
+      <SEOHead 
+        title="Vista"
+        description="Transform Your Content Strategy with AI"
+        ogImage="/og-image.png"
+      />
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
       <div className="grid gap-6">
         <Card>

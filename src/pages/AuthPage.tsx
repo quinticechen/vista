@@ -7,9 +7,9 @@ const AuthPage = () => {
   return (
     <div className="container py-12 max-w-4xl">
       <SEOHead
-        title="Sign In - Vista Content Platform"
-        description="Sign in to your Vista Content Platform account to access personalized content, manage your profile, and discover curated insights."
-        keywords={['sign in', 'authentication', 'login', 'account access']}
+        title="Vista"
+        description="Transform Your Content Strategy with AI"
+        ogImage="/og-image.png"
         noIndex={true}
       />
       {/* <SEOContent

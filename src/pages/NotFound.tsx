@@ -17,8 +17,9 @@ const NotFound = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <SEOHead
-        title="404 - Page Not Found - Vista Content Platform"
-        description="The page you are looking for could not be found. Return to Vista Content Platform homepage to explore our content library."
+        title="Vista"
+        description="Transform Your Content Strategy with AI"
+        ogImage="/og-image.png"
         noIndex={true}
       />
       <SEOContent

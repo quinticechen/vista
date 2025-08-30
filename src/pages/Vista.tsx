@@ -39,10 +39,11 @@ const Vista = () => {
     
     if (searchTerm) {
       return {
-        title: `Search Results for "${searchTerm}" - Vista Content Platform`,
+        title: `Search Results for "${searchTerm}" - Vista`,
         description: `Browse content and articles related to "${searchTerm}". Find relevant insights and information through our AI-powered content discovery.`,
         keywords: ['search results', searchTerm, 'content discovery', 'articles', 'insights'],
         canonicalUrl: `${canonicalUrl}?search=${encodeURIComponent(searchTerm)}`,
+        ogImage: '/og-image.png',
         structuredData: {
           "@context": "https://schema.org",
           "@type": "SearchResultsPage",
@@ -57,16 +58,17 @@ const Vista = () => {
     }
     
     return {
-      title: "Vista Content Library - Browse All Articles & Insights",
-      description: "Explore our comprehensive library of curated content, articles, and insights. Discover valuable resources across various topics and categories.",
+      title: "Vista",
+      description: "Transform Your Content Strategy with AI",
       keywords: ['content library', 'articles', 'insights', 'browse content', 'curated resources'],
       canonicalUrl,
+      ogImage: '/og-image.png',
       structuredData: {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         "name": "Vista Content Library",
         "url": canonicalUrl,
-        "description": "Comprehensive library of curated content and insights"
+        "description": "Transform Your Content Strategy with AI"
       }
     };
   };
