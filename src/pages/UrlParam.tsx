@@ -199,7 +199,7 @@ const Index = () => {
       </div>
       
       {/* Add a container for the PurposeInput with proper z-index */}
-      <div className="relative z-10">
+      <div className="relative z-10 pointer-events-none">
         {/* Add spacer to push PurposeInput down one viewport height */}
         <div className="h-screen pointer-events-none"></div>
         
