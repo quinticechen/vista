@@ -42,7 +42,7 @@ const PersonalFooter = ({ userLanguage, supportedLanguages }: PersonalFooterProp
   const authorDescription = homePageSettings?.hero_subtitle || "Discover amazing content and insights";
 
   return (
-    <footer className="bg-muted text-foreground py-16">
+    <footer className="bg-beige-900 text-beige-100 py-16">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           
