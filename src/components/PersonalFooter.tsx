@@ -38,8 +38,8 @@ const PersonalFooter = ({ userLanguage, supportedLanguages }: PersonalFooterProp
   const homePath = currentUrlParam ? `/${currentUrlParam}` : '/';
   const vistaPath = currentUrlParam ? `/${currentUrlParam}/vista` : '/vista';
 
-  const websiteName = homePageSettings?.footer_name || currentUrlParam || "Personal Site-";
-  const authorDescription = homePageSettings?.hero_subtitle || "Discover amazing content and insights-";
+  const websiteName = homePageSettings?.footerName || currentUrlParam || "Personal Site";
+  const authorDescription = homePageSettings?.heroSubtitle || "Discover amazing content and insights";
 
   return (
     <footer className="bg-beige-900 text-beige-100 py-16">
