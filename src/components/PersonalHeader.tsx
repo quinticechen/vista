@@ -87,7 +87,7 @@ const PersonalHeader = () => {
   };
 
   return (
-    <header className="py-4 px-6 bg-muted/50 backdrop-blur-sm sticky top-0 z-10 border-b">
+    <header className="py-4 px-6 bg-background/95 backdrop-blur-sm sticky top-0 z-10 border-b">
       <div className="container flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           {/* Logo/Brand area */}
