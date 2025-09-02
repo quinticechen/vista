@@ -67,6 +67,13 @@ const PurposeInput = ({
     setPurpose(inputContent);
     if (inputRef.current) {
       inputRef.current.focus();
+      // Auto-resize the textarea after setting content
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.style.height = 'auto';
+          inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+        }
+      }, 0);
     }
   };
 
