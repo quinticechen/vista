@@ -67,6 +67,13 @@ const PurposeInput = ({
     setPurpose(inputContent);
     if (inputRef.current) {
       inputRef.current.focus();
+      // Auto-resize the textarea after setting content
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.style.height = 'auto';
+          inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+        }
+      }, 0);
     }
   };
 
@@ -165,7 +172,7 @@ const PurposeInput = ({
       {/* Background overlay */}
       <div className="absolute inset-0 bg-beige-100 z-0" style={{ opacity: backgroundOpacity }}></div>
 
-      <div className="max-w-4xl mx-auto w-full z-10 relative">
+      <div className="max-w-4xl mx-auto w-full z-30 relative">
         <div className="text-center mb-10 animate-fade-up">
           <h2 className="text-3xl md:text-4xl font-bold text-beige-900 mb-4">
             {interactiveTitle || "How Can I Help You Today?"}
