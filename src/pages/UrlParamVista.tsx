@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import PersonalHeader from "@/components/PersonalHeader";
 import PersonalFooter from "@/components/PersonalFooter";
-import { Button } from "@//ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ContentDisplayItem } from "@/components/ContentDisplay";
 import { CategoryFilter } from "@/components/CategoryFilter";
-import { ContentSorter, SortOption } from "@/components/ContentSorter"; // Ensure ContentSorter is updated to include 'relevance'
+import { ContentSorter, SortOption } from "@/components/ContentSorter";
 import { toast } from "@/components/ui/sonner";
 import { getProfileByUrlParam, getUserContentItems, getUserContentByUrlParam } from "@/services/urlParamService";
 import { semanticSearch } from "@/services/adminService";
@@ -30,9 +30,7 @@ const UrlParamVista = () => {
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  // Default sort option is now 'relevance' if there's a search query, otherwise 'newest'
-  const initialSortOption: SortOption = searchParams.get("search") ? 'relevance' : 'newest';
-  const [sortOption, setSortOption] = useState<SortOption>(initialSortOption);
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
   
   // Home page settings state for SEO
   const [homePageSettings, setHomePageSettings] = useState<any>(null);
@@ -41,8 +39,7 @@ const UrlParamVista = () => {
   const generateSEOData = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const canonicalUrl = `${baseUrl}/${urlParam}/vista`;
-    // Use searchPurpose from state if available, otherwise fallback to URL search param
-    const searchTerm = location.state?.purpose || searchParams.get("search") || searchPurpose;
+    const searchTerm = searchParams.get("search") || searchPurpose;
     
     const websiteName = homePageSettings?.footerName || urlParam;
     const authorDescription = homePageSettings?.heroSubtitle || "Discover amazing content and insights";
@@ -84,9 +81,9 @@ const UrlParamVista = () => {
   };
   
   // Check if we have search results from navigation state (from PurposeInput)
-  const searchResultsFromState = location.state?.searchResults as ContentItem[] | undefined;
-  const searchPurposeFromState = location.state?.purpose as string | undefined;
-  const searchTimestamp = location.state?.searchQuery; // This might be the original query used in PurposeInput
+  const searchResults = location.state?.searchResults as ContentItem[] | undefined;
+  const searchPurpose = location.state?.purpose as string | undefined;
+  const searchTimestamp = location.state?.searchQuery;
 
   // Centralized content processing function to ensure consistency
   const processContentItem = (item: ContentItem): ContentItem => {
@@ -169,10 +166,6 @@ const UrlParamVista = () => {
         userContent = processContentItems(userContent);
         setAllContentItems(userContent);
         
-        // Determine initial search state
-        const initialSearchQuery = searchParams.get("search") || searchPurposeFromState || "";
-        setSearchQuery(initialSearchQuery); // Set search input value
-
         // Check for cached search results first
         const cachedSearch = SearchCache.load(urlParam);
         if (cachedSearch && SearchCache.isValid(cachedSearch)) {
@@ -184,16 +177,16 @@ const UrlParamVista = () => {
           
           setItems(filteredCachedResults);
           setShowingSearchResults(true);
-          setSortOption('relevance'); // Default to relevance for cached search
+          setSearchQuery(cachedSearch.query);
           
           if (cachedSearch.purpose) {
             toast.success(`Restored search results for: "${cachedSearch.purpose}"`, { duration: 3000 });
           }
-        } else if (searchResultsFromState && searchResultsFromState.length > 0) {
-          console.log(`UrlParamVista - Displaying ${searchResultsFromState.length} search results from PurposeInput for query: "${searchPurposeFromState}"`);
+        } else if (searchResults && searchResults.length > 0) {
+          console.log(`UrlParamVista - Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
           
           // Apply same processing pipeline to search results
-          const processedSearchResults = processContentItems(searchResultsFromState);
+          const processedSearchResults = processContentItems(searchResults);
           
           // Filter search results to only include items from this user
           const userIdsSet = new Set(userContent.map((item: ContentItem) => item.id));
@@ -202,31 +195,30 @@ const UrlParamVista = () => {
           // Set items state for display
           setItems(filteredResults);
           setShowingSearchResults(true);
-          setSortOption('relevance'); // Default to relevance for results from state
           
-          if (searchPurposeFromState) {
+          if (searchPurpose) {
             // Save to cache for future navigation
             SearchCache.save({
               results: filteredResults,
-              query: searchPurposeFromState,
+              query: searchPurpose,
               timestamp: Date.now(),
               showingSearchResults: true,
-              purpose: searchPurposeFromState
+              purpose: searchPurpose
             }, urlParam);
             
             if (filteredResults.length === 0) {
-              toast.warning(`No content found with 50%+ relevance for "${searchPurposeFromState}". Try different keywords.`, { duration: 5000 });
+              toast.warning(`No content found with 50%+ relevance for "${searchPurpose}". Try different keywords.`, { duration: 5000 });
             } else {
               toast.success(`Found ${filteredResults.length} relevant items (50%+ similarity)`, { duration: 5000 });
             }
           }
-        } else if (initialSearchQuery) { // If there's a search term in URL params or from state, perform search
-          await performSearch(initialSearchQuery);
+        } else if (searchParams.get("search")) {
+          // If we have a search term in URL params
+          await performSearch(searchParams.get("search") || "");
         } else {
           // Default: show all processed content
           setItems(userContent);
           setShowingSearchResults(false);
-          setSortOption('newest'); // Default sort for non-search view
         }
         
         console.log("UrlParamVista - Loading data for UrlParamVista - Complete");
@@ -247,8 +239,7 @@ const UrlParamVista = () => {
           sessionStorage.setItem(`vista-${urlParam}-items`, JSON.stringify(items));
           sessionStorage.setItem(`vista-${urlParam}-showing-search`, String(showingSearchResults));
           sessionStorage.setItem(`vista-${urlParam}-search-query`, searchQuery);
-          sessionStorage.setItem(`vista-${urlParam}-search-purpose`, searchPurposeFromState || '');
-          sessionStorage.setItem(`vista-${urlParam}-sort-option`, sortOption); // Save sort option
+          sessionStorage.setItem(`vista-${urlParam}-search-purpose`, searchPurpose || '');
         } catch (e) {
           console.error("UrlParamVista - Error saving view state to sessionStorage:", e);
         }
@@ -262,7 +253,6 @@ const UrlParamVista = () => {
         const savedShowingSearch = sessionStorage.getItem(`vista-${urlParam}-showing-search`);
         const savedSearchQuery = sessionStorage.getItem(`vista-${urlParam}-search-query`);
         const savedSearchPurpose = sessionStorage.getItem(`vista-${urlParam}-search-purpose`);
-        const savedSortOption = sessionStorage.getItem(`vista-${urlParam}-sort-option`) as SortOption | null;
         
         if (savedItems) {
           const parsedItems = JSON.parse(savedItems);
@@ -278,9 +268,6 @@ const UrlParamVista = () => {
             if (savedSearchQuery) {
               setSearchQuery(savedSearchQuery);
             }
-            if (savedSortOption && ['relevance', 'newest', 'oldest', 'popular'].includes(savedSortOption)) {
-              setSortOption(savedSortOption);
-            }
           }
         }
       } catch (e) {
@@ -288,17 +275,18 @@ const UrlParamVista = () => {
       }
     };
     
-    // Only load from session storage if no initial search results from state or URL
-    if (!searchResultsFromState && !searchParams.get("search") && !searchPurposeFromState) {
+    // Initialize from session storage if we have it
+    window.addEventListener('beforeunload', saveViewState);
+    
+    // Only load from session storage if we're not already getting results from location state
+    if (!searchResults && !searchParams.get("search")) {
       loadViewState();
     }
-
-    window.addEventListener('beforeunload', saveViewState);
     
     return () => {
       window.removeEventListener('beforeunload', saveViewState);
     };
-  }, [urlParam, searchResultsFromState, searchPurposeFromState, searchTimestamp, navigate, searchParams, sortOption]); // Added sortOption to dependencies
+  }, [urlParam, searchResults, searchPurpose, searchTimestamp, navigate, searchParams]);
 
   const performSearch = async (term: string) => {
     if (!term.trim()) {
@@ -347,15 +335,13 @@ const UrlParamVista = () => {
       console.log(`UrlParamVista - Found ${filteredResults.length} matching results from user's content`);
       setItems(filteredResults);
       setShowingSearchResults(true);
-      setSortOption('relevance'); // Always default to relevance after a new search
       
       // Save search results to cache
       SearchCache.save({
         results: filteredResults,
         query: term,
         timestamp: Date.now(),
-        showingSearchResults: true,
-        purpose: term // Use the search term as the purpose for the cache
+        showingSearchResults: true
       }, urlParam);
       
       if (filteredResults.length === 0) {
@@ -381,19 +367,17 @@ const UrlParamVista = () => {
     setShowingSearchResults(false);
     setSearchQuery("");
     setSelectedCategories([]);
-    setSortOption('newest'); // Reset sort to 'newest' when viewing all
+    setSortOption('newest');
     
     // Clear search cache when viewing all content
     SearchCache.clear(urlParam);
     
     // Navigate without search params to ensure URL is clean
-    // Use replace to avoid adding this "view all" state to history if it came from search
     navigate(`/${urlParam}/vista`, { replace: true });
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Update URL and trigger search
     navigate(`/${urlParam}/vista?search=${encodeURIComponent(searchQuery)}`);
     performSearch(searchQuery);
   };
@@ -410,20 +394,6 @@ const UrlParamVista = () => {
   // Handle sort changes
   const handleSortChange = (sort: SortOption) => {
     setSortOption(sort);
-    // Update URL to reflect the new sort option if it's not the default relevance for search results
-    if (showingSearchResults && sort === 'relevance') {
-        // Keep the URL as is for relevance, it's the default for search
-        return;
-    }
-    // If we are showing search results and the user selects a different sort option, update the URL
-    if (showingSearchResults) {
-        const currentSearchParams = new URLSearchParams(searchParams);
-        currentSearchParams.set('sort', sort);
-        navigate(`/${urlParam}/vista?${currentSearchParams.toString()}`, { replace: true });
-    } else {
-        // If not showing search results, just update the sort option state
-        navigate(`/${urlParam}/vista`, { replace: true }); // Remove any existing search params if we are clearing search
-    }
   };
 
   const getFilteredAndSortedItems = () => {
@@ -439,62 +409,45 @@ const UrlParamVista = () => {
     
     // Apply sorting
     const sortedItems = [...filteredItems].sort((a, b) => {
-      // Explicitly handle 'relevance' sort
-      if (sortOption === 'relevance') {
-        // Ensure both items have similarity scores for relevance sorting
-        // If one has similarity and the other doesn't, prioritize the one with similarity.
-        if (a.similarity !== undefined && b.similarity === undefined) return -1;
-        if (a.similarity === undefined && b.similarity !== undefined) return 1;
-        // If both have similarity, sort by it descendingly
+      if (showingSearchResults && sortOption === 'newest') {
+        // For search results, prioritize similarity first, then date
         if (a.similarity !== undefined && b.similarity !== undefined) {
-          return b.similarity - a.similarity;
-        }
-        // If neither has similarity, fall back to date (newest first)
-        const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-        const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-        return dateB.getTime() - dateA.getTime();
-      }
-
-      // Handle 'newest' sort:
-      // If showing search results, "newest" means "relevance then newest date".
-      // If not showing search results, it's just newest date.
-      if (sortOption === 'newest') {
-        if (showingSearchResults) {
-          // Prioritize similarity first, then date
-          const similarityDiff = (b.similarity ?? 0) - (a.similarity ?? 0);
+          const similarityDiff = b.similarity - a.similarity;
           if (Math.abs(similarityDiff) > 0.01) { // Only use similarity if there's a meaningful difference
             return similarityDiff;
           }
         }
-        // Fallback to date sorting (newest first)
-        const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-        const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-        return dateB.getTime() - dateA.getTime();
+        if (a.similarity !== undefined && b.similarity === undefined) return -1;
+        if (a.similarity === undefined && b.similarity !== undefined) return 1;
       }
       
-      // Handle 'oldest' sort
-      if (sortOption === 'oldest') {
-        const oldDateA = a.created_at ? new Date(a.created_at) : new Date(0);
-        const oldDateB = b.created_at ? new Date(b.created_at) : new Date(0);
-        return oldDateA.getTime() - oldDateB.getTime();
+      // Apply the selected sort option
+      switch (sortOption) {
+        case 'newest':
+          const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+          const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        
+        case 'oldest':
+          const oldDateA = a.created_at ? new Date(a.created_at) : new Date(0);
+          const oldDateB = b.created_at ? new Date(b.created_at) : new Date(0);
+          return oldDateA.getTime() - oldDateB.getTime();
+        
+        case 'popular':
+          const visitorA = (a as any).visitor_count || 0;
+          const visitorB = (b as any).visitor_count || 0;
+          return visitorB - visitorA;
+        
+        default:
+          return 0;
       }
-      
-      // Handle 'popular' sort
-      if (sortOption === 'popular') {
-        const visitorA = (a as any).visitor_count || 0;
-        const visitorB = (b as any).visitor_count || 0;
-        return visitorB - visitorA;
-      }
-      
-      // Default case (should not be reached if all options are handled)
-      return 0;
     });
     
     return sortedItems;
   };
 
   const sortedItems = getFilteredAndSortedItems();
-  console.log(`UrlParamVista rendering with ${sortedItems.length} items, isLoading=${isLoading}, sortOption=${sortOption}`);
+  console.log(`UrlParamVista rendering with ${sortedItems.length} items, isLoading=${isLoading}`);
 
   const seoData = generateSEOData();
 
@@ -509,12 +462,19 @@ const UrlParamVista = () => {
             {urlParam ? `${urlParam}'s Content` : "All Content on Vista"}
           </h1>
           
-          {/* Conditional heading for search results */}
-          {showingSearchResults && searchPurposeFromState && (
-            <p className="text-2xl font-semibold mb-2 text-gray-700 dark:text-gray-300">
-              Content for: <span className="italic">"{searchPurposeFromState}"</span>
+{/*           {searchPurpose && showingSearchResults ? (
+            <p className="text-3xl font-bold mb-2">
+              Content for: <span className="italic">"{searchPurpose}"</span>
             </p>
-          )}
+          ) : searchParams.get("search") ? (
+            <p className="text-3xl font-bold mb-2">
+              Search results for "{searchParams.get("search")}"
+            </p>
+          ) : (
+            <p className="text-gray-600 dark:text-gray-400">
+              Browse all content
+            </p>
+          )} */}
         </div>
         
         <Card className="mb-8">
@@ -538,7 +498,7 @@ const UrlParamVista = () => {
         <div className="mb-6">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             {showingSearchResults && sortedItems.length > 0 ? (
-              <span>Showing {sortedItems.length} relevant results{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`} sorted by {sortOption === 'relevance' ? 'relevance' : sortOption === 'newest' ? 'relevance & date' : sortOption === 'oldest' ? 'oldest first' : 'popularity'}</span>
+              <span>Showing {sortedItems.length} relevant results{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`} sorted by {sortOption === 'newest' ? 'relevance & date' : sortOption === 'oldest' ? 'oldest first' : 'popularity'}</span>
             ) : showingSearchResults && sortedItems.length === 0 ? (
               <span>No relevant content found for your search{selectedCategories.length > 0 && ` in selected categories`}</span>
             ) : (
@@ -549,14 +509,11 @@ const UrlParamVista = () => {
         
         {/* Category Filter and Content Sorter */}
         <div className="space-y-4">
-          {/* Only show CategoryFilter if there are items to filter */}
-          {items.length > 0 && (
-            <CategoryFilter
-              items={items}
-              selectedCategories={selectedCategories}
-              onCategoryChange={handleCategoryChange}
-            />
-          )}
+          <CategoryFilter
+            items={items}
+            selectedCategories={selectedCategories}
+            onCategoryChange={handleCategoryChange}
+          />
           
           <ContentSorter
             selectedSort={sortOption}
@@ -569,7 +526,7 @@ const UrlParamVista = () => {
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="h-12 w-12 animate-spin text-amber-500" />
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-              {showingSearchResults ? "Searching for content..." : "Loading content..."}
+              Searching for content...
             </p>
           </div>
         ) : sortedItems.length > 0 ? (
@@ -588,7 +545,7 @@ const UrlParamVista = () => {
           <div className="py-20 text-center">
             <p className="text-xl text-gray-600 dark:text-gray-400">
               {showingSearchResults
-                ? "No matching content found"  
+                ? "No matching content found" 
                 : "No content available"}
             </p>
           </div>
@@ -601,7 +558,7 @@ const UrlParamVista = () => {
               Want to explore all content?
             </p>
             <Button 
-              onClick={handleClearSearch}  
+              onClick={handleClearSearch} 
               variant="outline"
               className="mx-auto"
             >

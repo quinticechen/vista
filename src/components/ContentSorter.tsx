@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@//ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, Calendar, TrendingUp, Clock, Sparkles } from "lucide-react";
+import { ArrowUpDown, Calendar, TrendingUp, Clock } from "lucide-react";
 
-export type SortOption = 'relevance' | 'newest' | 'oldest' | 'popular';
+export type SortOption = 'newest' | 'oldest' | 'popular';
 
 interface ContentSorterProps {
   selectedSort: SortOption;
@@ -23,8 +23,6 @@ export const ContentSorter = ({
 }: ContentSorterProps) => {
   const getSortLabel = (sort: SortOption) => {
     switch (sort) {
-      case 'relevance':
-        return 'Most Relevant';
       case 'newest':
         return 'Newest First';
       case 'oldest':
@@ -38,8 +36,6 @@ export const ContentSorter = ({
 
   const getSortIcon = (sort: SortOption) => {
     switch (sort) {
-      case 'relevance':
-        return <Sparkles className="w-4 h-4" />;
       case 'newest':
         return <Calendar className="w-4 h-4" />;
       case 'oldest':
@@ -61,20 +57,6 @@ export const ContentSorter = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem
-            onClick={() => onSortChange('relevance')}
-            className={selectedSort === 'relevance' ? 'bg-accent' : ''}
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Most Relevant
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => onSortChange('popular')}
-            className={selectedSort === 'popular' ? 'bg-accent' : ''}
-          >
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Most Popular
-          </DropdownMenuItem>
           <DropdownMenuItem 
             onClick={() => onSortChange('newest')}
             className={selectedSort === 'newest' ? 'bg-accent' : ''}
@@ -88,6 +70,13 @@ export const ContentSorter = ({
           >
             <Clock className="w-4 h-4 mr-2" />
             Oldest First
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => onSortChange('popular')}
+            className={selectedSort === 'popular' ? 'bg-accent' : ''}
+          >
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Most Popular
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
