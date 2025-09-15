@@ -332,4 +332,35 @@ This document outlines the class structure of the Vista platform, showing key re
 +------------------+                            +------------------+
 ```
 
+## New Components
+
+### CategoryFilter
+
+```
++-------------------+
+|  CategoryFilter   |
++-------------------+
+| items: ContentItem[] |
+| selectedCategory: String |
+| onCategoryChange: Function |
+| showCounts: Boolean |
+| getCategories()   |
+| render()          |
++-------------------+
+```
+
+The CategoryFilter component provides filtering functionality for content items based on their category property. It dynamically generates filter buttons based on available categories and includes item counts for each category.
+
+**Key Features:**
+- Extracts unique categories from content items
+- Displays "All" button for showing all content
+- Shows item count for each category
+- Handles uncategorized content gracefully
+- Integrates with existing search functionality
+
+**Integration Points:**
+- Used in UrlParamVista page for content filtering
+- Works with existing search and sort functionality
+- Maintains filter state during search operations
+
 These class diagrams provide a high-level overview of the Vista platform's architecture, showing key components, their relationships, and data flows. As the application evolves, these diagrams will be updated to reflect changes in the system design.

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ContentDisplayItem } from "@/components/ContentDisplay";
+import { CategoryFilter } from "@/components/CategoryFilter";
 import { toast } from "@/components/ui/sonner";
 import { getProfileByUrlParam, getUserContentItems, getUserContentByUrlParam } from "@/services/urlParamService";
 import { semanticSearch } from "@/services/adminService";
@@ -27,6 +28,7 @@ const UrlParamVista = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   // Home page settings state for SEO
   const [homePageSettings, setHomePageSettings] = useState<any>(null);
@@ -362,6 +364,7 @@ const UrlParamVista = () => {
     setItems(allContentItems);
     setShowingSearchResults(false);
     setSearchQuery("");
+    setSelectedCategory(null);
     navigate(`/${urlParam}/vista`, { replace: true });
     
     // Clear search cache when viewing all content
@@ -378,11 +381,26 @@ const UrlParamVista = () => {
     loadAllItems();
   };
 
-  // Get sorted content items
-  const getSortedItems = () => {
-    // If showing search results, sort by similarity
+  // Handle category filter changes
+  const handleCategoryChange = (category: string | null) => {
+    setSelectedCategory(category);
+  };
+
+  // Get filtered and sorted content items
+  const getFilteredAndSortedItems = () => {
+    let filteredItems = items;
+    
+    // Apply category filter
+    if (selectedCategory !== null) {
+      filteredItems = items.filter(item => {
+        const itemCategory = item.category || 'Uncategorized';
+        return itemCategory === selectedCategory;
+      });
+    }
+    
+    // Sort filtered items
     if (showingSearchResults) {
-      return [...items].sort((a, b) => {
+      return [...filteredItems].sort((a, b) => {
         if (a.similarity !== undefined && b.similarity !== undefined) {
           return b.similarity - a.similarity;
         }
@@ -397,14 +415,14 @@ const UrlParamVista = () => {
     }
 
     // If not showing search results, sort by date
-    return [...items].sort((a, b) => {
+    return [...filteredItems].sort((a, b) => {
       const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
       const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
       return dateB.getTime() - dateA.getTime();
     });
   };
 
-  const sortedItems = getSortedItems();
+  const sortedItems = getFilteredAndSortedItems();
   console.log(`UrlParamVista rendering with ${sortedItems.length} items, isLoading=${isLoading}`);
 
   const seoData = generateSEOData();
@@ -456,14 +474,21 @@ const UrlParamVista = () => {
         <div className="mb-6">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             {showingSearchResults && sortedItems.length > 0 ? (
-              <span>Showing {sortedItems.length} relevant results sorted by relevance</span>
+              <span>Showing {sortedItems.length} relevant results{selectedCategory && ` in "${selectedCategory}"`} sorted by relevance</span>
             ) : showingSearchResults && sortedItems.length === 0 ? (
-              <span>No relevant content found for your search</span>
+              <span>No relevant content found for your search{selectedCategory && ` in "${selectedCategory}"`}</span>
             ) : (
-              <span>Showing {sortedItems.length} content items</span>
+              <span>Showing {sortedItems.length} content items{selectedCategory && ` in "${selectedCategory}"`}</span>
             )}
           </div>
         </div>
+        
+        {/* Category Filter */}
+        <CategoryFilter
+          items={items}
+          selectedCategory={selectedCategory}
+          onCategoryChange={handleCategoryChange}
+        />
         
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
