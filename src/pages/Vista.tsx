@@ -29,7 +29,7 @@ const Vista = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   // Check if we have search results from the navigation state
   const searchResults = location.state?.searchResults as ContentItem[] | undefined;
   const searchPurpose = location.state?.purpose as string | undefined;
@@ -40,7 +40,7 @@ const Vista = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const canonicalUrl = `${baseUrl}/vista`;
     const searchTerm = searchParams.get("search") || searchPurpose;
-    
+
     if (searchTerm) {
       return {
         title: `Search Results for "${searchTerm}" - Vista`,
@@ -60,11 +60,11 @@ const Vista = () => {
         }
       };
     }
-    
+
     return {
       title: "Vista",
       description: "Transform Your Content Strategy with AI",
-      keywords: ['content library', 'articles', 'insights', 'browse content', 'curated resources'],
+      keywords: ['content library', 'articles', 'insights', 'browse content', 'curated '],
       canonicalUrl,
       ogImage: '/og-image.png',
       structuredData: {
@@ -80,10 +80,10 @@ const Vista = () => {
   // Centralized content processing function to ensure consistency with UrlParamVista
   const processContentItem = (item: ContentItem): ContentItem => {
     console.log(`Processing content item ${item.id}: ${item.title}`);
-    
+
     // Use the standard processor to handle orientation, images, etc.
     const processed = processNotionContent(item);
-    
+
     // Ensure content is properly structured as an array
     if (processed.content && typeof processed.content === 'string') {
       try {
@@ -93,11 +93,11 @@ const Vista = () => {
         processed.content = [];
       }
     }
-    
+
     if (!Array.isArray(processed.content)) {
       processed.content = [];
     }
-    
+
     console.log(`After processing: orientation=${processed.orientation}, cover_image=${!!processed.cover_image}, preview_image=${!!processed.preview_image}`);
     return processed;
   };
@@ -121,7 +121,7 @@ const Vista = () => {
     const fetchContentItems = async () => {
       try {
         setLoading(true);
-        
+
         // Always fetch all content items for "View All" functionality
         const { data, error } = await supabase
           .from("content_items")
@@ -131,51 +131,53 @@ const Vista = () => {
         if (error) {
           throw error;
         }
-        
+
         console.log(`Fetched ${data?.length || 0} content items from the database`);
-        
+
         // Process the data to match ContentItem interface
         let processedData = (data || []).map((item: any) => ({
           ...item,
         })) as ContentItem[];
-        
+
         // Apply consistent processing pipeline
         processedData = processContentItems(processedData);
         setAllContentItems(processedData);
-        
+
         // Check for cached search results first
         const cachedSearch = SearchCache.load();
         if (cachedSearch && SearchCache.isValid(cachedSearch)) {
           console.log(`Vista - Restoring cached search: ${cachedSearch.results.length} results for "${cachedSearch.query}"`);
-          
+
           const processedCachedResults = processContentItems(cachedSearch.results);
           setContentItems(processedCachedResults);
           setShowingSearchResults(true);
           setSearchQuery(cachedSearch.query);
-          
+          setSortOption('relevant');
+
           if (cachedSearch.purpose) {
             toast.success(`Restored search results for: "${cachedSearch.purpose}"`, { duration: 3000 });
           }
           return;
         }
-        
-        // Check for URL search parameter
+
+        // Check for URL search
         const urlSearchParam = searchParams.get("search");
         if (urlSearchParam) {
           setSearchQuery(urlSearchParam);
           await performSearch(urlSearchParam);
           return;
         }
-        
+
         // If we have search results from semantic search, use those
         if (searchResults && searchResults.length > 0) {
           console.log(`Displaying ${searchResults.length} search results for: "${searchPurpose}"`);
-          
+
           // Apply same processing pipeline to search results
           const processedSearchResults = processContentItems(searchResults);
-          
+
           setContentItems(processedSearchResults);
           setShowingSearchResults(true);
+          setSortOption('relevant');
 
           // Save to cache for future navigation
           SearchCache.save({
@@ -185,7 +187,7 @@ const Vista = () => {
             showingSearchResults: true,
             purpose: searchPurpose
           });
-    
+
           if (processedSearchResults.length === 0) {
             toast.warning(`No content found with 50%+ relevance for "${searchPurpose}". Try different keywords.`, { duration: 5000 });
           } else {
@@ -195,12 +197,14 @@ const Vista = () => {
           // If we had a search but it returned no results, show a message and empty content
           setContentItems([]);
           setShowingSearchResults(true);
-          
+          setSortOption('newest');
+
           toast.warning(`No content found with 50%+ relevance for "${searchPurpose}". Try different keywords.`, { duration: 5000 });
         } else {
           // If no search results, use all content items
           setContentItems(processedData);
           setShowingSearchResults(false);
+          setSortOption('newest');
         }
       } catch (error) {
         console.error("Error fetching content:", error);
@@ -211,28 +215,29 @@ const Vista = () => {
         setLoading(false);
       }
     };
-    
+
     fetchContentItems();
   }, [searchResults, searchPurpose, searchTimestamp, searchParams]);
 
-  // Perform search using semantic search
+  // search using semantic search
   const performSearch = async (term: string) => {
     if (!term.trim()) {
       handleViewAll();
       return;
     }
-    
+
     setLoading(true);
     try {
-      console.log(`Vista - Performing semantic search with term: "${term}"`);
+      console.log(`Vista -  semantic search with term: "${term}"`);
       // semanticSearch now returns items with 50%+ similarity and properly processed images
       let results = await semanticSearch(term.trim());
-      
+
       if (results && results.length > 0) {
         console.log(`Vista - Found ${results.length} results for search: "${term}" (50%+ similarity)`);
         setContentItems(results);
         setShowingSearchResults(true);
-        
+        setSortOption('relevant');
+
         // Save search results to cache
         SearchCache.save({
           results,
@@ -240,12 +245,13 @@ const Vista = () => {
           timestamp: Date.now(),
           showingSearchResults: true
         });
-        
+
         toast.success(`Found ${results.length} relevant items (50%+ similarity)`, { duration: 3000 });
       } else {
         console.log(`Vista - No results found for search: "${term}"`);
         setContentItems([]);
         setShowingSearchResults(true);
+        setSortOption('relevant');
         toast.warning(`No content found with 50%+ relevance for "${term}". Try different keywords.`, { duration: 5000 });
       }
     } catch (error) {
@@ -270,10 +276,10 @@ const Vista = () => {
     setSearchQuery("");
     setSelectedCategories([]);
     setSortOption('newest');
-    
+
     // Clear the search state but keep on same page
     navigate('/vista', { replace: true });
-    
+
     // Clear search cache when viewing all content
     SearchCache.clear();
   };
@@ -291,7 +297,7 @@ const Vista = () => {
   // Get filtered and sorted content items
   const getFilteredAndSortedItems = () => {
     let filteredItems = contentItems;
-    
+
     // Apply category filter - show items that match ANY selected category (OR logic)
     if (selectedCategories.length > 0) {
       filteredItems = contentItems.filter(item => {
@@ -299,43 +305,34 @@ const Vista = () => {
         return selectedCategories.includes(itemCategory);
       });
     }
-    
+
     // Apply sorting
     const sortedItems = [...filteredItems].sort((a, b) => {
-      if (showingSearchResults && sortOption === 'newest') {
-        // For search results, prioritize similarity first, then date
-        if (a.similarity !== undefined && b.similarity !== undefined) {
-          const similarityDiff = b.similarity - a.similarity;
-          if (Math.abs(similarityDiff) > 0.01) { // Only use similarity if there's a meaningful difference
-            return similarityDiff;
-          }
-        }
-        if (a.similarity !== undefined && b.similarity === undefined) return -1;
-        if (a.similarity === undefined && b.similarity !== undefined) return 1;
-      }
-      
       // Apply the selected sort option
       switch (sortOption) {
+        case 'relevant':
+          return (b.similarity || 0) - (a.similarity || 0);
+
         case 'newest':
           const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
           const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
           return dateB.getTime() - dateA.getTime();
-        
+
         case 'oldest':
           const oldDateA = a.created_at ? new Date(a.created_at) : new Date(0);
           const oldDateB = b.created_at ? new Date(b.created_at) : new Date(0);
           return oldDateA.getTime() - oldDateB.getTime();
-        
+
         case 'popular':
           const visitorA = (a as any).visitor_count || 0;
           const visitorB = (b as any).visitor_count || 0;
           return visitorB - visitorA;
-        
+
         default:
           return 0;
       }
     });
-    
+
     return sortedItems;
   };
 
@@ -348,14 +345,14 @@ const Vista = () => {
     <div className="min-h-screen flex flex-col bg-beige-100 dark:bg-gray-900">
       <SEOHead {...seoData} />
       <Header />
-      
+
       <main className="container py-8 max-w-6xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
             Browse All Content
           </h1>
         </div>
-        
+
         <Card className="mb-8">
           <CardContent className="p-4">
             <form onSubmit={handleSearch} className="flex gap-2">
@@ -374,11 +371,12 @@ const Vista = () => {
         </Card>
 
         {/* Category Filter and Content Sorter */}
-        <div className="space-y-4">
+        <div className="space-y-4 mb-6">
           <ContentSorter
             selectedSort={sortOption}
             onSortChange={handleSortChange}
             itemCount={sortedItems.length}
+            showingSearchResults={showingSearchResults}
           />
           <CategoryFilter
             items={contentItems}
@@ -386,20 +384,7 @@ const Vista = () => {
             onCategoryChange={handleCategoryChange}
           />
         </div>
-        
-        {/* Search result controls */}
-{/*         <div className="mb-6">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {showingSearchResults && sortedItems.length > 0 ? (
-              <span>Showing {sortedItems.length} relevant results{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`} sorted by {sortOption === 'newest' ? 'relevance & date' : sortOption === 'oldest' ? 'oldest first' : 'popularity'}</span>
-            ) : showingSearchResults && sortedItems.length === 0 ? (
-              <span>No relevant content found for your search{selectedCategories.length > 0 && ` in selected categories`}</span>
-            ) : (
-              <span>Showing {sortedItems.length} content items{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`}</span>
-            )}
-          </div>
-        </div> */}
-        
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
@@ -409,9 +394,10 @@ const Vista = () => {
           <div className="flex flex-col gap-6">
             {sortedItems.map((item, index) => (
               <div key={item.id} className="block group">
-                <ContentDisplayItem 
-                  content={item} 
+                <ContentDisplayItem
+                  content={item}
                   index={index}
+                  urlPrefix="/vista"
                 />
               </div>
             ))}
@@ -428,15 +414,15 @@ const Vista = () => {
             <p className="text-xl text-gray-500 mb-4">No content items available.</p>
           </div>
         )}
-        
+
         {/* View All Content button moved to bottom of page */}
         {(showingSearchResults || searchParams.get("search")) && (
           <div className="text-center mt-12 pt-6 border-t border-gray-200">
             <p className="mb-4 text-gray-600 dark:text-gray-400">
               Want to explore all content?
             </p>
-            <Button 
-              onClick={handleViewAll} 
+            <Button
+              onClick={handleViewAll}
               variant="outline"
               className="mx-auto"
             >
@@ -444,11 +430,11 @@ const Vista = () => {
             </Button>
           </div>
         )}
-        
+
         {/* About page link */}
         <div className="mt-12 text-center border-t pt-8">
           <p className="text-gray-600 dark:text-gray-400 mb-4">Want to explore all our content in detail?</p>
-          <Button 
+          <Button
             asChild
             variant="secondary"
           >
@@ -456,7 +442,7 @@ const Vista = () => {
           </Button>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
