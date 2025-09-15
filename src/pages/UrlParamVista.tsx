@@ -495,7 +495,7 @@ const UrlParamVista = () => {
         </Card>
         
         {/* Search result controls */}
-        <div className="mb-6">
+{/*         <div className="mb-6">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             {showingSearchResults && sortedItems.length > 0 ? (
               <span>Showing {sortedItems.length} relevant results{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`} sorted by {sortOption === 'newest' ? 'relevance & date' : sortOption === 'oldest' ? 'oldest first' : 'popularity'}</span>
@@ -505,20 +505,19 @@ const UrlParamVista = () => {
               <span>Showing {sortedItems.length} content items{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`}</span>
             )}
           </div>
-        </div>
+        </div> */}
         
         {/* Category Filter and Content Sorter */}
-        <div className="space-y-4">
-          <CategoryFilter
-            items={items}
-            selectedCategories={selectedCategories}
-            onCategoryChange={handleCategoryChange}
-          />
-          
+        <div className="space-y-4 mb-6">
           <ContentSorter
             selectedSort={sortOption}
             onSortChange={handleSortChange}
             itemCount={sortedItems.length}
+          />
+          <CategoryFilter
+            items={items}
+            selectedCategories={selectedCategories}
+            onCategoryChange={handleCategoryChange}
           />
         </div>
         
