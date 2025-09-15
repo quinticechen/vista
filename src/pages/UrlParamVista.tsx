@@ -417,10 +417,10 @@ const UrlParamVista = () => {
       <main className="container py-8 max-w-6xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            {urlParam ? `${urlParam}'s Content` : "Content Vista"}
+            {urlParam ? `${urlParam}'s Content` : "All Content on Vista"}
           </h1>
           
-          {searchPurpose && showingSearchResults ? (
+{/*           {searchPurpose && showingSearchResults ? (
             <p className="text-3xl font-bold mb-2">
               Content for: <span className="italic">"{searchPurpose}"</span>
             </p>
@@ -432,7 +432,7 @@ const UrlParamVista = () => {
             <p className="text-gray-600 dark:text-gray-400">
               Browse all content
             </p>
-          )}
+          )} */}
         </div>
         
         <Card className="mb-8">
