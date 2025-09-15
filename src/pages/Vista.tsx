@@ -372,6 +372,20 @@ const Vista = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Category Filter and Content Sorter */}
+        <div className="space-y-4">
+          <ContentSorter
+            selectedSort={sortOption}
+            onSortChange={handleSortChange}
+            itemCount={sortedItems.length}
+          />
+          <CategoryFilter
+            items={contentItems}
+            selectedCategories={selectedCategories}
+            onCategoryChange={handleCategoryChange}
+          />
+        </div>
         
         {/* Search result controls */}
         <div className="mb-6">
@@ -415,20 +429,6 @@ const Vista = () => {
           </div>
         )}
         
-        {/* Category Filter and Content Sorter */}
-        <div className="space-y-4">
-          <CategoryFilter
-            items={contentItems}
-            selectedCategories={selectedCategories}
-            onCategoryChange={handleCategoryChange}
-          />
-          
-          <ContentSorter
-            selectedSort={sortOption}
-            onSortChange={handleSortChange}
-            itemCount={sortedItems.length}
-          />
-        </div>
         {/* View All Content button moved to bottom of page */}
         {(showingSearchResults || searchParams.get("search")) && (
           <div className="text-center mt-12 pt-6 border-t border-gray-200">
