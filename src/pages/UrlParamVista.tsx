@@ -178,12 +178,13 @@ const UrlParamVista = () => {
           setItems(filteredCachedResults);
           setShowingSearchResults(true);
           setSearchQuery(cachedSearch.query);
-          
+          setSortOption('relevance'); 
           if (cachedSearch.purpose) {
             toast.success(`Restored search results for: "${cachedSearch.purpose}"`, { duration: 3000 });
           }
         } else if (searchResults && searchResults.length > 0) {
-          console.log(`UrlParamVista - Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
+          setItems(filteredResults);
+          setShowingSearchResults(true);console.log(`UrlParamVista - Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
           
           // Apply same processing pipeline to search results
           const processedSearchResults = processContentItems(searchResults);
@@ -211,6 +212,7 @@ const UrlParamVista = () => {
             } else {
               toast.success(`Found ${filteredResults.length} relevant items (50%+ similarity)`, { duration: 5000 });
             }
+            setSortOption('relevance');
           }
         } else if (searchParams.get("search")) {
           // If we have a search term in URL params
@@ -409,42 +411,45 @@ const UrlParamVista = () => {
     
     // Apply sorting
     const sortedItems = [...filteredItems].sort((a, b) => {
-      if (showingSearchResults && sortOption === 'newest') {
-        // For search results, prioritize similarity first, then date
-        if (a.similarity !== undefined && b.similarity !== undefined) {
-          const similarityDiff = b.similarity - a.similarity;
-          if (Math.abs(similarityDiff) > 0.01) { // Only use similarity if there's a meaningful difference
-            return similarityDiff;
-          }
-        }
-        if (a.similarity !== undefined && b.similarity === undefined) return -1;
-        if (a.similarity === undefined && b.similarity !== undefined) return 1;
-      }
-      
-      // Apply the selected sort option
-      switch (sortOption) {
-        case 'newest':
-          const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-          const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-          return dateB.getTime() - dateA.getTime();
-        
-        case 'oldest':
-          const oldDateA = a.created_at ? new Date(a.created_at) : new Date(0);
-          const oldDateB = b.created_at ? new Date(b.created_at) : new Date(0);
-          return oldDateA.getTime() - oldDateB.getTime();
-        
-        case 'popular':
-          const visitorA = (a as any).visitor_count || 0;
-          const visitorB = (b as any).visitor_count || 0;
-          return visitorB - visitorA;
-        
-        default:
-          return 0;
-      }
-    });
-    
-    return sortedItems;
-  };
+      // Handle 'relevance' sort option first
+      if (sortOption === 'relevance') {
+        // If both items have similarity, sort by it
+        if (a.similarity !== undefined && b.similarity !== undefined) {
+          return b.similarity - a.similarity; // Descending similarity
+        }
+        // If one has similarity and the other doesn't, consider the one with similarity more relevant
+        if (a.similarity !== undefined && b.similarity === undefined) return -1;
+        if (a.similarity === undefined && b.similarity !== undefined) return 1;
+        // If neither has similarity, fall through to other sorts or default
+      }
+      
+      // Handle 'newest' (chronological) sort option
+      if (sortOption === 'newest') {
+        const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+        const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+        return dateB.getTime() - dateA.getTime(); // Descending date (newest first)
+      }
+      
+      // Handle 'oldest' sort option
+      if (sortOption === 'oldest') {
+        const oldDateA = a.created_at ? new Date(a.created_at) : new Date(0);
+        const oldDateB = b.created_at ? new Date(b.created_at) : new Date(0);
+        return oldDateA.getTime() - oldDateB.getTime(); // Ascending date (oldest first)
+      }
+      
+      // Handle 'popular' sort option
+      if (sortOption === 'popular') {
+        const visitorA = (a as any).visitor_count || 0;
+        const visitorB = (b as any).visitor_count || 0;
+        return visitorB - visitorA; // Descending visitor count (most popular first)
+      }
+      
+      // Default to no sorting or a fallback if no option matches
+      return 0;
+    });
+    
+    return sortedItems;
+  };
 
   const sortedItems = getFilteredAndSortedItems();
   console.log(`UrlParamVista rendering with ${sortedItems.length} items, isLoading=${isLoading}`);
