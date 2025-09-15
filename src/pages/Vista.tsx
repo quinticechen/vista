@@ -349,32 +349,11 @@ const Vista = () => {
       <SEOHead {...seoData} />
       <Header />
       
-      <main className="flex-1 container py-8 max-w-6xl">
+      <main className="container py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-6 text-gray-900 dark:text-white">
-            Content Vista
+          <h1 className="text-3xl font-bold mb-2">
+            Browse All Content
           </h1>
-          <h2 className="text-2xl md:text-3xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-            {searchParams.get("search") ? `Search Results for "${searchParams.get("search")}"` : "Browse All Content"}
-          </h2>
-          <h3 className="text-xl md:text-2xl font-medium mb-3 text-gray-700 dark:text-gray-300">
-            Discover Articles, Insights, and Resources
-          </h3>
-          <div className="mb-8">
-            {searchPurpose && showingSearchResults ? (
-              <p className="text-gray-600 dark:text-gray-400">
-                Content for: <span className="italic">"{searchPurpose}"</span>
-              </p>
-            ) : searchParams.get("search") ? (
-              <p className="text-gray-600 dark:text-gray-400">
-                Search results for "{searchParams.get("search")}"
-              </p>
-            ) : (
-              <p className="text-gray-600 dark:text-gray-400">
-                Browse all content
-              </p>
-            )}
-          </div>
         </div>
         
         <Card className="mb-8">
