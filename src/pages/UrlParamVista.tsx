@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ContentDisplayItem } from "@/components/ContentDisplay";
+import { CategoryFilter } from "@/components/CategoryFilter";
+import { ContentSorter, SortOption } from "@/components/ContentSorter";
 import { toast } from "@/components/ui/sonner";
 import { getProfileByUrlParam, getUserContentItems, getUserContentByUrlParam } from "@/services/urlParamService";
 import { semanticSearch } from "@/services/adminService";
@@ -27,6 +29,8 @@ const UrlParamVista = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
   
   // Home page settings state for SEO
   const [homePageSettings, setHomePageSettings] = useState<any>(null);
@@ -174,12 +178,13 @@ const UrlParamVista = () => {
           setItems(filteredCachedResults);
           setShowingSearchResults(true);
           setSearchQuery(cachedSearch.query);
-          
+          setSortOption('relevance'); 
           if (cachedSearch.purpose) {
             toast.success(`Restored search results for: "${cachedSearch.purpose}"`, { duration: 3000 });
           }
         } else if (searchResults && searchResults.length > 0) {
-          console.log(`UrlParamVista - Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
+          setItems(filteredResults);
+          setShowingSearchResults(true);console.log(`UrlParamVista - Displaying ${searchResults.length} search results from PurposeInput for query: "${searchPurpose}"`);
           
           // Apply same processing pipeline to search results
           const processedSearchResults = processContentItems(searchResults);
@@ -207,6 +212,7 @@ const UrlParamVista = () => {
             } else {
               toast.success(`Found ${filteredResults.length} relevant items (50%+ similarity)`, { duration: 5000 });
             }
+            setSortOption('relevance');
           }
         } else if (searchParams.get("search")) {
           // If we have a search term in URL params
@@ -362,10 +368,14 @@ const UrlParamVista = () => {
     setItems(allContentItems);
     setShowingSearchResults(false);
     setSearchQuery("");
-    navigate(`/${urlParam}/vista`, { replace: true });
+    setSelectedCategories([]);
+    setSortOption('newest');
     
     // Clear search cache when viewing all content
     SearchCache.clear(urlParam);
+    
+    // Navigate without search params to ensure URL is clean
+    navigate(`/${urlParam}/vista`, { replace: true });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -378,33 +388,70 @@ const UrlParamVista = () => {
     loadAllItems();
   };
 
-  // Get sorted content items
-  const getSortedItems = () => {
-    // If showing search results, sort by similarity
-    if (showingSearchResults) {
-      return [...items].sort((a, b) => {
-        if (a.similarity !== undefined && b.similarity !== undefined) {
-          return b.similarity - a.similarity;
-        }
-        if (a.similarity !== undefined) return -1;
-        if (b.similarity !== undefined) return 1;
-        
-        // Fall back to date sorting if similarity isn't available
-        const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-        const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-        return dateB.getTime() - dateA.getTime();
-      });
-    }
-
-    // If not showing search results, sort by date
-    return [...items].sort((a, b) => {
-      const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-      const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-      return dateB.getTime() - dateA.getTime();
-    });
+  // Handle category filter changes
+  const handleCategoryChange = (categories: string[]) => {
+    setSelectedCategories(categories);
   };
 
-  const sortedItems = getSortedItems();
+  // Handle sort changes
+  const handleSortChange = (sort: SortOption) => {
+    setSortOption(sort);
+  };
+
+  const getFilteredAndSortedItems = () => {
+    let filteredItems = items;
+    
+    // Apply category filter - show items that match ANY selected category (OR logic)
+    if (selectedCategories.length > 0) {
+      filteredItems = items.filter(item => {
+        const itemCategory = item.category || 'Uncategorized';
+        return selectedCategories.includes(itemCategory);
+      });
+    }
+    
+    // Apply sorting
+    const sortedItems = [...filteredItems].sort((a, b) => {
+      // Handle 'relevance' sort option first
+      if (sortOption === 'relevance') {
+        // If both items have similarity, sort by it
+        if (a.similarity !== undefined && b.similarity !== undefined) {
+          return b.similarity - a.similarity; // Descending similarity
+        }
+        // If one has similarity and the other doesn't, consider the one with similarity more relevant
+        if (a.similarity !== undefined && b.similarity === undefined) return -1;
+        if (a.similarity === undefined && b.similarity !== undefined) return 1;
+        // If neither has similarity, fall through to other sorts or default
+      }
+      
+      // Handle 'newest' (chronological) sort option
+      if (sortOption === 'newest') {
+        const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+        const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+        return dateB.getTime() - dateA.getTime(); // Descending date (newest first)
+      }
+      
+      // Handle 'oldest' sort option
+      if (sortOption === 'oldest') {
+        const oldDateA = a.created_at ? new Date(a.created_at) : new Date(0);
+        const oldDateB = b.created_at ? new Date(b.created_at) : new Date(0);
+        return oldDateA.getTime() - oldDateB.getTime(); // Ascending date (oldest first)
+      }
+      
+      // Handle 'popular' sort option
+      if (sortOption === 'popular') {
+        const visitorA = (a as any).visitor_count || 0;
+        const visitorB = (b as any).visitor_count || 0;
+        return visitorB - visitorA; // Descending visitor count (most popular first)
+      }
+      
+      // Default to no sorting or a fallback if no option matches
+      return 0;
+    });
+    
+    return sortedItems;
+  };
+
+  const sortedItems = getFilteredAndSortedItems();
   console.log(`UrlParamVista rendering with ${sortedItems.length} items, isLoading=${isLoading}`);
 
   const seoData = generateSEOData();
@@ -417,10 +464,10 @@ const UrlParamVista = () => {
       <main className="container py-8 max-w-6xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            {urlParam ? `${urlParam}'s Content` : "Content Vista"}
+            {urlParam ? `${urlParam}'s Content` : "All Content on Vista"}
           </h1>
           
-          {searchPurpose && showingSearchResults ? (
+{/*           {searchPurpose && showingSearchResults ? (
             <p className="text-3xl font-bold mb-2">
               Content for: <span className="italic">"{searchPurpose}"</span>
             </p>
@@ -432,7 +479,7 @@ const UrlParamVista = () => {
             <p className="text-gray-600 dark:text-gray-400">
               Browse all content
             </p>
-          )}
+          )} */}
         </div>
         
         <Card className="mb-8">
@@ -445,7 +492,7 @@ const UrlParamVista = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
+              <Button type="submit">
                 Search
               </Button>
             </form>
@@ -453,16 +500,30 @@ const UrlParamVista = () => {
         </Card>
         
         {/* Search result controls */}
-        <div className="mb-6">
+{/*         <div className="mb-6">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             {showingSearchResults && sortedItems.length > 0 ? (
-              <span>Showing {sortedItems.length} relevant results sorted by relevance</span>
+              <span>Showing {sortedItems.length} relevant results{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`} sorted by {sortOption === 'newest' ? 'relevance & date' : sortOption === 'oldest' ? 'oldest first' : 'popularity'}</span>
             ) : showingSearchResults && sortedItems.length === 0 ? (
-              <span>No relevant content found for your search</span>
+              <span>No relevant content found for your search{selectedCategories.length > 0 && ` in selected categories`}</span>
             ) : (
-              <span>Showing {sortedItems.length} content items</span>
+              <span>Showing {sortedItems.length} content items{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`}</span>
             )}
           </div>
+        </div> */}
+        
+        {/* Category Filter and Content Sorter */}
+        <div className="space-y-4 mb-6">
+          <ContentSorter
+            selectedSort={sortOption}
+            onSortChange={handleSortChange}
+            itemCount={sortedItems.length}
+          />
+          <CategoryFilter
+            items={items}
+            selectedCategories={selectedCategories}
+            onCategoryChange={handleCategoryChange}
+          />
         </div>
         
         {isLoading ? (

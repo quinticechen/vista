@@ -43,11 +43,62 @@ This document outlines the class structure of the Vista platform, showing key re
 | end_date: Date    |
 | created_at: Date  |
 | updated_at: Date  |
+| visitor_count: Number |
 | translation_status: String |
 | translated_languages: String[] |
 | title_translations: JSON |
 | description_translations: JSON |
 | content_translations: JSON |
+| cover_image: String |
+| preview_image: String |
+| similarity: Number (for search results) |
+| orientation: String (portrait/landscape/square) |
++-------------------+
+```
+
+### CategoryFilter
+
+```
++-------------------+
+|   CategoryFilter  |
++-------------------+
+| items: ContentItem[] |
+| selectedCategories: String[] |
+| onCategoryChange: Function |
+| showCounts: Boolean |
++-------------------+
+| + getCategories(): Map<String, Number> |
+| + handleCategoryToggle(category: String): void |
+| + handleAllSelect(): void |
++-------------------+
+```
+
+### ContentSorter
+
+```
++-------------------+
+|   ContentSorter   |
++-------------------+
+| selectedSort: SortOption |
+| onSortChange: Function |
+| itemCount: Number |
++-------------------+
+| + getSortLabel(sort: SortOption): String |
+| + getSortIcon(sort: SortOption): ReactNode |
++-------------------+
+```
+
+### SortOption (Enum)
+
+```
++-------------------+
+|    SortOption     |
++-------------------+
+| 'newest'          |
+| 'oldest'          |
+| 'popular'         |
++-------------------+
+```
 | visitor_count: Integer |
 +-------------------+
 ```
@@ -331,5 +382,36 @@ This document outlines the class structure of the Vista platform, showing key re
 | Index Page       |                            | to Frontend      |
 +------------------+                            +------------------+
 ```
+
+## New Components
+
+### CategoryFilter
+
+```
++-------------------+
+|  CategoryFilter   |
++-------------------+
+| items: ContentItem[] |
+| selectedCategory: String |
+| onCategoryChange: Function |
+| showCounts: Boolean |
+| getCategories()   |
+| render()          |
++-------------------+
+```
+
+The CategoryFilter component provides filtering functionality for content items based on their category property. It dynamically generates filter buttons based on available categories and includes item counts for each category.
+
+**Key Features:**
+- Extracts unique categories from content items
+- Displays "All" button for showing all content
+- Shows item count for each category
+- Handles uncategorized content gracefully
+- Integrates with existing search functionality
+
+**Integration Points:**
+- Used in UrlParamVista page for content filtering
+- Works with existing search and sort functionality
+- Maintains filter state during search operations
 
 These class diagrams provide a high-level overview of the Vista platform's architecture, showing key components, their relationships, and data flows. As the application evolves, these diagrams will be updated to reflect changes in the system design.
