@@ -388,7 +388,7 @@ const Vista = () => {
         </div>
         
         {/* Search result controls */}
-        <div className="mb-6">
+{/*         <div className="mb-6">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             {showingSearchResults && sortedItems.length > 0 ? (
               <span>Showing {sortedItems.length} relevant results{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`} sorted by {sortOption === 'newest' ? 'relevance & date' : sortOption === 'oldest' ? 'oldest first' : 'popularity'}</span>
@@ -398,7 +398,7 @@ const Vista = () => {
               <span>Showing {sortedItems.length} content items{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`}</span>
             )}
           </div>
-        </div>
+        </div> */}
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
