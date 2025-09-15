@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/ui/badge";
+import { Badge } from "@//ui/badge";
 import { 
   DropdownMenu,
   DropdownMenuContent,
