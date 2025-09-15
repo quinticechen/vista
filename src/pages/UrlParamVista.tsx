@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useLocation, useNavigate } from "react-router-dom";
-import PersonalHeader from "@//PersonalHeader";
-import PersonalFooter from "@//PersonalFooter";
+import PersonalHeader from "@/components/PersonalHeader";
+import PersonalFooter from "@/components/PersonalFooter";
 import { Button } from "@//ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
