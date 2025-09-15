@@ -365,10 +365,12 @@ const UrlParamVista = () => {
     setShowingSearchResults(false);
     setSearchQuery("");
     setSelectedCategory(null);
-    navigate(`/${urlParam}/vista`, { replace: true });
     
     // Clear search cache when viewing all content
     SearchCache.clear(urlParam);
+    
+    // Navigate without search params to ensure URL is clean
+    navigate(`/${urlParam}/vista`, { replace: true });
   };
 
   const handleSearch = (e: React.FormEvent) => {
