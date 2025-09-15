@@ -492,7 +492,7 @@ const UrlParamVista = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
+              <Button type="submit">
                 Search
               </Button>
             </form>
