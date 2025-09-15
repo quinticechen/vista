@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentDisplayItem } from "@/components/ContentDisplay";
+import { CategoryFilter } from "@/components/CategoryFilter";
+import { ContentSorter, SortOption } from "@/components/ContentSorter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
@@ -22,6 +24,8 @@ const Vista = () => {
   const [loading, setLoading] = useState(true);
   const [showingSearchResults, setShowingSearchResults] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -264,6 +268,8 @@ const Vista = () => {
     setContentItems(allContentItems);
     setShowingSearchResults(false);
     setSearchQuery("");
+    setSelectedCategories([]);
+    setSortOption('newest');
     
     // Clear the search state but keep on same page
     navigate('/vista', { replace: true });
@@ -272,30 +278,68 @@ const Vista = () => {
     SearchCache.clear();
   };
 
-  // Get sorted content items - make sure the sort is applied directly before rendering
-  const getSortedItems = () => {
-    // If showing search results, sort by similarity
-    if (showingSearchResults) {
-      const sorted = [...contentItems].sort((a, b) => {
-        if (a.similarity !== undefined && b.similarity !== undefined) {
-          return b.similarity - a.similarity;
-        }
-        if (a.similarity !== undefined) return -1;
-        if (b.similarity !== undefined) return 1;
-        return a.title?.localeCompare(b.title || '') || 0;
-      });
-      return sorted;
-    }
-
-    // If not showing search results, sort by date
-    return [...contentItems].sort((a, b) => {
-      const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-      const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-      return dateB.getTime() - dateA.getTime();
-    });
+  // Handle category filter changes
+  const handleCategoryChange = (categories: string[]) => {
+    setSelectedCategories(categories);
   };
 
-  const sortedItems = getSortedItems();
+  // Handle sort changes
+  const handleSortChange = (sort: SortOption) => {
+    setSortOption(sort);
+  };
+
+  // Get filtered and sorted content items
+  const getFilteredAndSortedItems = () => {
+    let filteredItems = contentItems;
+    
+    // Apply category filter - show items that match ANY selected category (OR logic)
+    if (selectedCategories.length > 0) {
+      filteredItems = contentItems.filter(item => {
+        const itemCategory = item.category || 'Uncategorized';
+        return selectedCategories.includes(itemCategory);
+      });
+    }
+    
+    // Apply sorting
+    const sortedItems = [...filteredItems].sort((a, b) => {
+      if (showingSearchResults && sortOption === 'newest') {
+        // For search results, prioritize similarity first, then date
+        if (a.similarity !== undefined && b.similarity !== undefined) {
+          const similarityDiff = b.similarity - a.similarity;
+          if (Math.abs(similarityDiff) > 0.01) { // Only use similarity if there's a meaningful difference
+            return similarityDiff;
+          }
+        }
+        if (a.similarity !== undefined && b.similarity === undefined) return -1;
+        if (a.similarity === undefined && b.similarity !== undefined) return 1;
+      }
+      
+      // Apply the selected sort option
+      switch (sortOption) {
+        case 'newest':
+          const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+          const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        
+        case 'oldest':
+          const oldDateA = a.created_at ? new Date(a.created_at) : new Date(0);
+          const oldDateB = b.created_at ? new Date(b.created_at) : new Date(0);
+          return oldDateA.getTime() - oldDateB.getTime();
+        
+        case 'popular':
+          const visitorA = (a as any).visitor_count || 0;
+          const visitorB = (b as any).visitor_count || 0;
+          return visitorB - visitorA;
+        
+        default:
+          return 0;
+      }
+    });
+    
+    return sortedItems;
+  };
+
+  const sortedItems = getFilteredAndSortedItems();
   console.log(`Vista page rendering with ${sortedItems.length} content items, loading = ${loading}`);
 
   const seoData = generateSEOData();
@@ -354,11 +398,11 @@ const Vista = () => {
         <div className="mb-6">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             {showingSearchResults && sortedItems.length > 0 ? (
-              <span>Showing {sortedItems.length} relevant results sorted by relevance</span>
+              <span>Showing {sortedItems.length} relevant results{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`} sorted by {sortOption === 'newest' ? 'relevance & date' : sortOption === 'oldest' ? 'oldest first' : 'popularity'}</span>
             ) : showingSearchResults && sortedItems.length === 0 ? (
-              <span>No relevant content found for your search</span>
+              <span>No relevant content found for your search{selectedCategories.length > 0 && ` in selected categories`}</span>
             ) : (
-              <span>Showing all content items</span>
+              <span>Showing {sortedItems.length} content items{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`}</span>
             )}
           </div>
         </div>
@@ -392,6 +436,20 @@ const Vista = () => {
           </div>
         )}
         
+        {/* Category Filter and Content Sorter */}
+        <div className="space-y-4">
+          <CategoryFilter
+            items={contentItems}
+            selectedCategories={selectedCategories}
+            onCategoryChange={handleCategoryChange}
+          />
+          
+          <ContentSorter
+            selectedSort={sortOption}
+            onSortChange={handleSortChange}
+            itemCount={sortedItems.length}
+          />
+        </div>
         {/* View All Content button moved to bottom of page */}
         {(showingSearchResults || searchParams.get("search")) && (
           <div className="text-center mt-12 pt-6 border-t border-gray-200">

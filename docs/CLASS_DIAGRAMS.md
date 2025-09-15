@@ -43,11 +43,62 @@ This document outlines the class structure of the Vista platform, showing key re
 | end_date: Date    |
 | created_at: Date  |
 | updated_at: Date  |
+| visitor_count: Number |
 | translation_status: String |
 | translated_languages: String[] |
 | title_translations: JSON |
 | description_translations: JSON |
 | content_translations: JSON |
+| cover_image: String |
+| preview_image: String |
+| similarity: Number (for search results) |
+| orientation: String (portrait/landscape/square) |
++-------------------+
+```
+
+### CategoryFilter
+
+```
++-------------------+
+|   CategoryFilter  |
++-------------------+
+| items: ContentItem[] |
+| selectedCategories: String[] |
+| onCategoryChange: Function |
+| showCounts: Boolean |
++-------------------+
+| + getCategories(): Map<String, Number> |
+| + handleCategoryToggle(category: String): void |
+| + handleAllSelect(): void |
++-------------------+
+```
+
+### ContentSorter
+
+```
++-------------------+
+|   ContentSorter   |
++-------------------+
+| selectedSort: SortOption |
+| onSortChange: Function |
+| itemCount: Number |
++-------------------+
+| + getSortLabel(sort: SortOption): String |
+| + getSortIcon(sort: SortOption): ReactNode |
++-------------------+
+```
+
+### SortOption (Enum)
+
+```
++-------------------+
+|    SortOption     |
++-------------------+
+| 'newest'          |
+| 'oldest'          |
+| 'popular'         |
++-------------------+
+```
 | visitor_count: Integer |
 +-------------------+
 ```

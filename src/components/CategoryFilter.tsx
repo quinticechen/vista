@@ -4,14 +4,14 @@ import { ContentItem } from "@/services/adminService";
 
 interface CategoryFilterProps {
   items: ContentItem[];
-  selectedCategory: string | null;
-  onCategoryChange: (category: string | null) => void;
+  selectedCategories: string[];
+  onCategoryChange: (categories: string[]) => void;
   showCounts?: boolean;
 }
 
 export const CategoryFilter = ({ 
   items, 
-  selectedCategory, 
+  selectedCategories, 
   onCategoryChange, 
   showCounts = true 
 }: CategoryFilterProps) => {
@@ -29,6 +29,21 @@ export const CategoryFilter = ({
 
   const categories = getCategories();
   const totalItems = items.length;
+  const isAllSelected = selectedCategories.length === 0;
+
+  const handleCategoryToggle = (category: string) => {
+    if (selectedCategories.includes(category)) {
+      // Remove category if already selected
+      onCategoryChange(selectedCategories.filter(c => c !== category));
+    } else {
+      // Add category if not selected
+      onCategoryChange([...selectedCategories, category]);
+    }
+  };
+
+  const handleAllSelect = () => {
+    onCategoryChange([]);
+  };
 
   if (categories.length <= 1) {
     return null; // Don't show filter if there's only one category or no items
@@ -37,9 +52,9 @@ export const CategoryFilter = ({
   return (
     <div className="flex flex-wrap gap-2 mb-6">
       <Button
-        variant={selectedCategory === null ? "default" : "outline"}
+        variant={isAllSelected ? "default" : "outline"}
         size="sm"
-        onClick={() => onCategoryChange(null)}
+        onClick={handleAllSelect}
         className="h-8"
       >
         All
@@ -53,9 +68,9 @@ export const CategoryFilter = ({
       {categories.map(([category, count]) => (
         <Button
           key={category}
-          variant={selectedCategory === category ? "default" : "outline"}
+          variant={selectedCategories.includes(category) ? "default" : "outline"}
           size="sm"
-          onClick={() => onCategoryChange(category)}
+          onClick={() => handleCategoryToggle(category)}
           className="h-8"
         >
           {category}
