@@ -227,11 +227,18 @@ export async function processBlocksSimplifiedWithImageBackup(
     // Check if block has children
     if (block.has_children) {
       try {
-        // Fetch child blocks
-        const { results: childBlocks } = await notionClient.blocks.children.list({
-          block_id: block.id,
-          page_size: 100,
-        });
+        // Fetch child blocks with pagination
+        const childBlocks: any[] = [];
+        let cursor: string | undefined = undefined;
+        do {
+          const response: any = await notionClient.blocks.children.list({
+            block_id: block.id,
+            page_size: 100,
+            ...(cursor ? { start_cursor: cursor } : {}),
+          });
+          childBlocks.push(...response.results);
+          cursor = response.has_more ? response.next_cursor : undefined;
+        } while (cursor);
         
         // Process child blocks recursively
         const processedChildren = await processBlocksSimplifiedWithImageBackup(

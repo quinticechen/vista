@@ -191,12 +191,19 @@ Deno.serve(async (req) => {
           // Extract page properties for mapping to Supabase fields
           const props = page.properties;
           
-          // Fetch the page blocks (content)
+          // Fetch the page blocks (content) with pagination
           console.log(`Fetching blocks for page: ${pageId}`);
-          const { results: blocks } = await notion.blocks.children.list({
-            block_id: pageId,
-            page_size: 100, // Fetch up to 100 blocks
-          });
+          const blocks: any[] = [];
+          let cursor: string | undefined = undefined;
+          do {
+            const response: any = await notion.blocks.children.list({
+              block_id: pageId,
+              page_size: 100,
+              ...(cursor ? { start_cursor: cursor } : {}),
+            });
+            blocks.push(...response.results);
+            cursor = response.has_more ? response.next_cursor : undefined;
+          } while (cursor);
           
           // Process blocks recursively to include children (with the new simplified format)
           // Also backup and replace image URLs

@@ -519,12 +519,19 @@ Deno.serve(async (req) => {
         console.log(`Fetching page details for: ${pageId}`);
         const page = await notion.pages.retrieve({ page_id: pageId });
 
-        // Fetch the page blocks (content)
+        // Fetch the page blocks (content) with pagination
         console.log(`Fetching page blocks for: ${pageId}`);
-        const { results: blocks } = await notion.blocks.children.list({
-          block_id: pageId,
-          page_size: 100,
-        });
+        const blocks: any[] = [];
+        let blockCursor: string | undefined = undefined;
+        do {
+          const blockResponse: any = await notion.blocks.children.list({
+            block_id: pageId,
+            page_size: 100,
+            ...(blockCursor ? { start_cursor: blockCursor } : {}),
+          });
+          blocks.push(...blockResponse.results);
+          blockCursor = blockResponse.has_more ? blockResponse.next_cursor : undefined;
+        } while (blockCursor);
 
         // ENHANCED: Process blocks with reliable image backup
         const processedBlocks = await processBlocksSimplifiedWithImageBackup(
@@ -691,10 +698,17 @@ async function processBlocksSimplifiedWithImageBackup(
     // Check if block has children
     if (block.has_children) {
       try {
-        const { results: childBlocks } = await notionClient.blocks.children.list({
-          block_id: block.id,
-          page_size: 100,
-        });
+        const childBlocks: any[] = [];
+        let childCursor: string | undefined = undefined;
+        do {
+          const childResponse: any = await notionClient.blocks.children.list({
+            block_id: block.id,
+            page_size: 100,
+            ...(childCursor ? { start_cursor: childCursor } : {}),
+          });
+          childBlocks.push(...childResponse.results);
+          childCursor = childResponse.has_more ? childResponse.next_cursor : undefined;
+        } while (childCursor);
         
         const processedChildren = await processBlocksSimplifiedWithImageBackup(
           childBlocks, 
