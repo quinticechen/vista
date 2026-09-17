@@ -2,11 +2,15 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://oyvbdbajqsqzafpuahvz.supabase.co/functions/v1/generate-sitemap"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!api|_next|_static|favicon.ico|robots.txt|assets).*)",
+      "source": "/((?!api|_next|_static|favicon.ico|robots.txt|sitemap.xml|assets).*)",
       "destination": "/index.html"
     }
   ],

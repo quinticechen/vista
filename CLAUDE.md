@@ -29,3 +29,10 @@ src/
 - Never touch `supabase/migrations/` without user confirmation
 - Check `src/components/ui/` for existing shadcn/ui components first
 - Run `bun run build` to verify no TypeScript errors after changes
+- **Language:** TypeScript (strict mode preferred)
+- **UI:** shadcn/ui components — always check `components/ui/` before building custom components
+- **Styling:** Tailwind CSS utility classes only, avoid using custom CSS classes.
+- **Backend:** Supabase for auth, database, and storage
+- **Build tool:** Vite
+- **Package manager:** Bun (`bun run dev`, `bun run build`)
+- **Routing:** React Router (check existing route structure before adding new routes)

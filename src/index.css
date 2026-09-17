@@ -51,8 +51,16 @@
     @apply border-border;
   }
 
+  html, body {
+    /* Stop the browser's rubber-band/overscroll bounce from revealing whatever
+       color sits behind the page -- previously this showed the home page's
+       beige-50 (a noticeably yellow tone) peeking through on every other page
+       while scrolling past the top/bottom edge. */
+    overscroll-behavior-y: none;
+  }
+
   body {
-    @apply bg-beige-50 text-beige-900 font-sans;
+    @apply bg-beige-100 text-beige-900 font-sans;
   }
 
   h1, h2, h3, h4, h5, h6 {

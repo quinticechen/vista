@@ -2,9 +2,8 @@
 import React, { useState } from "react";
 
 import { useI18n } from "@/hooks/use-i18n";
-import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
-import { Calendar, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Clock } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ContentItem } from "@/services/adminService";
 import { Badge } from "@/components/ui/badge";
@@ -149,8 +148,24 @@ export const ContentDisplayItem = ({
   console.log(`ContentDisplay - Media block found:`, mediaBlock);
   console.log(`ContentDisplay - Final mediaUrl: ${mediaUrl}`);
   
-  const hasMedia = !!mediaUrl && !imageError && mediaLoaded;
+  // Reserve layout space as soon as we know there's a usable media URL, instead of
+  // waiting for the image/video to finish loading. Gating the width/height classes on
+  // `mediaLoaded` caused a text-only layout to render first, then jump to a split
+  // layout once the media loaded (or stay broken if it failed) -- this is what caused
+  // the overflow/broken layout on both mobile and desktop when an image was present.
+  const hasMediaUrl = !!mediaUrl && !imageError;
+  const hasDescription = !!normalizedContent.description;
   const isMediaRight = index % 2 === 0;
+
+  // "Time" shows the start/end range when the item has one (matching the design),
+  // falling back to the created date otherwise.
+  const timeLabel = normalizedContent.start_date
+    ? `${formatDate(normalizedContent.start_date)}${
+        normalizedContent.end_date && normalizedContent.end_date !== normalizedContent.start_date
+          ? ` ~ ${formatDate(normalizedContent.end_date)}`
+          : ''
+      }`
+    : formatDate(normalizedContent.created_at);
   
   // Function to handle navigation to content detail
   const handleContentClick = async (e: React.MouseEvent) => {
@@ -192,113 +207,105 @@ export const ContentDisplayItem = ({
     setMediaLoaded(false);
   };
 
+  // Type + Time always sit on the same row, on both mobile and desktop.
+  const typeTimeRow = (normalizedContent.category || timeLabel) && (
+    <div className="flex items-center gap-3">
+      {normalizedContent.category && (
+        <Badge variant="outline" className="text-xs w-fit shrink-0">
+          {normalizedContent.category}
+        </Badge>
+      )}
+      <div className="flex items-center text-xs text-muted-foreground shrink-0">
+        <Clock className="h-3 w-3 mr-1" />
+        <span>{timeLabel}</span>
+      </div>
+    </div>
+  );
+
+  const title = (
+    <h3 className="text-lg font-medium leading-tight group-hover:text-primary transition-colors duration-200">
+      {normalizedContent.title}
+    </h3>
+  );
+
+  const description = hasDescription && (
+    <p className="text-sm text-muted-foreground line-clamp-3">
+      {normalizedContent.description}
+    </p>
+  );
+
+  // Media is rendered directly (no separate sizing wrapper) so its box always matches
+  // the actual displayed image/video -- a wrapper with its own height caused empty
+  // background to show above/below whenever the image had to shrink to fit.
+  const renderMedia = (mediaClassName: string) =>
+    hasMediaUrl &&
+    ((hasCoverImage || mediaBlock?.media_type === 'image') ? (
+      <img
+        src={mediaUrl}
+        alt={hasCoverImage ? normalizedContent.title : (mediaBlock?.caption || normalizedContent.title)}
+        className={`${mediaClassName} bg-gray-100 transition-opacity duration-300 ${mediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+        onError={handleImageError}
+        onLoad={handleImageLoad}
+        loading="lazy"
+      />
+    ) : mediaBlock?.media_type === 'video' ? (
+      <video
+        src={mediaUrl}
+        controls
+        className={`${mediaClassName} bg-gray-100 transition-opacity duration-300 ${mediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+        playsInline
+        preload="metadata"
+        onError={handleVideoError}
+        onLoadedData={handleImageLoad}
+        onClick={(e) => e.stopPropagation()}
+      >
+        Your browser does not support the video tag.
+      </video>
+    ) : null);
+
   return (
     <Card
-      className={`group ${hasMedia ? 'h-[400px]' : 'h-auto'} overflow-hidden flex flex-row hover:shadow-md transition-shadow duration-200`}
-    > 
-      {/* Text Content Section - Always present */}
-      <div className={`${hasMedia ? 'flex-1' : 'w-full'} flex flex-col ${isMediaRight ? 'order-first' : 'order-last'} justify-center`}>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            {normalizedContent.category && (
-              <Badge variant="outline" className="text-xs">
-                {normalizedContent.category}
-              </Badge>
-            )}
+      onClick={handleContentClick}
+      className="group overflow-hidden cursor-pointer hover:shadow-md transition-shadow duration-200"
+    >
+      {/* Mobile layout: title full-width on top, then a row pairing the description
+          with a small thumbnail (or a full-width image when there's no description),
+          then the Type/Time row. Kept as its own DOM tree (rather than reusing the
+          desktop tree with responsive classes) because the image moves from being a
+          small inline thumbnail to a full card-height column -- two different parents,
+          not just a resize. */}
+      <div className="md:hidden flex flex-col gap-3 p-6">
+        {title}
 
-            {(normalizedContent.start_date || normalizedContent.end_date) && (
-              <div className="flex items-center text-xs text-muted-foreground">
-                <Calendar className="h-3 w-3 mr-1" />
-                <span>
-                  {formatDate(normalizedContent.start_date)}
-                  {normalizedContent.end_date && normalizedContent.start_date !== normalizedContent.end_date && 
-                    ` - ${formatDate(normalizedContent.end_date)}`}
-                </span>
-              </div>
+        {(hasDescription || hasMediaUrl) && (
+          <div className={`flex gap-3 items-start ${!isMediaRight ? 'flex-row-reverse' : ''}`}>
+            {description}
+            {renderMedia(
+              hasDescription
+                ? 'w-20 h-auto shrink-0 object-contain'
+                : 'w-full h-auto object-contain'
             )}
           </div>
+        )}
 
-          <h3 className="text-lg font-medium leading-tight group-hover:text-primary transition-colors duration-200">
-            {normalizedContent.title}
-          </h3>
-        </CardHeader>
-        
-        <CardContent className="pb-2 flex-grow">
-          {normalizedContent.description && (
-            <p className="text-sm text-muted-foreground line-clamp-4">
-              {normalizedContent.description}
-            </p>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex flex-col items-start pt-2 gap-2">
-          <div className="flex flex-wrap gap-1 w-full">
-            {normalizedContent.tags && normalizedContent.tags.slice(0, 3).map((tag, i) => (
-              <Badge key={i} variant="secondary" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-
-            {normalizedContent.tags && normalizedContent.tags.length > 3 && (
-              <Badge variant="secondary" className="text-xs">
-                +{normalizedContent.tags.length - 3}
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between w-full mt-2">
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Clock className="h-3 w-3 mr-1" />
-              <span>{formatDate(normalizedContent.created_at)}</span>
-            </div>
-
-            {normalizedContent.similarity !== undefined && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                {Math.round(normalizedContent.similarity * 100)}% match
-              </span>
-            )}
-          </div>
-
-          <Button
-            size="sm"
-            className="w-full mt-2"
-            onClick={handleContentClick}
-          >
-            Learn More
-          </Button>
-        </CardFooter>
+        {typeTimeRow}
       </div>
 
-      {/* Media Section - Only show if we have media URL and it loaded successfully */}
-      {mediaUrl && (
-        <div 
-          className={`relative ${isMediaRight ? 'order-last' : 'order-first'} bg-gray-100 h-[400px]`}
-          style={{ flexShrink: 0 }}
+      {/* Desktop layout: media fills the full 400px-tall side (cropped only if its
+          natural width would exceed 2/3 of the card), text column stacked next to it. */}
+      <div className={`hidden md:flex ${hasMediaUrl ? 'h-[400px]' : 'h-auto'}`}>
+        {renderMedia(
+          `h-full w-auto max-w-[66.6667%] shrink-0 object-cover ${isMediaRight ? 'order-last' : 'order-first'}`
+        )}
+
+        <div
+          className={`${hasMediaUrl ? 'flex-1 min-w-0' : 'w-full'} flex flex-col gap-3 p-6 justify-center ${isMediaRight ? 'order-first' : 'order-last'}`}
         >
-          {hasCoverImage || (mediaBlock?.media_type === 'image') ? (
-            <img 
-              src={mediaUrl} 
-              alt={hasCoverImage ? normalizedContent.title : (mediaBlock?.caption || normalizedContent.title)}
-              className="object-cover w-full h-full"
-              onError={handleImageError}
-              onLoad={handleImageLoad}
-              loading="lazy"
-            />
-          ) : mediaBlock?.media_type === 'video' ? (
-            <video 
-              src={mediaUrl} 
-              controls 
-              className="object-cover w-full h-full"
-              playsInline
-              preload="metadata"
-              onError={handleVideoError}
-              onLoadedData={handleImageLoad}
-            >
-              Your browser does not support the video tag.
-            </video>
-          ) : null}
+          {title}
+          {description}
+          {typeTimeRow}
         </div>
-      )}
+      </div>
     </Card>
   );
 };

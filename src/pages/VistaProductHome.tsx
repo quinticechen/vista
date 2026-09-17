@@ -58,15 +58,15 @@ const VistaProductHome = () => {
   ];
 
   const seoData = {
-    title: "Vista - AI-Powered Content Experience Platform | Transform Your Content Strategy",
-    description: "Transform your content strategy with Vista's privacy-first AI platform. Get personalized content delivery, semantic search, and seamless Notion integration. Start free today.",
-    keywords: ['AI content platform', 'content personalization', 'semantic search', 'privacy-first', 'content management', 'Notion integration'],
+    title: "Vista AI Content Create Platform",
+    description: "Transform Your Content Strategy with AI and Notion Database",
+    keywords: ['Vista', 'Notion', 'Content Create'],
     canonicalUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/`,
     structuredData: {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
-      "name": "Vista",
-      "description": "AI-powered content experience platform for businesses",
+      "name": "Vista AI Content Create Platform",
+      "description": "Transform Your Content Strategy with AI and Notion Database",
       "url": typeof window !== 'undefined' ? window.location.origin : '',
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web"

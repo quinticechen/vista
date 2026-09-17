@@ -59,9 +59,10 @@ const About = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <SEOHead 
-        title="Vista"
-        description="Transform Your Content Strategy with AI"
+      <SEOHead
+        title="Vista AI Content Create Platform"
+        description="Transform Your Content Strategy with AI and Notion Database"
+        keywords={['Vista', 'Notion', 'Content Create']}
         ogImage="/og-image.png"
       />
       <Header />

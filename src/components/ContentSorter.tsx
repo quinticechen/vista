@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ArrowUpDown, Calendar, TrendingUp, Clock, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type SortOption = 'relevance' | 'newest' | 'oldest' | 'popular';
 
@@ -14,12 +15,22 @@ interface ContentSorterProps {
   selectedSort: SortOption;
   onSortChange: (sort: SortOption) => void;
   itemCount?: number;
+  /** Pill-shaped trigger button, matching the Figma "Money" design. Defaults to the
+   * existing rounded-md style so pages that don't opt in are unaffected. */
+  rounded?: boolean;
+  /** Set to false when the item count is shown elsewhere (e.g. combined into a shared
+   * Sort/Filter/count row). Defaults to true to match existing usage. */
+  showItemCount?: boolean;
+  className?: string;
 }
 
-export const ContentSorter = ({ 
-  selectedSort, 
-  onSortChange, 
-  itemCount 
+export const ContentSorter = ({
+  selectedSort,
+  onSortChange,
+  itemCount,
+  rounded = false,
+  showItemCount = true,
+  className,
 }: ContentSorterProps) => {
   const getSortLabel = (sort: SortOption) => {
     switch (sort) {
@@ -52,10 +63,10 @@ export const ContentSorter = ({
   };
 
   return (
-    <div className="flex items-center gap-2 mb-6">
+    <div className={cn("flex items-center gap-2 mb-6", className)}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-2">
+          <Button variant="outline" size="sm" className={cn("h-8 gap-2", rounded && "rounded-full")}>
             {getSortIcon(selectedSort)}
             {getSortLabel(selectedSort)}
           </Button>
@@ -92,7 +103,7 @@ export const ContentSorter = ({
         </DropdownMenuContent>
       </DropdownMenu>
       
-      {itemCount !== undefined && (
+      {showItemCount && itemCount !== undefined && (
         <Badge variant="secondary" className="text-xs">
           {itemCount} items
         </Badge>

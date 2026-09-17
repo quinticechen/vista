@@ -4,14 +4,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import PersonalHeader from "@/components/PersonalHeader";
 import PersonalFooter from "@/components/PersonalFooter";
 import SEOHead from "@/components/SEOHead";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getProfileByUrlParam, getContentItemById } from "@/services/urlParamService";
 import { processNotionContent, ContentItemFromDB, ExtendedContentItem } from "@/utils/notionContentProcessor";
 import { ContentMetadata } from "@/components/content/ContentMetadata";
 import { ContentBody } from "@/components/content/ContentBody";
+import { truncateDescription } from "@/lib/utils";
 const vistaLogo = "/public/og-image.png";
 
 // Type to represent a block in the content array
@@ -35,10 +34,19 @@ const UrlParamContentDetail = () => {
     if (!content || !urlParam) return {};
     
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const canonicalUrl = `${baseUrl}/${urlParam}/content/${contentId}`;
-    
-    const title = content.title || 'Vista Content Platform';
-    const description = content.description || `Discover insights on Vista Content Platform. Explore curated content and articles.`;
+    // Matches the actual route (/:urlParam/vista/:contentId) -- this used to point at
+    // a non-existent /:urlParam/content/:contentId path.
+    const canonicalUrl = `${baseUrl}/${urlParam}/vista/${contentId}`;
+
+    // "{article title} - {author} | Brand" -- used for both the document title and
+    // og:title/twitter:title, so a share card reads e.g. "How I Ship - quintice |
+    // Vista Content Platform" rather than generic platform branding.
+    const articleTitle = content.title || 'Untitled';
+    const title = `${articleTitle} - ${urlParam} | Vista Content Platform`;
+    const description = truncateDescription(
+      content.description ||
+        `An article about "${articleTitle}", shared by ${urlParam} on Vista Content Platform.`
+    );
     const keywords = content.tags || ['article', 'content', 'insights'];
     
     // Use cover_image first, then preview_image, then Vista logo as fallback
@@ -66,6 +74,11 @@ const UrlParamContentDetail = () => {
       canonicalUrl,
       ogImage,
       ogType: 'article',
+      // This article belongs to a specific creator's page (/:urlParam), not the
+      // platform itself -- attribute it (and og:site_name) to them, not "Vista
+      // Content Platform". "publisher" is left as the platform, which is accurate:
+      // Vista is what's hosting/publishing the piece, the urlParam owner wrote it.
+      siteName: urlParam,
       structuredData: {
         "@context": "https://schema.org",
         "@type": "Article",
@@ -76,8 +89,8 @@ const UrlParamContentDetail = () => {
         "datePublished": content.created_at,
         "dateModified": content.updated_at || content.created_at,
         "author": {
-          "@type": "Organization",
-          "name": "Vista Content Platform"
+          "@type": "Person",
+          "name": urlParam
         },
         "publisher": {
           "@type": "Organization",
@@ -206,22 +219,16 @@ const UrlParamContentDetail = () => {
   return (
     <div className="min-h-screen bg-white">
       <SEOHead {...seoData} />
-      <PersonalHeader />
-      
-      <main className="container py-8 max-w-4xl">
-        <Button
-          variant="ghost"
-          className="mb-6"
-          onClick={() => navigate(`/${urlParam}/vista`)}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to All Content
-        </Button>
-        
-        <h1 className="text-3xl font-bold mb-2">{content?.title}</h1>
-        
+      <PersonalHeader
+        backLabel="Back to All Content"
+        backFallbackTo={`/${urlParam}/vista`}
+      />
+
+      <main className="mx-auto max-w-4xl p-6 md:p-8">
+        <h1 className="text-3xl font-bold mb-3 md:mb-6">{content?.title}</h1>
+
         {content && <ContentMetadata content={content} />}
-        
+
         {content && <ContentBody content={content} />}
       </main>
       

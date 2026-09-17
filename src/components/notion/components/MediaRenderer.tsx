@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { isHeicImage } from "../utils/image-utils";
+import { ImageLightbox } from "@/components/ImageLightbox";
 
 interface MediaProps {
   type: "image" | "video" | "embed";
@@ -15,68 +16,72 @@ interface MediaProps {
 }
 
 // Component for rendering images
-export const ImageRenderer: React.FC<MediaProps> = ({ 
-  media_url, 
-  url, 
-  caption, 
+export const ImageRenderer: React.FC<MediaProps> = ({
+  media_url,
+  url,
+  caption,
   text,
   is_heic,
-  index, 
-  listPath 
+  index,
+  listPath
 }) => {
   const [imageError, setImageError] = useState(false);
-  
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
   // Handle both legacy formats and new format
   const imageUrl = media_url || url;
   const imageCaption = caption || text;
-  
+
   // If there's no URL, don't render anything
   if (!imageUrl) return null;
-  
+
   // If image is marked as HEIC or detected as HEIC, show placeholder with message
   const isHeic = is_heic || isHeicImage(imageUrl);
-  
+
   return (
     <figure key={`image-${listPath}-${index}`} className="my-4">
-      <div className="bg-muted rounded-md overflow-hidden">
-        {isHeic ? (
-          <div className="p-4 text-center bg-muted flex items-center justify-center flex-col h-[200px]">
-            <p className="text-sm text-muted-foreground mb-2">
-              HEIC image format not supported in browser
-            </p>
-            <a 
-              href={imageUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm text-blue-500 hover:underline"
-            >
-              Open original image
-            </a>
-          </div>
-        ) : imageError ? (
-          <div className="p-4 text-center bg-muted flex items-center justify-center flex-col h-[200px]">
-            <p className="text-sm text-muted-foreground">Failed to load image</p>
-{/*             <a 
-              href={imageUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm text-blue-500 hover:underline mt-2"
-            >
-              Open image in new tab
-            </a> */}
-          </div>
-        ) : (
-          <AspectRatio ratio={16/9} className="bg-muted">
-            <img 
-              src={imageUrl} 
-              alt={imageCaption || "Image"} 
-              className="object-contain w-full h-full"
-              onError={() => setImageError(true)}
-              loading="lazy"
+      {isHeic ? (
+        <div className="bg-muted rounded-md overflow-hidden p-4 text-center flex items-center justify-center flex-col h-[200px]">
+          <p className="text-sm text-muted-foreground mb-2">
+            HEIC image format not supported in browser
+          </p>
+          <a
+            href={imageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-500 hover:underline"
+          >
+            Open original image
+          </a>
+        </div>
+      ) : imageError ? (
+        <div className="bg-muted rounded-md overflow-hidden p-4 text-center flex items-center justify-center flex-col h-[200px]">
+          <p className="text-sm text-muted-foreground">Failed to load image</p>
+        </div>
+      ) : (
+        <>
+          {/* Width always fills the content column; height always follows the image's
+              own ratio, uncropped -- on both mobile and desktop. A forced 400px desktop
+              height (tried previously) crops wide images and shrinks tall/portrait ones
+              down to a sliver of the column width, losing content either way. No
+              separate aspect-ratio wrapper either, so the box always matches the image. */}
+          <img
+            src={imageUrl}
+            alt={imageCaption || "Image"}
+            className="block w-full h-auto object-contain rounded-md bg-muted cursor-zoom-in"
+            onError={() => setImageError(true)}
+            onClick={() => setIsLightboxOpen(true)}
+            loading="lazy"
+          />
+          {isLightboxOpen && (
+            <ImageLightbox
+              src={imageUrl}
+              alt={imageCaption || "Image"}
+              onClose={() => setIsLightboxOpen(false)}
             />
-          </AspectRatio>
-        )}
-      </div>
+          )}
+        </>
+      )}
       {imageCaption && (
         <figcaption className="text-sm text-center text-muted-foreground mt-2">
           {imageCaption}

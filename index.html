@@ -4,32 +4,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vista Content Platform - AI-Powered Content Discovery</title>
-    <meta name="description" content="Discover personalized content and insights through our AI-powered platform. Access curated articles, expert recommendations, and tailored content experiences." />
-    <meta name="author" content="Vista Content Platform" />
-    <meta name="keywords" content="AI content platform, content discovery, personalized insights, article recommendations, curated content" />
-
-    <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="Vista Content Platform - AI-Powered Content Discovery" />
-    <meta property="og:description" content="Discover personalized content and insights through our AI-powered platform. Access curated articles, expert recommendations, and tailored content experiences." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/public/og-image.png" />
-    <meta property="og:site_name" content="Vista Content Platform" />
-
-    <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="/public/og-image.png" />
-    <meta name="twitter:site" content="@vista" />
-    <meta name="twitter:title" content="Vista Content Platform - AI-Powered Content Discovery" />
-    <meta name="twitter:description" content="Discover personalized content and insights through our AI-powered platform." />
-    <meta name="twitter:image" content="/public/og-image.png" />
-    
-    <!-- Additional SEO Meta Tags -->
-    <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#f5f5dc" />
-    <link rel="canonical" href="https://vista.qwizai.com/" />
+    <!-- Every page-level meta tag below this point (title, description, keywords,
+         author, Open Graph, Twitter Card, robots, theme-color, canonical) is set
+         dynamically per-route by <SEOHead> (src/components/SEOHead.tsx) via
+         react-helmet-async. They used to also be hardcoded here with generic "Vista
+         Content Platform" copy and a canonical pointing at the site root -- since
+         react-helmet-async only replaces the single <title> element and otherwise
+         APPENDS new <meta>/<link> tags rather than removing pre-existing static ones,
+         every route ended up with duplicate description/og/twitter/canonical tags,
+         and tools that read the first match saw this generic static content instead
+         of the real per-page (or per-article) title/description/image. Do not
+         re-add per-page SEO tags here -- add/adjust them in SEOHead.tsx or the
+         page's own SEOHead usage instead. -->
+    <title>Vista Content Platform</title>
     <link rel="icon" href="/public/og-image.png" type="image/png" />
     <link rel="apple-touch-icon" href="/public/og-image.png">
-    
+
     <!-- API keys are now managed through Supabase secrets -->
   </head>
 

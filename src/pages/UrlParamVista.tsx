@@ -13,9 +13,10 @@ import { getProfileByUrlParam, getUserContentItems, getUserContentByUrlParam } f
 import { semanticSearch } from "@/services/adminService";
 import { ContentItem } from "@/services/adminService";
 import { processNotionContent } from "@/utils/notionContentProcessor";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { SearchCache } from "@/utils/searchCache";
 import SEOHead from "@/components/SEOHead";
+import { truncateDescription } from "@/lib/utils";
 const vistaLogo = "/public/og-image.png";
 
 const UrlParamVista = () => {
@@ -35,21 +36,36 @@ const UrlParamVista = () => {
   // Home page settings state for SEO
   const [homePageSettings, setHomePageSettings] = useState<any>(null);
 
-  // Generate SEO data for URL param vista page
+  // Generate SEO data for URL param vista page. Base fields come from this user's
+  // admin/home-page settings: Title -> heroTitle, Description -> heroSubtitle +
+  // heroDescription, Keywords -> interactiveTitle + interactiveSubtitle.
   const generateSEOData = () => {
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const canonicalUrl = `${baseUrl}/${urlParam}/vista`;
     const searchTerm = searchParams.get("search") || searchPurpose;
-    
-    const websiteName = homePageSettings?.footerName || urlParam;
-    const authorDescription = homePageSettings?.heroSubtitle || "Discover amazing content and insights";
-    
+
+    const websiteName = homePageSettings?.heroTitle || homePageSettings?.footerName || urlParam;
+    const authorDescription = truncateDescription(
+      [homePageSettings?.heroSubtitle, homePageSettings?.heroDescription].filter(Boolean).join(' ') ||
+        "Discover amazing content and insights"
+    );
+    const sectionKeywords = [homePageSettings?.interactiveTitle, homePageSettings?.interactiveSubtitle]
+      .filter(Boolean);
+
     if (searchTerm) {
       return {
-        title: `Search Results for "${searchTerm}" - ${websiteName}'s Content`,
-        description: `Browse content and articles related to "${searchTerm}" from ${websiteName}. Find relevant insights and information.`,
-        keywords: ['search results', searchTerm, 'content discovery', 'articles', 'insights'],
-        canonicalUrl: `${canonicalUrl}?search=${encodeURIComponent(searchTerm)}`,
+        // "{topic} | Brand" -- and the canonical intentionally points at the base
+        // listing page, not this specific search query: every different search term
+        // is really the same underlying page (filtered), so they should all
+        // consolidate their SEO value onto one canonical URL instead of each being
+        // treated as a distinct indexable page.
+        title: `Search Results for "${searchTerm}" - ${websiteName}'s Content | Vista Content Platform`,
+        description: truncateDescription(
+          `Browse content and articles related to "${searchTerm}" from ${websiteName}. Find relevant insights and information.`
+        ),
+        keywords: sectionKeywords.length > 0 ? sectionKeywords : ['search results', searchTerm, 'content discovery'],
+        canonicalUrl,
+        siteName: websiteName,
         ogImage: '/og-image.png',
         structuredData: {
           "@context": "https://schema.org",
@@ -63,12 +79,13 @@ const UrlParamVista = () => {
         }
       };
     }
-    
+
     return {
-      title: websiteName || 'Content Library',
+      title: `${websiteName || 'Content Library'} | Vista Content Platform`,
       description: authorDescription,
-      keywords: ['content library', 'articles', 'insights', 'browse content', 'curated resources'],
+      keywords: sectionKeywords.length > 0 ? sectionKeywords : ['content library', 'articles', 'insights'],
       canonicalUrl,
+      siteName: websiteName,
       ogImage: '/og-image.png',
       structuredData: {
         "@context": "https://schema.org",
@@ -462,70 +479,47 @@ const UrlParamVista = () => {
       <PersonalHeader />
       
       <main className="container py-8 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            {urlParam ? `${urlParam}'s Content` : "All Content on Vista"}
-          </h1>
-          
-{/*           {searchPurpose && showingSearchResults ? (
-            <p className="text-3xl font-bold mb-2">
-              Content for: <span className="italic">"{searchPurpose}"</span>
-            </p>
-          ) : searchParams.get("search") ? (
-            <p className="text-3xl font-bold mb-2">
-              Search results for "{searchParams.get("search")}"
-            </p>
-          ) : (
-            <p className="text-gray-600 dark:text-gray-400">
-              Browse all content
-            </p>
-          )} */}
-        </div>
-        
-        <Card className="mb-8">
+        <Card className="mb-8 -mx-8 px-3 md:mx-0 md:px-0">
           <CardContent className="p-4">
             <form onSubmit={handleSearch} className="flex gap-2">
               <Input
                 type="text"
                 placeholder="Search content..."
-                className="flex-1"
+                className="flex-1 rounded-full"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <Button type="submit">
-                Search
+              <Button type="submit" size="icon" className="shrink-0 rounded-full" aria-label="Search">
+                <Search className="h-4 w-4" />
               </Button>
             </form>
           </CardContent>
         </Card>
-        
-        {/* Search result controls */}
-{/*         <div className="mb-6">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {showingSearchResults && sortedItems.length > 0 ? (
-              <span>Showing {sortedItems.length} relevant results{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`} sorted by {sortOption === 'newest' ? 'relevance & date' : sortOption === 'oldest' ? 'oldest first' : 'popularity'}</span>
-            ) : showingSearchResults && sortedItems.length === 0 ? (
-              <span>No relevant content found for your search{selectedCategories.length > 0 && ` in selected categories`}</span>
-            ) : (
-              <span>Showing {sortedItems.length} content items{selectedCategories.length > 0 && ` in ${selectedCategories.length} categories`}</span>
-            )}
+
+        {/* Sort -> Filter -> total items. Sort/Filter stay left, item count sits on
+            the right; Filter's options only show once it's clicked open. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 -mx-8 px-3 md:mx-0 md:px-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <ContentSorter
+              selectedSort={sortOption}
+              onSortChange={handleSortChange}
+              rounded
+              showItemCount={false}
+              className="mb-0"
+            />
+            <CategoryFilter
+              items={items}
+              selectedCategories={selectedCategories}
+              onCategoryChange={handleCategoryChange}
+              collapsible
+              rounded
+            />
           </div>
-        </div> */}
-        
-        {/* Category Filter and Content Sorter */}
-        <div className="space-y-4 mb-6">
-          <ContentSorter
-            selectedSort={sortOption}
-            onSortChange={handleSortChange}
-            itemCount={sortedItems.length}
-          />
-          <CategoryFilter
-            items={items}
-            selectedCategories={selectedCategories}
-            onCategoryChange={handleCategoryChange}
-          />
+          <span className="text-sm text-muted-foreground">
+            {sortedItems.length} items
+          </span>
         </div>
-        
+
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="h-12 w-12 animate-spin text-amber-500" />
@@ -534,7 +528,7 @@ const UrlParamVista = () => {
             </p>
           </div>
         ) : sortedItems.length > 0 ? (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3 md:gap-6 -mx-8 px-3 md:mx-0 md:px-0">
             {sortedItems.map((item, index) => (
               <div key={item.id} className="group">
                 <ContentDisplayItem
