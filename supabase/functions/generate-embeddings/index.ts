@@ -20,8 +20,8 @@ serve(async (req) => {
   }
 
   try {
-    // Get the job ID and user ID from the request body
-    const { jobId, userId } = await req.json();
+    // Get the job ID, user ID and forceAll flag from the request body
+    const { jobId, userId, forceAll } = await req.json();
 
     if (!jobId) {
       return new Response(
@@ -38,7 +38,7 @@ serve(async (req) => {
     }
 
     // Start processing in the background
-    EdgeRuntime.waitUntil(processContentEmbedding(jobId, userId));
+    EdgeRuntime.waitUntil(processContentEmbedding(jobId, userId, !!forceAll));
 
     return new Response(
       JSON.stringify({ message: 'Embedding process started' }),
@@ -53,7 +53,7 @@ serve(async (req) => {
   }
 });
 
-async function processContentEmbedding(jobId: string, userId: string) {
+async function processContentEmbedding(jobId: string, userId: string, forceAll: boolean = false) {
   try {
     // Update job status to processing
     await supabase
@@ -64,44 +64,50 @@ async function processContentEmbedding(jobId: string, userId: string) {
       })
       .eq('id', jobId);
 
-    // Find the last successful embedding job's started_at timestamp
-    const { data: lastSuccessfulJob, error: jobError } = await supabase
-      .from('embedding_jobs')
-      .select('started_at')
-      .eq('status', 'completed')
-      .eq('created_by', userId)
-      .order('started_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    
-    if (jobError) {
-      console.warn('Error fetching last successful job:', jobError.message);
-    }
-
-    // Use the last successful job's started_at time as the cutoff for updates
-    // If no previous successful job, process all content items for the user
-    const lastEmbeddingTime = lastSuccessfulJob?.started_at || null;
-    
-    console.log(`Processing content updated after: ${lastEmbeddingTime || 'All content (no previous job found)'}`);
-    
-    // Query for content items to be processed - only those updated after last embedding started_at
-    // and only those belonging to the current user
-    let contentQuery = supabase
+    // Get all content items for the current user
+    const { data: allItems, error: contentError } = await supabase
       .from('content_items')
       .select('*')
       .eq('user_id', userId);
 
-    // Add timestamp filter if we have a previous successful embedding
-    if (lastEmbeddingTime) {
-      contentQuery = contentQuery.gt('updated_at', lastEmbeddingTime);
-    }
-
-    // Get the content items
-    const { data: contentItems, error: contentError } = await contentQuery;
-
     if (contentError) {
       throw new Error(`Error fetching content items: ${contentError.message}`);
     }
+
+    let contentItems: any[] = [];
+
+    if (forceAll) {
+      // Force all active items to be re-embedded
+      contentItems = (allItems || []).filter(item => item.notion_page_status !== 'removed');
+    } else {
+      // Find the last successful embedding job's started_at timestamp
+      const { data: lastSuccessfulJob, error: jobError } = await supabase
+        .from('embedding_jobs')
+        .select('started_at')
+        .eq('status', 'completed')
+        .eq('created_by', userId)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (jobError) {
+        console.warn('Error fetching last successful job:', jobError.message);
+      }
+
+      const lastEmbeddingTime = lastSuccessfulJob?.started_at ? new Date(lastSuccessfulJob.started_at).getTime() : null;
+
+      // Filter items: include items where embedding is missing OR updated after last job
+      contentItems = (allItems || []).filter(item => {
+        if (item.notion_page_status === 'removed') return false;
+        if (!item.embedding) return true; // Missing embedding
+        if (lastEmbeddingTime && item.updated_at) {
+          return new Date(item.updated_at).getTime() > lastEmbeddingTime;
+        }
+        return false;
+      });
+    }
+
+    console.log(`Processing ${contentItems.length} content items for user ${userId} (forceAll: ${forceAll}, total: ${allItems?.length || 0})`);
 
     // Update total items count
     await supabase
@@ -116,7 +122,7 @@ async function processContentEmbedding(jobId: string, userId: string) {
           status: 'completed',
           completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          error: 'No new or updated content found since last embedding job'
+          error: 'All content items already have up-to-date embeddings'
         })
         .eq('id', jobId);
         
