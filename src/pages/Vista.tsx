@@ -43,10 +43,12 @@ const Vista = () => {
 
     if (searchTerm) {
       return {
-        title: `Search Results for "${searchTerm}" - Vista`,
+        title: `Search Results for "${searchTerm}" - Vista | Vista Content Platform`,
         description: `Browse content and articles related to "${searchTerm}". Find relevant insights and information through our AI-powered content discovery.`,
         keywords: ['search results', searchTerm, 'content discovery', 'articles', 'insights'],
-        canonicalUrl: `${canonicalUrl}?search=${encodeURIComponent(searchTerm)}`,
+        // Every search query is really the same underlying listing page (filtered) --
+        // consolidate them onto one canonical instead of indexing each query separately.
+        canonicalUrl,
         ogImage: '/og-image.png',
         structuredData: {
           "@context": "https://schema.org",
@@ -62,17 +64,17 @@ const Vista = () => {
     }
 
     return {
-      title: "Vista",
-      description: "Transform Your Content Strategy with AI",
-      keywords: ['content library', 'articles', 'insights', 'browse content', 'curated '],
+      title: "Vista AI Content Create Platform",
+      description: "Transform Your Content Strategy with AI and Notion Database",
+      keywords: ['Vista', 'Notion', 'Content Create'],
       canonicalUrl,
       ogImage: '/og-image.png',
       structuredData: {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        "name": "Vista Content Library",
+        "name": "Vista AI Content Create Platform",
         "url": canonicalUrl,
-        "description": "Transform Your Content Strategy with AI"
+        "description": "Transform Your Content Strategy with AI and Notion Database"
       }
     };
   };
@@ -391,7 +393,7 @@ const Vista = () => {
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Searching for relevant content...</p>
           </div>
         ) : sortedItems.length > 0 ? (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 -mx-8 px-3 md:mx-0 md:px-0">
             {sortedItems.map((item, index) => (
               <div key={item.id} className="block group">
                 <ContentDisplayItem

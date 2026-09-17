@@ -10,6 +10,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { getProfileByUrlParam } from '@/services/urlParamService';
 import { getHomePageSettingsByUrlParam, DEFAULT_HOME_PAGE_SETTINGS } from '@/services/homePageService';
 import { toast } from '@/components/ui/sonner';
+import { truncateDescription } from '@/lib/utils';
 
 const Index = () => {
   const { urlParam } = useParams();
@@ -27,39 +28,50 @@ const Index = () => {
     const canonicalUrl = `${baseUrl}${currentPath}`;
     
     if (urlParam && homePageSettings) {
-      // User-specific SEO using home page settings
-      const websiteName = homePageSettings.footerName || urlParam;
-      const authorDescription = homePageSettings.heroSubtitle || "Discover amazing content and insights";
-      
+      // User-specific SEO using this user's admin/home-page settings:
+      // Title -> heroTitle, Description -> heroSubtitle + heroDescription,
+      // Keywords -> interactiveTitle + interactiveSubtitle (the "Interactive Section" fields).
+      const heroName = homePageSettings.heroTitle || homePageSettings.footerName || urlParam;
+      // "{topic} | Brand" -- keeps the page's own identity front and center for
+      // search results while still surfacing the platform it's built on.
+      const title = `${heroName} | Vista Content Platform`;
+      const description = truncateDescription(
+        [homePageSettings.heroSubtitle, homePageSettings.heroDescription].filter(Boolean).join(' ') ||
+          "Discover amazing content and insights"
+      );
+      const keywords = [homePageSettings.interactiveTitle, homePageSettings.interactiveSubtitle]
+        .filter(Boolean);
+
       return {
-        title: websiteName,
-        description: authorDescription,
-        keywords: ['AI content', 'insights', urlParam, 'personalized content', 'articles', 'recommendations'],
+        title,
+        description,
+        keywords: keywords.length > 0 ? keywords : [urlParam, 'personalized content'],
         canonicalUrl,
         ogImage: '/og-image.png',
+        siteName: heroName,
         structuredData: {
           "@context": "https://schema.org",
           "@type": "Person",
-          "name": websiteName,
+          "name": heroName,
           "url": canonicalUrl,
-          "description": authorDescription
+          "description": description
         }
       };
     }
     
     // Default home page SEO
     return {
-      title: "Vista",
-      description: "Transform Your Content Strategy with AI",
-      keywords: ['AI content platform', 'content discovery', 'personalized insights', 'article recommendations', 'curated content'],
+      title: "Vista AI Content Create Platform",
+      description: "Transform Your Content Strategy with AI and Notion Database",
+      keywords: ['Vista', 'Notion', 'Content Create'],
       canonicalUrl,
       ogImage: '/og-image.png',
       structuredData: {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "Vista",
+        "name": "Vista AI Content Create Platform",
         "url": canonicalUrl,
-        "description": "Transform Your Content Strategy with AI"
+        "description": "Transform Your Content Strategy with AI and Notion Database"
       }
     };
   };

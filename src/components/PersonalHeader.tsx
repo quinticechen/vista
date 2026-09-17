@@ -4,14 +4,22 @@ import { useState, useEffect } from "react";
 import { useLocation, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BackButton } from "@/components/BackButton";
 
-const PersonalHeader = () => {
+interface PersonalHeaderProps {
+  /** When set, shows a "back" control next to the logo (e.g. "Back to All Content"). */
+  backLabel?: string;
+  /** Route to fall back to if there's no previous page in history. */
+  backFallbackTo?: string;
+}
+
+const PersonalHeader = ({ backLabel, backFallbackTo }: PersonalHeaderProps = {}) => {
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
@@ -105,7 +113,7 @@ const PersonalHeader = () => {
         )}
       >
         <div className="container flex h-16 items-center justify-between px-4 sm:px-8">
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <Link
               to={homePath}
               className="flex items-center hover:opacity-85 transition-opacity"
@@ -117,6 +125,9 @@ const PersonalHeader = () => {
                 className="h-8 w-8 rounded-md object-contain"
               />
             </Link>
+            {backLabel && (
+              <BackButton label={backLabel} fallbackTo={backFallbackTo} />
+            )}
           </div>
           
           {/* Desktop Navigation */}
@@ -143,18 +154,12 @@ const PersonalHeader = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] sm:w-[350px] p-6 flex flex-col justify-between">
                 <div>
-                  <SheetHeader className="text-left pb-4 border-b">
-                    <SheetTitle className="flex items-center gap-2 text-xl font-bold">
-                      <span className="bg-gradient-to-r from-amber-600 to-amber-500 bg-clip-text text-transparent">
-                        {currentUrlParam ? currentUrlParam : "Vista"}
-                      </span>
-                    </SheetTitle>
-                    <SheetDescription>
-                      Personal Content & Updates
-                    </SheetDescription>
-                  </SheetHeader>
-                  
-                  <nav className="flex flex-col gap-2 mt-6">
+                  <SheetTitle className="sr-only">Navigation menu</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Site navigation and subscription options
+                  </SheetDescription>
+
+                  <nav className="flex flex-col gap-2 mt-8">
                     <NavLink
                       to={homePath}
                       onClick={() => setIsMenuOpen(false)}
@@ -170,8 +175,8 @@ const PersonalHeader = () => {
                       Content
                     </NavLink>
                     <Button
-                      variant="outline"
-                      className="w-full justify-start text-base py-3 px-4 mt-2 h-auto"
+                      variant="ghost"
+                      className="w-full justify-start text-base py-3 px-4 h-auto rounded-md hover:bg-accent/80 hover:text-accent-foreground"
                       onClick={() => {
                         setIsMenuOpen(false);
                         setShowModal(true);

@@ -45,3 +45,6 @@ verify_jwt = true
 
 [functions.get-translation-key]
 verify_jwt = true
+
+[functions.generate-sitemap]
+verify_jwt = false
