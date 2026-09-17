@@ -213,5 +213,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Built with ❤️ for content creators and their audiences**
 
 For more information, visit our [documentation](./docs/) or check out the [live demo](https://vista-demo.lovable.app).
-更新於 2025-06-15 18:28:11.
-更新於 2025-06-15 18:38:29 by quinticechen.

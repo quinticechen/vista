@@ -4,7 +4,12 @@ import { NavLink } from "@/components/ui/nav-link";
 import { supabase } from "@/integrations/supabase/client";
 import { checkAdminStatus } from "@/services/adminService";
 
-const AdminLink = () => {
+interface AdminLinkProps {
+  onClick?: () => void;
+  className?: string;
+}
+
+const AdminLink = ({ onClick, className }: AdminLinkProps) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,7 +46,11 @@ const AdminLink = () => {
     return null;
   }
 
-  return <NavLink to="/admin">Admin</NavLink>;
+  return (
+    <NavLink to="/admin" onClick={onClick} className={className}>
+      Admin
+    </NavLink>
+  );
 };
 
 export default AdminLink;

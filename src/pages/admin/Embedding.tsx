@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
@@ -6,7 +5,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
@@ -18,26 +16,29 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { 
-  checkAdminStatus, 
   fetchEmbeddingJobs, 
   getEmbeddingJob, 
   createEmbeddingJob, 
   startEmbeddingProcess,
-  type EmbeddingJob 
+  getEmbeddingStats,
+  type EmbeddingJob,
+  type EmbeddingStats
 } from "@/services/adminService";
-import WebhookDebugger from "@/components/WebhookDebugger";
+import { Sparkles, RefreshCw, CheckCircle2, AlertCircle, FileText, Database } from "lucide-react";
 
 const Embedding = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentJob, setCurrentJob] = useState<EmbeddingJob | null>(null);
   const [previousJobs, setPreviousJobs] = useState<EmbeddingJob[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [stats, setStats] = useState<EmbeddingStats>({ totalCount: 0, embeddedCount: 0, missingCount: 0 });
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const notifiedJobsRef = useRef<Set<string>>(new Set());
   
   // Initialize and check for active jobs
   useEffect(() => {
     refreshJobHistory();
+    loadStats();
     
     // Cleanup interval on unmount
     return () => {
@@ -47,10 +48,22 @@ const Embedding = () => {
     };
   }, []);
 
+  const loadStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const currentStats = await getEmbeddingStats(user.id);
+      setStats(currentStats);
+    } catch (error) {
+      console.error("Error loading stats:", error);
+    }
+  };
+
   // Refresh job history
   const refreshJobHistory = async () => {
     const jobs = await fetchEmbeddingJobs();
     setLastUpdated(new Date().toLocaleString());
+    await loadStats();
     
     // Check for any processing jobs
     const processingJobs = jobs.filter(job => job.status === 'processing' || job.status === 'pending');
@@ -112,13 +125,13 @@ const Embedding = () => {
         toast.success("Embedding process completed successfully");
       }
       
-      // Refresh job history to update the UI
+      // Refresh job history and stats to update the UI
       await refreshJobHistory();
     }
   };
 
   // Start embedding process
-  const startEmbedding = async () => {
+  const startEmbedding = async (forceAll: boolean = false) => {
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -126,9 +139,11 @@ const Embedding = () => {
       if (!user) {
         throw new Error("User not authenticated");
       }
+
+      const countToProcess = forceAll ? stats.totalCount : stats.missingCount;
       
       // Create a new job
-      const jobData = await createEmbeddingJob(user.id);
+      const jobData = await createEmbeddingJob(user.id, countToProcess);
       
       if (!jobData) {
         throw new Error("Failed to create job");
@@ -137,13 +152,13 @@ const Embedding = () => {
       setCurrentJob(jobData);
       
       // Call the edge function to start the embedding process
-      const success = await startEmbeddingProcess(jobData.id);
+      const success = await startEmbeddingProcess(jobData.id, forceAll);
       
       if (!success) {
-        throw new Error("Failed to start embedding process");
+        throw new Error("Failed to start embedding process via Edge Function");
       }
       
-      toast.success("Embedding process started");
+      toast.success(forceAll ? "Full embedding process started" : "Missing embeddings process started");
       
       // Clear any existing interval
       if (pollingIntervalRef.current) {
@@ -191,17 +206,54 @@ const Embedding = () => {
     const completedJobs = previousJobs.filter(job => job.status === 'completed');
     if (completedJobs.length === 0) return "No previous completed jobs";
     
-    const lastSuccessful = completedJobs[0]; // Jobs are already sorted by date desc
-    return formatDate(lastSuccessful.started_at); // Use started_at instead of completed_at
+    const lastSuccessful = completedJobs[0];
+    return formatDate(lastSuccessful.started_at);
   };
+
+  const coveragePercent = stats.totalCount > 0 
+    ? Math.round((stats.embeddedCount / stats.totalCount) * 100) 
+    : 0;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Embedding Management</h1>
         <p className="text-muted-foreground">
-          Generate and manage embeddings for your content to enable AI-powered search
+          Generate and manage embeddings for your content to enable AI-powered semantic search
         </p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-primary/10 text-primary rounded-xl">
+            <FileText className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">Total Content Items</div>
+            <div className="text-2xl font-bold">{stats.totalCount}</div>
+          </div>
+        </Card>
+        
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-green-500/10 text-green-600 rounded-xl">
+            <CheckCircle2 className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">Embedded Items</div>
+            <div className="text-2xl font-bold text-green-600">{stats.embeddedCount}</div>
+          </div>
+        </Card>
+
+        <Card className="p-4 flex items-center gap-4">
+          <div className="p-3 bg-amber-500/10 text-amber-600 rounded-xl">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">Missing Embeddings</div>
+            <div className="text-2xl font-bold text-amber-600">{stats.missingCount}</div>
+          </div>
+        </Card>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
@@ -214,7 +266,10 @@ const Embedding = () => {
         <TabsContent value="overview" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Generate Content Embeddings</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                Generate Content Embeddings
+              </CardTitle>
               <CardDescription>
                 Generate vector embeddings for your content items to enable AI-powered semantic search.
                 {previousJobs.some(job => job.status === 'completed') && (
@@ -223,7 +278,7 @@ const Embedding = () => {
                   </p>
                 )}
                 <p className="text-sm text-muted-foreground mt-2">
-                  Only content updated since the last successful embedding will be processed.
+                  Missing embeddings or newly updated content will be embedded into 768-dimension vectors.
                 </p>
               </CardDescription>
             </CardHeader>
@@ -244,21 +299,44 @@ const Embedding = () => {
                   </div>
                 </div>
               ) : (
-                <p>Click the button below to start generating embeddings for content items updated since your last embedding job.</p>
+                <div className="space-y-2">
+                  <p className="text-sm text-foreground">
+                    {stats.missingCount > 0 
+                      ? `There are ${stats.missingCount} content items that currently do not have vector embeddings.`
+                      : `All ${stats.totalCount} content items currently have vector embeddings.`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    You can generate embeddings for missing/updated items or force a full re-index of all items.
+                  </p>
+                </div>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button 
-                onClick={startEmbedding} 
-                disabled={isLoading || (currentJob && (currentJob.status === 'processing' || currentJob.status === 'pending'))}
-              >
-                {isLoading ? "Starting..." : "Generate Embeddings"}
-              </Button>
+            <CardFooter className="flex flex-wrap gap-3 justify-between">
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  onClick={() => startEmbedding(false)} 
+                  disabled={isLoading || (currentJob && (currentJob.status === 'processing' || currentJob.status === 'pending'))}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {isLoading ? "Starting..." : stats.missingCount > 0 ? `Embed Missing (${stats.missingCount})` : "Generate Embeddings"}
+                </Button>
+                
+                <Button 
+                  variant="secondary"
+                  onClick={() => startEmbedding(true)} 
+                  disabled={isLoading || (currentJob && (currentJob.status === 'processing' || currentJob.status === 'pending'))}
+                >
+                  <Database className="mr-2 h-4 w-4" />
+                  Re-embed All ({stats.totalCount})
+                </Button>
+              </div>
+
               <Button 
                 variant="outline" 
                 onClick={refreshJobHistory} 
                 disabled={isLoading}
               >
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh Status
               </Button>
             </CardFooter>
@@ -266,7 +344,7 @@ const Embedding = () => {
         </TabsContent>
 
         <TabsContent value="jobs" className="space-y-6">
-          {previousJobs.length > 0 && (
+          {previousJobs.length > 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle>Job History</CardTitle>
@@ -310,16 +388,47 @@ const Embedding = () => {
                 </Table>
               </CardContent>
             </Card>
+          ) : (
+            <Card className="p-8 text-center text-muted-foreground">
+              No previous embedding jobs found.
+            </Card>
           )}
         </TabsContent>
 
         <TabsContent value="metrics" className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold">Embedding Metrics</h2>
-            <p className="text-muted-foreground">
-              View metrics related to your embedding jobs.
-            </p>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Embedding Coverage & Health</CardTitle>
+              <CardDescription>
+                Overview of your vector search readiness
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium">Embedding Coverage</span>
+                  <span className="text-sm font-bold">{coveragePercent}%</span>
+                </div>
+                <Progress value={coveragePercent} className="h-3" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {stats.embeddedCount} of {stats.totalCount} items have search embeddings configured.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Model Specification</div>
+                  <div className="text-lg font-semibold mt-1">Google Vertex AI text-embedding-005</div>
+                  <div className="text-xs text-muted-foreground">768 dimensions output vector</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-muted-foreground">Database Index</div>
+                  <div className="text-lg font-semibold mt-1">pgvector (Cosine Similarity)</div>
+                  <div className="text-xs text-muted-foreground">match_content_items RPC</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

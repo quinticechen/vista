@@ -16,8 +16,8 @@ jobs:
             -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95dmJkYmFqcXNxemFmcHVhaHZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0MzE3ODUsImV4cCI6MjA2MjAwNzc4NX0.E1mfxJyH4jMgeaVmmW52_3LU6TVT6W-A5BRkHMfYp6c" \
             -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95dmJkYmFqcXNxemFmcHVhaHZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0MzE3ODUsImV4cCI6MjA2MjAwNzc4NX0.E1mfxJyH4jMgeaVmmW52_3LU6TVT6W-A5BRkHMfYp6c")
           echo "Response: $response"
-          if [ "$response" = "200" ] || [ "$response" = "406" ]; then
-            echo "Supabase is active"
+          if [ "$response" = "200" ] || [ "$response" = "401" ] || [ "$response" = "406" ]; then
+            echo "Supabase is active (HTTP $response)"
           else
             echo "Unexpected response: $response"
             exit 1

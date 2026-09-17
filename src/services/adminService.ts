@@ -224,21 +224,55 @@ export const getEmbeddingJob = async (jobId: string): Promise<EmbeddingJob | nul
   }
 };
 
-// Create a new embedding job
-export const createEmbeddingJob = async (userId: string): Promise<EmbeddingJob | null> => {
-  try {
-    // Count only content items belonging to this user
-    const { data: contentCount, error: countError } = await supabase
-      .from('content_items')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
+// Get embedding statistics for a user
+export interface EmbeddingStats {
+  totalCount: number;
+  embeddedCount: number;
+  missingCount: number;
+}
 
-    if (countError) {
-      console.error('Error counting content items:', countError);
-      throw new Error('Failed to count content items');
+export const getEmbeddingStats = async (userId: string): Promise<EmbeddingStats> => {
+  try {
+    const { data, error } = await supabase
+      .from('content_items')
+      .select('id, embedding')
+      .eq('user_id', userId)
+      .neq('notion_page_status', 'removed');
+
+    if (error) {
+      console.error('Error fetching embedding stats:', error);
+      return { totalCount: 0, embeddedCount: 0, missingCount: 0 };
     }
 
-    const total = contentCount?.length || 0;
+    const items = data || [];
+    const totalCount = items.length;
+    const embeddedCount = items.filter(item => Boolean(item.embedding)).length;
+    const missingCount = totalCount - embeddedCount;
+
+    return { totalCount, embeddedCount, missingCount };
+  } catch (error) {
+    console.error('Error calculating embedding stats:', error);
+    return { totalCount: 0, embeddedCount: 0, missingCount: 0 };
+  }
+};
+
+// Create a new embedding job
+export const createEmbeddingJob = async (userId: string, totalItems: number = 0): Promise<EmbeddingJob | null> => {
+  try {
+    let total = totalItems;
+    if (total === 0) {
+      const { count, error: countError } = await supabase
+        .from('content_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .neq('notion_page_status', 'removed');
+
+      if (countError) {
+        console.error('Error counting content items:', countError);
+      } else {
+        total = count || 0;
+      }
+    }
 
     const { data, error } = await supabase
       .from('embedding_jobs')
@@ -266,7 +300,7 @@ export const createEmbeddingJob = async (userId: string): Promise<EmbeddingJob |
 };
 
 // Start the embedding process
-export const startEmbeddingProcess = async (jobId: string): Promise<boolean> => {
+export const startEmbeddingProcess = async (jobId: string, forceAll: boolean = false): Promise<boolean> => {
   try {
     // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
@@ -279,7 +313,8 @@ export const startEmbeddingProcess = async (jobId: string): Promise<boolean> => 
     const { error } = await supabase.functions.invoke('generate-embeddings', {
       body: { 
         jobId,
-        userId: user.id
+        userId: user.id,
+        forceAll
       }
     });
 
