@@ -12,6 +12,8 @@ import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BackButton } from "@/components/BackButton";
 
+const BUY_ME_A_COFFEE_URL = "https://donate.stripe.com/00w4gzamjcrQetXbSB97G00";
+
 interface PersonalHeaderProps {
   /** When set, shows a "back" control next to the logo (e.g. "Back to All Content"). */
   backLabel?: string;
@@ -220,12 +222,10 @@ const PersonalHeader = ({ backLabel, backFallbackTo }: PersonalHeaderProps = {})
               >
                 {isSubscribing ? "Subscribing..." : "Subscribe"}
               </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowModal(false)}
-                className="flex-1"
-              >
-                Cancel
+              <Button variant="outline" asChild className="flex-1">
+                <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener noreferrer">
+                  Buy me a coffee
+                </a>
               </Button>
             </div>
           </div>
