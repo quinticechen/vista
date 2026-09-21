@@ -7,6 +7,7 @@ import SEOHead from '@/components/SEOHead';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Search, Zap, Shield, Globe, BarChart3, Paintbrush } from 'lucide-react';
+import { LatestArticlesSection } from '@/components/LatestArticlesSection';
 
 const VistaProductHome = () => {
   const navigate = useNavigate();
@@ -183,6 +184,8 @@ const VistaProductHome = () => {
           </div>
         </div>
       </section>
+
+      <LatestArticlesSection />
 
       <Footer />
     </div>

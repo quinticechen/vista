@@ -26,9 +26,9 @@ interface PurposeInputProps {
   optionButtons?: OptionButton[];
 }
 
-const PurposeInput = ({ 
-  onPurposeSubmit, 
-  scrollProgress = 0, 
+const PurposeInput = ({
+  onPurposeSubmit,
+  scrollProgress = 0,
   placeholder,
   interactiveTitle,
   interactiveSubtitle,
