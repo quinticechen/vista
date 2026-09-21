@@ -9,7 +9,7 @@ import Footer from "@/components/Footer";
 import SEOHead from "@/components/SEOHead";
 import { toast } from "@/components/ui/sonner";
 import { ContentItem, semanticSearch } from "@/services/adminService";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -349,42 +349,45 @@ const Vista = () => {
       <Header />
 
       <main className="container py-8 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            Browse All Content
-          </h1>
-        </div>
-
-        <Card className="mb-8">
+        <Card className="mb-8 -mx-8 px-3 md:mx-0 md:px-0">
           <CardContent className="p-4">
             <form onSubmit={handleSearch} className="flex gap-2">
               <Input
                 type="text"
                 placeholder="Search content..."
-                className="flex-1"
+                className="flex-1 rounded-full"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <Button type="submit">
-                Search
+              <Button type="submit" size="icon" className="shrink-0 rounded-full" aria-label="Search">
+                <Search className="h-4 w-4" />
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Category Filter and Content Sorter */}
-        <div className="space-y-4 mb-6">
-          <ContentSorter
-            selectedSort={sortOption}
-            onSortChange={handleSortChange}
-            itemCount={sortedItems.length}
-            showingSearchResults={showingSearchResults}
-          />
-          <CategoryFilter
-            items={contentItems}
-            selectedCategories={selectedCategories}
-            onCategoryChange={handleCategoryChange}
-          />
+        {/* Sort -> Filter -> total items. Sort/Filter stay left, item count sits on
+            the right; Filter's options only show once it's clicked open. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 -mx-8 px-3 md:mx-0 md:px-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <ContentSorter
+              selectedSort={sortOption}
+              onSortChange={handleSortChange}
+              rounded
+              showItemCount={false}
+              className="mb-0"
+            />
+            <CategoryFilter
+              items={contentItems}
+              selectedCategories={selectedCategories}
+              onCategoryChange={handleCategoryChange}
+              collapsible
+              rounded
+            />
+          </div>
+          <span className="text-sm text-muted-foreground">
+            {sortedItems.length} items
+          </span>
         </div>
 
         {loading ? (
@@ -393,7 +396,7 @@ const Vista = () => {
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Searching for relevant content...</p>
           </div>
         ) : sortedItems.length > 0 ? (
-          <div className="flex flex-col gap-6 -mx-8 px-3 md:mx-0 md:px-0">
+          <div className="flex flex-col gap-3 md:gap-6 -mx-8 px-3 md:mx-0 md:px-0">
             {sortedItems.map((item, index) => (
               <div key={item.id} className="block group">
                 <ContentDisplayItem

@@ -16,6 +16,11 @@ export interface ContentDisplayItemProps {
   urlPrefix?: string;
   index?: number;
   showStatus?: boolean;
+  /** Always render the mobile card layout (title -> desc+thumbnail row -> Type/Time),
+   * regardless of viewport width. For places that specifically want that compact
+   * style even on desktop (e.g. a "latest articles" teaser), rather than the
+   * viewport-responsive default. */
+  forceMobileLayout?: boolean;
 }
 
 // Helper function to check if content has media
@@ -114,11 +119,12 @@ const findMediaBlock = (content: Json | any[] | undefined): any => {
   return mediaBlock;
 }
 
-export const ContentDisplayItem = ({ 
-  content, 
-  urlPrefix = '', 
+export const ContentDisplayItem = ({
+  content,
+  urlPrefix = '',
   index = 0,
-  showStatus = false 
+  showStatus = false,
+  forceMobileLayout = false
 }: ContentDisplayItemProps) => {
   const { t, i18n } = useI18n();
   const isRTL = i18n.language === 'ar';
@@ -263,49 +269,62 @@ export const ContentDisplayItem = ({
       </video>
     ) : null);
 
+  // Mobile layout: title full-width on top, then a row pairing the description
+  // with a small thumbnail (or a full-width image when there's no description),
+  // then the Type/Time row.
+  const mobileLayout = (
+    <div className="flex flex-col gap-3 p-6">
+      {title}
+
+      {(hasDescription || hasMediaUrl) && (
+        <div className={`flex gap-3 items-start ${!isMediaRight ? 'flex-row-reverse' : ''}`}>
+          {description}
+          {renderMedia(
+            hasDescription
+              ? 'w-20 h-auto shrink-0 object-contain'
+              : 'w-full h-auto object-contain'
+          )}
+        </div>
+      )}
+
+      {typeTimeRow}
+    </div>
+  );
+
+  // Desktop layout: media fills the full 400px-tall side (cropped only if its
+  // natural width would exceed 2/3 of the card), text column stacked next to it.
+  const desktopLayout = (
+    <div className={`flex ${hasMediaUrl ? 'h-[400px]' : 'h-auto'}`}>
+      {renderMedia(
+        `h-full w-auto max-w-[66.6667%] shrink-0 object-cover ${isMediaRight ? 'order-last' : 'order-first'}`
+      )}
+
+      <div
+        className={`${hasMediaUrl ? 'flex-1 min-w-0' : 'w-full'} flex flex-col gap-3 p-6 justify-center ${isMediaRight ? 'order-first' : 'order-last'}`}
+      >
+        {title}
+        {description}
+        {typeTimeRow}
+      </div>
+    </div>
+  );
+
   return (
     <Card
       onClick={handleContentClick}
       className="group overflow-hidden cursor-pointer hover:shadow-md transition-shadow duration-200"
     >
-      {/* Mobile layout: title full-width on top, then a row pairing the description
-          with a small thumbnail (or a full-width image when there's no description),
-          then the Type/Time row. Kept as its own DOM tree (rather than reusing the
-          desktop tree with responsive classes) because the image moves from being a
-          small inline thumbnail to a full card-height column -- two different parents,
-          not just a resize. */}
-      <div className="md:hidden flex flex-col gap-3 p-6">
-        {title}
-
-        {(hasDescription || hasMediaUrl) && (
-          <div className={`flex gap-3 items-start ${!isMediaRight ? 'flex-row-reverse' : ''}`}>
-            {description}
-            {renderMedia(
-              hasDescription
-                ? 'w-20 h-auto shrink-0 object-contain'
-                : 'w-full h-auto object-contain'
-            )}
-          </div>
-        )}
-
-        {typeTimeRow}
-      </div>
-
-      {/* Desktop layout: media fills the full 400px-tall side (cropped only if its
-          natural width would exceed 2/3 of the card), text column stacked next to it. */}
-      <div className={`hidden md:flex ${hasMediaUrl ? 'h-[400px]' : 'h-auto'}`}>
-        {renderMedia(
-          `h-full w-auto max-w-[66.6667%] shrink-0 object-cover ${isMediaRight ? 'order-last' : 'order-first'}`
-        )}
-
-        <div
-          className={`${hasMediaUrl ? 'flex-1 min-w-0' : 'w-full'} flex flex-col gap-3 p-6 justify-center ${isMediaRight ? 'order-first' : 'order-last'}`}
-        >
-          {title}
-          {description}
-          {typeTimeRow}
-        </div>
-      </div>
+      {forceMobileLayout ? (
+        mobileLayout
+      ) : (
+        // Kept as two separate DOM trees (rather than one with responsive classes)
+        // because the image moves from being a small inline thumbnail to a full
+        // card-height column -- two different parents, not just a resize.
+        <>
+          <div className="md:hidden">{mobileLayout}</div>
+          <div className="hidden md:block">{desktopLayout}</div>
+        </>
+      )}
     </Card>
   );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Hero from '@/components/Hero';
 import PurposeInput from '@/components/PurposeInput';
+import { LatestArticlesSection } from '@/components/LatestArticlesSection';
 import PersonalHeader from '@/components/PersonalHeader';
 import PersonalFooter from '@/components/PersonalFooter';
 import SEOHead from '@/components/SEOHead';
@@ -217,8 +218,8 @@ const Index = () => {
         {/* Add spacer to push PurposeInput down one viewport height */}
         <div className="h-screen pointer-events-none"></div>
         
-        <PurposeInput 
-          onPurposeSubmit={handlePurposeSubmit} 
+        <PurposeInput
+          onPurposeSubmit={handlePurposeSubmit}
           scrollProgress={scrollProgress}
           placeholder={homePageSettings.customInputPlaceholder || `Search ${urlParam || ''}'s content...`}
           interactiveTitle={homePageSettings.interactiveTitle}
@@ -226,6 +227,10 @@ const Index = () => {
           submitButtonText={homePageSettings.submitButtonText}
           optionButtons={homePageSettings.optionButtons}
         />
+
+        {/* Independent section, not nested inside PurposeInput -- fades/slides into
+            view as the user scrolls down to it. */}
+        {urlParam && !profileNotFound && <LatestArticlesSection urlParam={urlParam} />}
       </div>
       
       {/* Footer with proper z-index to appear after PurposeInput */}

@@ -12,8 +12,13 @@ const WaveTransition = ({
   position, 
   color = "fill-beige-100" // Default to fill-beige-100
 }: WaveTransitionProps) => {
-  // Ensure the wave stays at the correct position
-  const wavePosition = Math.min(100, scrollProgress * 10);
+  // scrollProgress is a 0-1 fraction (see UrlParam.tsx), so this needs *100, not *10,
+  // to actually reach a full reveal (wavePosition=100 -> translateY 0%, flush with its
+  // anchored edge). At *10 it topped out at wavePosition=10 -- the wave stayed almost
+  // entirely hidden (90% translated off-screen) at every scroll position, which is
+  // what made it look like a barely-there sliver, or to have vanished entirely once
+  // its color matched what's around it.
+  const wavePosition = Math.min(100, scrollProgress * 100);
   
   // Render the wave SVG differently based on position
   return (
