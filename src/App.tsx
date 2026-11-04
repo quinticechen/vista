@@ -33,7 +33,7 @@ const queryClient = new QueryClient();
 
 // Helper function to determine if a path segment is a reserved route
 const isReservedRoute = (segment: string): boolean => {
-  const reservedRoutes = ['admin', 'vista', 'about', 'auth', 'purpose-input'];
+  const reservedRoutes = ['admin', 'vista', 'about', 'auth', 'purpose-input', 'analysis'];
   return reservedRoutes.includes(segment.toLowerCase());
 };
 

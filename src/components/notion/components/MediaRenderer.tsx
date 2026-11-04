@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { isHeicImage } from "../utils/image-utils";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { HostedVisualEmbed } from "./HostedVisualEmbed";
+import { getHostedVisualPath } from "../utils/hosted-visual";
 
 interface MediaProps {
   type: "image" | "video" | "embed";
@@ -166,7 +168,12 @@ export const EmbedRenderer: React.FC<MediaProps> = ({
 }) => {
   // If there's no URL, don't render anything
   if (!media_url) return null;
-  
+
+  const hostedVisualPath = getHostedVisualPath(media_url);
+  if (hostedVisualPath) {
+    return <HostedVisualEmbed key={`embed-${listPath}-${index}`} src={hostedVisualPath} caption={caption} />;
+  }
+
   return (
     <figure key={`embed-${listPath}-${index}`} className="my-4">
       <div className="bg-muted rounded-md overflow-hidden">

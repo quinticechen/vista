@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK SME Lending — the market on one page</title>
+    <style>
+        :root {
+            --surface: #fcfcfb;
+            --bg: #f5f4f0;
+            --line: #e4e2dc;
+            --ink: #0b0b0b;
+            --ink-2: #52514e;
+            --ink-3: #77766f;
+            /* entity colours, fixed order: Big Five, challenger & specialist banks, non‑banks */
+            --big5: #2a78d6;
+            --chal: #eb6834;
+            --nb: #1baf7a;
+            --sans: "Helvetica Neue", "Segoe UI", system-ui, -apple-system, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0 }
+
+        body { background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.5; -webkit-font-smoothing: antialiased }
+
+        a { color: inherit }
+
+        .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px }
+
+        /* top nav */
+        nav { position: sticky; top: 0; z-index: 10; background: rgba(245, 244, 240, .94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line) }
+        nav .wrap { display: flex; gap: 22px; align-items: center; height: 52px; overflow-x: auto; white-space: nowrap }
+        nav b { font-size: 14px; margin-right: 8px }
+        nav a { font-size: 13.5px; color: var(--ink-2); text-decoration: none }
+        nav a:hover { color: var(--ink) }
+
+        header { padding: 48px 0 8px }
+        .kicker { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-2); font-weight: 600 }
+        h1 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.08; letter-spacing: -.02em; margin-top: 12px }
+        .lede { font-size: 17px; color: var(--ink-2); margin-top: 14px }
+        .lede b { color: var(--ink) }
+
+        section { padding: 40px 0 8px }
+        h2 { font-size: 24px; letter-spacing: -.01em }
+        h2 .n { color: var(--ink-3); font-weight: 500; margin-right: 8px }
+        .sec-sub { color: var(--ink-2); font-size: 15px; margin-top: 4px }
+
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px }
+
+        /* 1 · money */
+        .money { margin-top: 18px; display: grid; gap: 16px }
+        .bar { display: flex; height: 46px; border-radius: 8px; overflow: hidden; gap: 2px; background: var(--surface) }
+        .bar div { position: relative; cursor: default }
+        .bar div:first-child { border-radius: 8px 0 0 8px }
+        .bar div:last-child { border-radius: 0 8px 8px 0 }
+        .bar-legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 14px }
+        .bl .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 8px; vertical-align: -1px }
+        .bl .k { font-size: 14px; color: var(--ink-2) }
+        .bl .v { font-size: 30px; font-weight: 700; letter-spacing: -.01em; margin-top: 2px }
+        .bl .v small { font-size: 15px; font-weight: 500; color: var(--ink-2); margin-left: 6px }
+        .bl .d { font-size: 13px; color: var(--ink-3); margin-top: 2px }
+        .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px }
+        .tile .k { font-size: 13.5px; color: var(--ink-2) }
+        .tile .v { font-size: 30px; font-weight: 700; margin-top: 4px; letter-spacing: -.01em }
+        .tile .d { font-size: 13px; color: var(--ink-3); margin-top: 2px }
+        .tip { position: fixed; pointer-events: none; background: var(--ink); color: #fff; font-size: 13px; padding: 7px 10px; border-radius: 7px; opacity: 0; transition: opacity .1s; z-index: 20; max-width: 260px }
+
+        /* 2 · who lends */
+        .groups { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 18px; align-items: start }
+        .group { border-top: 4px solid; display: flex; flex-direction: column; gap: 14px }
+        .group h3 { font-size: 18px }
+        .group .gsum { font-size: 14px; color: var(--ink-2) }
+        .seg { border-top: 1px solid var(--line); padding-top: 12px }
+        .seg .sn { font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: baseline }
+        .seg .co { font-size: 13.5px; color: var(--ink-2); margin-top: 3px }
+        .group .win { background: var(--bg); border-radius: 10px; padding: 10px 12px; font-size: 13.5px }
+        .group .win b { display: block; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 2px }
+
+        /* decision mode: shape encoding, ink colour */
+        .mode { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; font-weight: 500 }
+        .mode i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; border: 2px solid var(--ink-2) }
+        .mode.auto i { background: var(--ink-2) }
+        .mode.hybrid i { background: linear-gradient(90deg, var(--ink-2) 50%, transparent 50%) }
+        .mode.manual i { background: transparent }
+        .modekey { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px }
+
+        /* 3 · why */
+        table { width: 100%; border-collapse: collapse; font-size: 14px }
+        th, td { text-align: left; vertical-align: top; padding: 11px 12px; border-bottom: 1px solid var(--line) }
+        th { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); font-weight: 600; background: var(--surface) }
+        tbody tr:last-child td { border-bottom: 0 }
+        .why th.g { border-top: 4px solid; font-size: 13px; letter-spacing: .04em; text-transform: none; color: var(--ink) }
+        .why td:first-child { font-weight: 600; width: 16% }
+        .why tr.win td { background: var(--bg); font-weight: 600 }
+        .tbl { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow-x: auto; margin-top: 18px }
+        .tbl table { min-width: 760px }
+        .src { font-size: 12.5px; color: var(--ink-3) }
+
+        /* 4 · products */
+        .prod td:first-child { font-weight: 600 }
+        .prod .co { color: var(--ink-2) }
+
+        /* 5 · directory */
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 18px }
+        .controls input { font: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); min-width: 240px }
+        .chip { font: inherit; font-size: 13.5px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); cursor: pointer }
+        .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink) }
+        .chip .sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px }
+        .dir td .gtag { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap }
+        .dir td .gtag .sw { width: 9px; height: 9px; border-radius: 50% }
+        .dir td:first-child { font-weight: 600; white-space: nowrap }
+        .dir .num { white-space: nowrap }
+        .flag { display: block; font-size: 12.5px; color: var(--ink-3) }
+        .count { font-size: 13px; color: var(--ink-3); margin-left: auto }
+
+        footer { padding: 40px 0 64px; font-size: 13px; color: var(--ink-3) }
+        footer h3 { font-size: 14px; color: var(--ink-2); margin-bottom: 8px }
+        footer ul { padding-left: 18px; display: grid; gap: 4px }
+        footer .by { margin-top: 18px }
+
+
+        /* keep names and figures on one line */
+        .nw { white-space: nowrap }
+
+        @media (max-width: 860px) {
+            .groups, .bar-legend { grid-template-columns: 1fr }
+            .tiles { grid-template-columns: repeat(2, 1fr) }
+        }
+    </style>
+</head>
+
+<body>
+    <nav data-embed-hide>
+        <div class="wrap">
+            <b>UK SME Lending</b>
+            <a href="#money">1 · The money</a>
+            <a href="#who">2 · Who lends</a>
+            <a href="#why">3 · Why they win</a>
+            <a href="#products">4 · By product</a>
+            <a href="#directory">5 · All lenders</a>
+        </div>
+    </nav>
+
+    <div class="wrap">
+        <header data-embed-hide>
+            <div class="kicker">UK SME lending · 2025 data · updated Nov 2026</div>
+            <h1>Who lends to UK small businesses, and why each lender wins where it does</h1>
+            <p class="lede">£68bn of bank lending and £18.3bn from non‑banks in 2025. The market has sorted itself by
+                <b>cost structure</b>: big banks keep their own customers' standard loans, fintechs take the fast,
+                thin‑file end, and challenger banks take big, complex, secured loans.</p>
+        </header>
+
+        <!-- 1 -->
+        <section id="money">
+            <h2><span class="n">1</span>The money</h2>
+            <p class="sec-sub">New SME lending in 2025, by type of lender.</p>
+            <div class="money">
+                <div class="card">
+                    <div class="bar" id="bar" role="img"
+                        aria-label="Stacked bar of 2025 SME lending: Big Five £27bn, challenger and specialist banks £40bn, non‑bank lenders £18.3bn.">
+                        <div style="flex:27;background:var(--big5)" data-tip="Big Five · £27bn · 40% of bank lending · +10% in 2025"></div>
+                        <div style="flex:40;background:var(--chal)" data-tip="Challenger &amp; specialist banks · £40bn · 60% of bank lending · +8% in 2025"></div>
+                        <div style="flex:18.3;background:var(--nb)" data-tip="Non‑bank lenders · £18.3bn · separate data series · +15% in 2025"></div>
+                    </div>
+                    <div class="bar-legend">
+                        <div class="bl">
+                            <div class="k"><span class="sw" style="background:var(--big5)"></span>Big Five banks</div>
+                            <div class="v">£27bn<small>40% of bank lending</small></div>
+                            <div class="d">Barclays, HSBC, Lloyds, NatWest, Santander</div>
+                        </div>
+                        <div class="bl">
+                            <div class="k"><span class="sw" style="background:var(--chal)"></span>Challenger &amp; specialist banks</div>
+                            <div class="v">£40bn<small>60% of bank lending</small></div>
+                            <div class="d">Every other licensed bank</div>
+                        </div>
+                        <div class="bl">
+                            <div class="k"><span class="sw" style="background:var(--nb)"></span>Non‑bank lenders</div>
+                            <div class="v">£18.3bn<small>outside the bank total</small></div>
+                            <div class="d"><span class="nw">Asset £8.8bn</span> · <span class="nw">business loans £4.3bn</span> · <span class="nw">property £3.1bn</span> · <span class="nw">receivables £2.2bn</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tiles">
+                    <div class="card tile">
+                        <div class="k">Challenger share of bank lending</div>
+                        <div class="v">60%</div>
+                        <div class="d"><span class="nw">Flat since 2024</span> · <span class="nw">was 39% in 2012</span></div>
+                    </div>
+                    <div class="card tile">
+                        <div class="k">2025 growth: <span class="nw">Big Five</span> vs challengers</div>
+                        <div class="v">+10% / +8%</div>
+                        <div class="d">The big banks grew faster</div>
+                    </div>
+                    <div class="card tile">
+                        <div class="k">Non‑bank business lending</div>
+                        <div class="v">+29%</div>
+                        <div class="d">£4.3bn; <span class="nw">Funding Circle</span> just over half</div>
+                    </div>
+                    <div class="card tile">
+                        <div class="k">Small-business credit demand</div>
+                        <div class="v">−12.1</div>
+                        <div class="d">BoE net balance, Q3 2026 <span class="nw">(Q1: +7.2)</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2 -->
+        <section id="who">
+            <h2><span class="n">2</span>Who lends</h2>
+            <p class="sec-sub">Three groups. Each segment shows its typical way of deciding.</p>
+            <div class="modekey">
+                <span class="mode auto"><i></i>Automated · straight-through</span>
+                <span class="mode hybrid"><i></i>Hybrid · rules + human</span>
+                <span class="mode manual"><i></i>Manual · human-led</span>
+            </div>
+            <div class="groups">
+                <div class="card group" style="border-top-color:var(--big5)">
+                    <div>
+                        <h3>Big Five banks</h3>
+                        <p class="gsum">Deposit-funded incumbents. About 90% of SMEs go to their main bank first (CMA, 2016).</p>
+                    </div>
+                    <div class="win"><b>Wins</b>Their own customers' standard loans: instant decisions on account data they already hold.</div>
+                    <div class="seg">
+                        <div class="sn">High street banks <span class="mode hybrid"><i></i>Hybrid</span></div>
+                        <div class="co"><span class="nw">Lloyds</span> · <span class="nw">NatWest</span> · <span class="nw">Barclays</span> · <span class="nw">HSBC UK</span> · <span class="nw">Santander UK</span></div>
+                    </div>
+                </div>
+                <div class="card group" style="border-top-color:var(--chal)">
+                    <div>
+                        <h3>Challenger &amp; specialist banks</h3>
+                        <p class="gsum">Licensed banks funded by savings deposits. BBB does not split the £40bn by segment.</p>
+                    </div>
+                    <div class="win"><b>Wins</b>Big, complex, secured loans, where a human decision pays for itself.</div>
+                    <div class="seg">
+                        <div class="sn">SME challenger banks <span class="mode hybrid"><i></i>Hybrid</span></div>
+                        <div class="co"><span class="nw">OakNorth</span> · <span class="nw">Allica</span> · <span class="nw">Cynergy</span> · <span class="nw">Cambridge &amp; Counties</span></div>
+                    </div>
+                    <div class="seg">
+                        <div class="sn">Specialist banks <span class="mode manual"><i></i>Manual</span></div>
+                        <div class="co"><span class="nw">Shawbrook</span> · <span class="nw">Aldermore</span> · <span class="nw">Paragon</span> · <span class="nw">Secure Trust</span> · <span class="nw">Close Brothers</span> · <span class="nw">Arbuthnot Latham</span></div>
+                    </div>
+                    <div class="seg">
+                        <div class="sn">Other traditional banks <span class="mode hybrid"><i></i>Hybrid</span></div>
+                        <div class="co"><span class="nw">Virgin Money</span> · <span class="nw">Metro Bank</span> · <span class="nw">TSB</span> · <span class="nw">Co-op Bank</span> · <span class="nw">Handelsbanken</span> · <span class="nw">Unity Trust</span></div>
+                    </div>
+                    <div class="seg">
+                        <div class="sn">Digital banks <span class="mode auto"><i></i>Automated</span></div>
+                        <div class="co"><span class="nw">Starling</span> · <span class="nw">Revolut Business</span> · <span class="nw">Monzo Business (small SME loan books)</span></div>
+                    </div>
+                </div>
+                <div class="card group" style="border-top-color:var(--nb)">
+                    <div>
+                        <h3>Non‑bank lenders</h3>
+                        <p class="gsum">No deposits: funded by warehouse lines, forward-flow, securitisation and equity.</p>
+                    </div>
+                    <div class="win"><b>Wins</b>Speed and thin‑file businesses, often ones a bank turned down.</div>
+                    <div class="seg">
+                        <div class="sn">Working capital / term <span class="mode auto"><i></i>Automated</span></div>
+                        <div class="co"><span class="nw">iwoca</span> · <span class="nw">Funding Circle</span> · <span class="nw">Capital on Tap</span></div>
+                    </div>
+                    <div class="seg">
+                        <div class="sn">Embedded / revenue‑based <span class="mode auto"><i></i>Automated</span></div>
+                        <div class="co"><span class="nw">YouLend</span> · <span class="nw">Liberis</span> · <span class="nw">Uncapped</span> · <span class="nw">Capify</span></div>
+                    </div>
+                    <div class="seg">
+                        <div class="sn">Asset &amp; invoice finance <span class="mode hybrid"><i></i>Hybrid</span></div>
+                        <div class="co"><span class="nw">Novuna</span> · <span class="nw">Simply</span> · <span class="nw">Time Finance</span> · <span class="nw">Bibby</span> · <span class="nw">Kriya</span> · <span class="nw">eCapital</span></div>
+                    </div>
+                    <div class="seg">
+                        <div class="sn">Property / specialist <span class="mode manual"><i></i>Manual</span></div>
+                        <div class="co"><span class="nw">LendInvest</span> · <span class="nw">Triple Point</span> · <span class="nw">Premium Credit</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3 -->
+        <section id="why">
+            <h2><span class="n">3</span>Why each group wins where it does</h2>
+            <p class="sec-sub">Deciding a loan costs about the same whether it is £30k or £3m, so small loans only work
+                with automated decisions. Once everyone can automate, the edge comes from the other three costs.</p>
+            <div class="tbl">
+                <table class="why">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th class="g" style="border-top-color:var(--big5)">Big Five</th>
+                            <th class="g" style="border-top-color:var(--chal)">Challenger &amp; specialist banks</th>
+                            <th class="g" style="border-top-color:var(--nb)">Non‑bank lenders</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Cost of funds</td>
+                            <td>Current accounts: the cheapest money in the market</td>
+                            <td>Retail savings deposits</td>
+                            <td>No deposits: warehouse lines and institutional investors</td>
+                        </tr>
+                        <tr>
+                            <td>Data</td>
+                            <td>Own current-account history plus decades of default data</td>
+                            <td>Collateral, valuations, relationship knowledge</td>
+                            <td>Open Banking, credit bureaus, platform sales data</td>
+                        </tr>
+                        <tr>
+                            <td>Finding customers</td>
+                            <td>Already their bank</td>
+                            <td>Brokers and relationship managers</td>
+                            <td>Direct digital, brokers, embedded in platforms</td>
+                        </tr>
+                        <tr>
+                            <td>Deciding</td>
+                            <td>Instant for existing customers on small loans</td>
+                            <td>Underwriters and credit committees</td>
+                            <td>Mostly automated (Funding Circle: 73% instant)</td>
+                        </tr>
+                        <tr class="win">
+                            <td>Where they win</td>
+                            <td>Standard loans to own customers</td>
+                            <td>Big, complex, property-backed</td>
+                            <td>Fast, thin‑file, declined elsewhere</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="src" style="margin-top:10px"><b>Illustration (round numbers, not a measured cost):</b> if a manual decision costs ~£1,500, a £30k
+                loan at a 4% net margin earns £1,200 a year, so it loses money in year one; a £1m loan earns £40,000.
+                BCG (2025): automated credit decisioning typically cuts end-to-end credit-process cost by 30–40%.
+                BBB (2026): sub-£50k lending needs "scale and high levels of automation". CMA (2016): "access to
+                financial and transactional data is a barrier to entry and expansion to SME lending."</p>
+        </section>
+
+        <!-- 4 -->
+        <section id="products">
+            <h2><span class="n">4</span>By product</h2>
+            <p class="sec-sub">Typical public pricing and loan sizes. Market sizes come from different sources and do
+                not add up.</p>
+            <div class="tbl">
+                <table class="prod">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Market size</th>
+                            <th>Typical price</th>
+                            <th>Loan size</th>
+                            <th>Decision</th>
+                            <th>Main lenders</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Unsecured term / working capital</td>
+                            <td>Non‑bank £4.3bn (2025); bank split not published</td>
+                            <td>6.9%–49% APR</td>
+                            <td>£1k–£1m</td>
+                            <td><span class="mode auto"><i></i>Automated–hybrid</span></td>
+                            <td class="co">iwoca, Funding Circle, Big Five</td>
+                        </tr>
+                        <tr>
+                            <td>Commercial mortgage</td>
+                            <td>Non‑bank property £3.1bn (2025)</td>
+                            <td>~6%–9.5%</td>
+                            <td><span class="nw">£150k–£15m</span> common</td>
+                            <td><span class="mode manual"><i></i>Manual–hybrid</span></td>
+                            <td class="co">Shawbrook, Aldermore, Allica, OakNorth, Big Five</td>
+                        </tr>
+                        <tr>
+                            <td>Asset finance</td>
+                            <td>£24.4bn SME new business (FLA, 2025)</td>
+                            <td>Not publicly benchmarked</td>
+                            <td>£5k–£20m+</td>
+                            <td><span class="mode hybrid"><i></i>Hybrid</span></td>
+                            <td class="co">Novuna, Lombard (NatWest), Close Brothers, Aldermore, Simply</td>
+                        </tr>
+                        <tr>
+                            <td>Invoice finance / ABL</td>
+                            <td>~£22bn average advances (UK Finance, 2025)</td>
+                            <td>Fee ~0.25–3% of turnover + ~1.5–3.5% over base</td>
+                            <td>£10k–£10m+</td>
+                            <td><span class="mode hybrid"><i></i>Hybrid</span></td>
+                            <td class="co">Bibby, Kriya, eCapital, Close Brothers</td>
+                        </tr>
+                        <tr>
+                            <td>Merchant cash advance / revenue‑based</td>
+                            <td>Not tracked separately</td>
+                            <td>Factor rate ~1.10–1.35</td>
+                            <td><span class="nw">£2.5k–£300k</span> common</td>
+                            <td><span class="mode auto"><i></i>Automated</span></td>
+                            <td class="co">YouLend, Liberis, Uncapped, Capify</td>
+                        </tr>
+                        <tr>
+                            <td>Bridging / development</td>
+                            <td>Included in non‑bank property</td>
+                            <td>0.5%–1.5% a month + fees</td>
+                            <td>£100k–£25m+</td>
+                            <td><span class="mode manual"><i></i>Manual</span></td>
+                            <td class="co">LendInvest, Shawbrook, OakNorth, Allica</td>
+                        </tr>
+                        <tr>
+                            <td>Overdraft / revolving</td>
+                            <td>£8.3bn overdraft stock (BoE, 2024)</td>
+                            <td>Base + margin; cards from 13.86% APR</td>
+                            <td>£500+; cards to £250k</td>
+                            <td><span class="mode hybrid"><i></i>Hybrid</span></td>
+                            <td class="co">Big Five, Capital on Tap</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 5 -->
+        <section id="directory">
+            <h2><span class="n">5</span>All lenders</h2>
+            <p class="sec-sub">Search or filter. "Key figure" is a published 2025 company number; "—" means not disclosed.</p>
+            <div class="controls">
+                <input id="q" type="search" placeholder="Search a lender or product…" aria-label="Search lenders">
+                <button class="chip" data-g="all" aria-pressed="true">All</button>
+                <button class="chip" data-g="big5" aria-pressed="false"><span class="sw" style="background:var(--big5)"></span>Big Five</button>
+                <button class="chip" data-g="chal" aria-pressed="false"><span class="sw" style="background:var(--chal)"></span>Challenger &amp; specialist</button>
+                <button class="chip" data-g="nb" aria-pressed="false"><span class="sw" style="background:var(--nb)"></span>Non‑bank</button>
+                <span class="count" id="count"></span>
+            </div>
+            <div class="tbl">
+                <table class="dir">
+                    <thead>
+                        <tr>
+                            <th>Lender</th>
+                            <th>Group</th>
+                            <th>Main SME products</th>
+                            <th>Decision</th>
+                            <th>Key figure</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <footer>
+            <h3>How to read these numbers</h3>
+            <ul>
+                <li>Bank lending (£68bn) is gross new lending in 2025, excluding overdrafts and credit cards. The
+                    Big Five (£27bn) and challengers (£40bn) are rounded, so they add to £67bn.</li>
+                <li>Non‑bank lending (£18.3bn) is a separate series covering only the lenders BBB tracks. It
+                    excludes debt funds, and asset finance can appear in more than one source.</li>
+                <li>Decision modes are a judgement from public product information, not company disclosures.
+                    Group loan books include mortgages and are not SME-only.</li>
+            </ul>
+            <h3 style="margin-top:16px">Sources</h3>
+            <ul>
+                <li>British Business Bank, "Small Business Finance Markets 2025/26", 17 Mar 2026</li>
+                <li>CMA, "Retail banking market investigation: Final report", 9 Aug 2016</li>
+                <li>Bank of England, "Credit Conditions Survey 2026 Q3", 8 Oct 2026</li>
+                <li>BCG with Biz2X, "The forthcoming revolution in small business lending", Jan 2025</li>
+                <li>FLA asset finance 2025; UK Finance IF/ABL and Business Finance Review; company results and
+                    product pages (accessed 2026)</li>
+            </ul>
+            <p class="by">Quintice Chen · Mapping UK SME Lending</p>
+        </footer>
+    </div>
+
+    <div class="tip" id="tip"></div>
+
+    <script>
+        (function () {
+            var G = { big5: 'Big Five', chal: 'Challenger & specialist', nb: 'Non‑bank', bs: 'Building society' };
+            var GC = { big5: 'var(--big5)', chal: 'var(--chal)', nb: 'var(--nb)', bs: 'var(--ink-3)' };
+            var M = { auto: 'Automated', hybrid: 'Hybrid', manual: 'Manual' };
+            // [name, group, segment, products, mode, key figure, note]
+            var L = [
+                ['Lloyds', 'big5', 'High street', 'Business loans, overdraft, asset & invoice finance, commercial mortgage', 'hybrid', '—'],
+                ['NatWest', 'big5', 'High street', 'Small business loan £1k–£50k; asset finance via Lombard; invoice finance', 'hybrid', '—'],
+                ['Barclays', 'big5', 'High street', 'Unsecured loans £1k–£25k; commercial lending', 'hybrid', '—', 'Immediate decision possible for existing customers'],
+                ['HSBC UK', 'big5', 'High street', 'Small business loan; commercial loan £25k–£300k; commercial mortgage', 'hybrid', '—'],
+                ['Santander UK', 'big5', 'High street', 'Overdraft; business loan £25k+; invoice finance; commercial mortgage', 'hybrid', '—'],
+                ['OakNorth', 'chal', 'SME challenger', 'Growth, acquisition & property finance · ~£1m–£50m', 'manual', '£2.8bn originations', '40% of 2025 originations in the US'],
+                ['Allica', 'chal', 'SME challenger', 'Commercial mortgage, asset finance, growth finance; Kriya invoice finance', 'hybrid', '£3.7bn loan book', '63% commercial mortgages'],
+                ['Cynergy Bank', 'chal', 'SME challenger', 'Commercial & property lending, ABL, invoice finance', 'hybrid', '—'],
+                ['Cambridge & Counties', 'chal', 'SME challenger', 'Commercial mortgage, asset finance · ~£50k–£15m', 'hybrid', '£560m gross new lending'],
+                ['Shawbrook', 'chal', 'Specialist', 'SME term lending, asset & invoice finance, commercial real estate', 'manual', '£19.2bn loan book', 'SME book £4.4bn'],
+                ['Aldermore', 'chal', 'Specialist', 'Asset & invoice finance, commercial mortgage', 'manual', '—'],
+                ['Paragon', 'chal', 'Specialist', 'Development finance, asset & invoice finance; mostly buy-to-let', 'manual', '—'],
+                ['Secure Trust', 'chal', 'Specialist', 'Real-estate finance, invoice discounting, ABL', 'manual', '—'],
+                ['Close Brothers', 'chal', 'Specialist', 'Asset, invoice & property finance · ~£10k–£50m', 'manual', '—'],
+                ['Arbuthnot Latham', 'chal', 'Specialist', 'Commercial banking, ABL, property finance', 'manual', '—'],
+                ['Virgin Money', 'chal', 'Other traditional', 'Business loan, overdraft, asset & invoice finance', 'hybrid', '—', 'Now part of Nationwide'],
+                ['Metro Bank', 'chal', 'Other traditional', 'Commercial term loans, overdraft, asset & invoice finance', 'hybrid', '£3.6bn commercial book', 'Record ~£2bn commercial lending in 2025'],
+                ['TSB', 'chal', 'Other traditional', 'Business loan, overdraft, business card', 'hybrid', '—'],
+                ['Co-operative Bank', 'chal', 'Other traditional', 'Overdraft; loans £250k–£10m; commercial mortgage', 'hybrid', '—'],
+                ['Handelsbanken UK', 'chal', 'Other traditional', 'Relationship-led business loans, property & asset finance', 'manual', '—'],
+                ['Unity Trust', 'chal', 'Other traditional', 'Social-impact business loans, commercial mortgage', 'manual', '—'],
+                ['Starling', 'chal', 'Digital bank', 'Business account, overdraft', 'auto', '—', 'Loan book mostly mortgages'],
+                ['Revolut Business', 'chal', 'Digital bank', 'Business cards, cash-flow products', 'auto', '—', 'Full UK bank since Mar 2026'],
+                ['Monzo Business', 'chal', 'Digital bank', 'Business account and tools; no broad term loan', 'auto', '—'],
+                ['iwoca', 'nb', 'Working capital', 'Flexi-Loan £1k–£1m', 'auto', '—', 'Decision usually within 24 hours'],
+                ['Funding Circle', 'nb', 'Working capital', 'Term loans £10k–£750k; FlexiPay', 'auto', '£1.64bn term loans', '73% instant decisions'],
+                ['Capital on Tap', 'nb', 'Working capital', 'Business credit card up to £250k', 'auto', '—', 'Decision in about 2 minutes'],
+                ['YouLend', 'nb', 'Embedded', 'Revenue‑based advance via Amazon, eBay, Shopify, Etsy', 'auto', '—'],
+                ['Liberis', 'nb', 'Embedded', 'Business cash advance ~£1k–£1m', 'auto', '—'],
+                ['Uncapped', 'nb', 'Embedded', 'Revenue‑based finance for e-commerce and SaaS', 'auto', '—'],
+                ['Capify', 'nb', 'Embedded', 'Unsecured business loans, merchant cash advance', 'auto', '—'],
+                ['Tide', 'nb', 'Embedded', 'Finance marketplace, mainly via YouLend', 'auto', '—', 'Distributor, not a lender'],
+                ['Novuna Business Finance', 'nb', 'Asset finance', 'Hire purchase, leasing, sale-and-leaseback', 'hybrid', '£763m new business (FY25/26)', 'Part of Mitsubishi HC Capital'],
+                ['Simply Asset Finance', 'nb', 'Asset finance', 'Hire purchase, finance lease · ~£5k–£5m', 'hybrid', '—'],
+                ['Time Finance', 'nb', 'Asset finance', 'Asset & invoice finance, business loans · ~£5k–£3m', 'hybrid', '£122m own-book origination (FY25/26)'],
+                ['Bibby Financial Services', 'nb', 'Invoice finance', 'Factoring, invoice discounting, ABL', 'hybrid', '—'],
+                ['Kriya', 'nb', 'Invoice finance', 'Invoice finance, embedded pay-later', 'hybrid', '—', 'Acquired by Allica in 2025'],
+                ['eCapital UK', 'nb', 'Invoice finance', 'Factoring, invoice discounting, ABL', 'hybrid', '—'],
+                ['LendInvest', 'nb', 'Property', 'Bridging, development, buy-to-let · ~£75k–£25m', 'manual', '—'],
+                ['Triple Point', 'nb', 'Property / specialist', 'Cash-flow, acquisition & property finance · ~£2m–£20m', 'manual', '—'],
+                ['Premium Credit', 'nb', 'Specialist', 'Insurance-premium and fee finance', 'hybrid', '—'],
+                ['Yorkshire BS', 'bs', 'Building society', 'Commercial investment mortgages £300k–£20m', 'manual', '—'],
+                ['Skipton Business Finance', 'bs', 'Building society', 'Invoice finance, ABL', 'hybrid', '—']
+            ];
+            function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+            var rows = document.getElementById('rows'), q = document.getElementById('q'), count = document.getElementById('count');
+            var g = 'all';
+            function render() {
+                var t = q.value.trim().toLowerCase(), n = 0, h = '';
+                L.forEach(function (r) {
+                    if (g !== 'all' && r[1] !== g) return;
+                    if (t && (r[0] + ' ' + r[2] + ' ' + r[3] + ' ' + (r[6] || '')).toLowerCase().indexOf(t) < 0) return;
+                    n++;
+                    h += '<tr><td>' + esc(r[0]) + '</td>' +
+                        '<td><span class="gtag"><span class="sw" style="background:' + GC[r[1]] + '"></span>' + esc(G[r[1]]) + '</span><span class="flag">' + esc(r[2]) + '</span></td>' +
+                        '<td>' + esc(r[3]) + (r[6] ? '<span class="flag">' + esc(r[6]) + '</span>' : '') + '</td>' +
+                        '<td><span class="mode ' + r[4] + '"><i></i>' + M[r[4]] + '</span></td>' +
+                        '<td class="num">' + esc(r[5]) + '</td></tr>';
+                });
+                rows.innerHTML = h || '<tr><td colspan="5" style="color:var(--ink-3)">No lender matches.</td></tr>';
+                count.textContent = n + ' of ' + L.length + ' lenders';
+            }
+            q.addEventListener('input', render);
+            Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (c) {
+                c.addEventListener('click', function () {
+                    g = c.dataset.g;
+                    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (o) { o.setAttribute('aria-pressed', o === c ? 'true' : 'false'); });
+                    render();
+                });
+            });
+            render();
+
+            // bar tooltips
+            var tip = document.getElementById('tip');
+            Array.prototype.forEach.call(document.querySelectorAll('#bar div'), function (seg) {
+                seg.addEventListener('mousemove', function (e) {
+                    tip.innerHTML = seg.dataset.tip; tip.style.opacity = 1;
+                    tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 14) + 'px';
+                });
+                seg.addEventListener('mouseleave', function () { tip.style.opacity = 0; });
+            });
+        })();
+    </script>
+    <script src="/analysis/embed.js"></script>
+</body>
+
+</html>

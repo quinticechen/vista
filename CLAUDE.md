@@ -36,3 +36,7 @@ src/
 - **Build tool:** Vite
 - **Package manager:** Bun (`bun run dev`, `bun run build`)
 - **Routing:** React Router (check existing route structure before adding new routes)
+
+## Interactive Visuals
+- Standalone HTML visuals (diagrams, interactive reports) are published from `public/analysis/<slug>/` and embedded in Notion posts.
+- Follow `docs/PUBLISHING_VISUALS.md` and add every new visual to its registry.
