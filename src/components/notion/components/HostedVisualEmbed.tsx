@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import { VISUAL_HEIGHT_MESSAGE } from "../utils/hosted-visual";
 
 interface HostedVisualEmbedProps {
   src: string;
   caption?: string;
+  /** Accessible iframe title; falls back to the caption. */
+  title?: string;
+  className?: string;
 }
 
 interface VisualHeightMessage {
@@ -21,7 +25,7 @@ const isHeightMessage = (data: unknown): data is VisualHeightMessage =>
   (data as VisualHeightMessage).height > 0;
 
 // Full-width iframe that grows to the visual's content height, so the post scrolls as one page.
-export const HostedVisualEmbed: React.FC<HostedVisualEmbedProps> = ({ src, caption }) => {
+export const HostedVisualEmbed: React.FC<HostedVisualEmbedProps> = ({ src, caption, title, className }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(INITIAL_HEIGHT);
 
@@ -36,11 +40,11 @@ export const HostedVisualEmbed: React.FC<HostedVisualEmbedProps> = ({ src, capti
   }, []);
 
   return (
-    <figure className="my-6">
+    <figure className={cn("my-6", className)}>
       <iframe
         ref={iframeRef}
         src={src}
-        title={caption || "Interactive visual"}
+        title={title || caption || "Interactive visual"}
         style={{ height }}
         className="block w-full border-0"
         loading="lazy"
