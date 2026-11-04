@@ -19,6 +19,7 @@ import About from "./pages/About";
 import PurposeInput from "./pages/PurposeInput";
 import UrlParamVista from "./pages/UrlParamVista";
 import UrlParamContentDetail from "./pages/UrlParamContentDetail";
+import UrlParamAnalysis from "./pages/UrlParamAnalysis";
 
 // Admin pages
 import AdminLayout from "./components/AdminLayout";
@@ -33,7 +34,7 @@ const queryClient = new QueryClient();
 
 // Helper function to determine if a path segment is a reserved route
 const isReservedRoute = (segment: string): boolean => {
-  const reservedRoutes = ['admin', 'vista', 'about', 'auth', 'purpose-input'];
+  const reservedRoutes = ['admin', 'vista', 'about', 'auth', 'purpose-input', 'analysis'];
   return reservedRoutes.includes(segment.toLowerCase());
 };
 
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/:urlParam" element={<PublicRoute><UrlParam /></PublicRoute>} />
             <Route path="/:urlParam/vista" element={<PublicRoute><UrlParamVista /></PublicRoute>} />
             <Route path="/:urlParam/vista/:contentId" element={<PublicRoute><UrlParamContentDetail /></PublicRoute>} />
+            <Route path="/:urlParam/analysis/:slug" element={<PublicRoute><UrlParamAnalysis /></PublicRoute>} />
             
             {/* Catch-all route */}
             <Route path="*" element={<PublicRoute><NotFound /></PublicRoute>} />

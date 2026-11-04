@@ -36,3 +36,8 @@ src/
 - **Build tool:** Vite
 - **Package manager:** Bun (`bun run dev`, `bun run build`)
 - **Routing:** React Router (check existing route structure before adding new routes)
+
+## Analysis Pages
+- Standalone HTML analyses (diagrams, interactive reports) are published at `/{username}/analysis/{slug}/` with the user's personal header and footer.
+- Files live in `public/analysis/{username}/{slug}/index.html`; each one needs an entry in `public/analysis/manifest.json`.
+- Follow `docs/PUBLISHING_VISUALS.md`.
